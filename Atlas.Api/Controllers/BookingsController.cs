@@ -6,7 +6,8 @@ using Atlas.Api.Models;
 namespace Atlas.Api.Controllers
 {
     [ApiController]
-    [Route("api/bookings")]
+    [Route("bookings")]
+    [Produces("application/json")]
     public class BookingsController : ControllerBase
     {
         private readonly AppDbContext _context;

@@ -2,6 +2,9 @@ using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace Atlas.Api
 {
@@ -64,6 +67,25 @@ namespace Atlas.Api
                 }
             });
 
+            var jwtKey = builder.Configuration["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(jwtKey))
+            {
+                jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
+            }
+
+            builder.Services.AddAuthentication("Bearer")
+                .AddJwtBearer("Bearer", options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? string.Empty))
+                    };
+                });
+
             var app = builder.Build();
 
             // Enable Swagger even in production
@@ -80,6 +102,7 @@ namespace Atlas.Api
             }
             app.UseHttpsRedirection();
             app.UseCors("AllowAllOriginsTemp");
+            app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
             app.Run();

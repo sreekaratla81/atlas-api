@@ -73,18 +73,19 @@ namespace Atlas.Api
                 jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
             }
 
-            builder.Services.AddAuthentication("Bearer")
-                .AddJwtBearer("Bearer", options =>
-                {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = false,
-                        ValidateAudience = false,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? string.Empty))
-                    };
-                });
+            // TODO: Re-enable authentication before going to production
+            // builder.Services.AddAuthentication("Bearer")
+            //     .AddJwtBearer("Bearer", options =>
+            //     {
+            //         options.TokenValidationParameters = new TokenValidationParameters
+            //         {
+            //             ValidateIssuer = false,
+            //             ValidateAudience = false,
+            //             ValidateLifetime = true,
+            //             ValidateIssuerSigningKey = true,
+            //             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? string.Empty))
+            //         };
+            //     });
 
             var app = builder.Build();
 
@@ -102,8 +103,8 @@ namespace Atlas.Api
             }
             app.UseHttpsRedirection();
             app.UseCors("AllowAllOriginsTemp");
-            app.UseAuthentication();
-            app.UseAuthorization();
+            // app.UseAuthentication();
+            // app.UseAuthorization();
             app.MapControllers();
             app.Run();
         }

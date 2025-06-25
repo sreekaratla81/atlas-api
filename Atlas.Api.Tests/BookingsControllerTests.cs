@@ -3,6 +3,7 @@ using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Atlas.Api.Tests;
@@ -18,7 +19,7 @@ public class BookingsControllerTests
             .Options;
 
         using var context = new AppDbContext(options);
-        var controller = new BookingsController(context);
+        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
         var booking = new Booking
         {
             ListingId = 1,

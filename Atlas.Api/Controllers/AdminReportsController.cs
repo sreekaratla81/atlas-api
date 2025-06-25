@@ -3,6 +3,7 @@ using Atlas.Api.Models.Reports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Controllers
 {
@@ -13,10 +14,12 @@ namespace Atlas.Api.Controllers
     public class AdminReportsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<AdminReportsController> _logger;
 
-        public AdminReportsController(AppDbContext context)
+        public AdminReportsController(AppDbContext context, ILogger<AdminReportsController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpGet("bookings")]
@@ -91,45 +94,91 @@ namespace Atlas.Api.Controllers
         [HttpGet("earnings/monthly")]
         public async Task<ActionResult<IEnumerable<MonthlyEarningsSummary>>> GetMonthlyEarnings()
         {
-            var query = from p in _context.Payments
-                        join b in _context.Bookings on p.BookingId equals b.Id
-                        select new { p, b };
+            try
+            {
+                var endDate = DateTime.UtcNow;
+                var startDate = new DateTime(endDate.Year, endDate.Month, 1).AddMonths(-11);
 
-            var result = await query.GroupBy(x => x.p.ReceivedOn.ToString("yyyy-MM"))
-                .Select(g => new MonthlyEarningsSummary
+                var monthKeys = Enumerable.Range(0, 12)
+                    .Select(i => startDate.AddMonths(i))
+                    .Select(d => d.ToString("yyyy-MM"))
+                    .ToList();
+
+                var payments = await (from p in _context.Payments
+                                       join b in _context.Bookings on p.BookingId equals b.Id
+                                       where p.ReceivedOn >= startDate && p.ReceivedOn < startDate.AddMonths(12)
+                                       select new { p.Amount, p.ReceivedOn }).ToListAsync();
+
+                var grouped = payments
+                    .GroupBy(x => new { x.ReceivedOn.Year, x.ReceivedOn.Month })
+                    .Select(g => new
+                    {
+                        Key = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("yyyy-MM"),
+                        Gross = g.Sum(x => x.Amount)
+                    }).ToDictionary(g => g.Key, g => g.Gross);
+
+                var result = monthKeys.Select(k => new MonthlyEarningsSummary
                 {
-                    Month = g.Key,
-                    TotalGross = g.Sum(x => x.p.Amount),
+                    Month = k,
+                    TotalGross = grouped.TryGetValue(k, out var gross) ? gross : 0,
                     TotalFees = 0,
-                    TotalNet = g.Sum(x => x.p.Amount)
-                }).ToListAsync();
+                    TotalNet = grouped.TryGetValue(k, out var net) ? net : 0
+                }).ToList();
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate monthly earnings report");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpPost("earnings/monthly")]
         public async Task<ActionResult<IEnumerable<MonthlyEarningsSummary>>> GetMonthlyEarnings([FromBody] ReportFilter filter)
         {
-            var query = from p in _context.Payments
-                        join b in _context.Bookings on p.BookingId equals b.Id
-                        select new { p, b };
-            if (filter.StartDate.HasValue)
-                query = query.Where(x => x.p.ReceivedOn >= filter.StartDate.Value);
-            if (filter.EndDate.HasValue)
-                query = query.Where(x => x.p.ReceivedOn <= filter.EndDate.Value);
-            if (filter.ListingIds != null && filter.ListingIds.Any())
-                query = query.Where(x => filter.ListingIds.Contains(x.b.ListingId));
+            try
+            {
+                var endDate = filter.EndDate ?? DateTime.UtcNow;
+                var startDate = filter.StartDate ?? new DateTime(endDate.Year, endDate.Month, 1).AddMonths(-11);
 
-            var result = await query.GroupBy(x => x.p.ReceivedOn.ToString("yyyy-MM"))
-                .Select(g => new MonthlyEarningsSummary
+                var monthKeys = Enumerable.Range(0, 12)
+                    .Select(i => startDate.AddMonths(i))
+                    .Select(d => d.ToString("yyyy-MM"))
+                    .ToList();
+
+                var query = from p in _context.Payments
+                            join b in _context.Bookings on p.BookingId equals b.Id
+                            where p.ReceivedOn >= startDate && p.ReceivedOn < startDate.AddMonths(12)
+                            select new { p, b };
+                if (filter.ListingIds != null && filter.ListingIds.Any())
+                    query = query.Where(x => filter.ListingIds.Contains(x.b.ListingId));
+
+                var payments = await query.ToListAsync();
+
+                var grouped = payments
+                    .GroupBy(x => new { x.p.ReceivedOn.Year, x.p.ReceivedOn.Month })
+                    .Select(g => new
+                    {
+                        Key = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("yyyy-MM"),
+                        Gross = g.Sum(x => x.p.Amount)
+                    }).ToDictionary(g => g.Key, g => g.Gross);
+
+                var result = monthKeys.Select(k => new MonthlyEarningsSummary
                 {
-                    Month = g.Key,
-                    TotalGross = g.Sum(x => x.p.Amount),
+                    Month = k,
+                    TotalGross = grouped.TryGetValue(k, out var gross) ? gross : 0,
                     TotalFees = 0,
-                    TotalNet = g.Sum(x => x.p.Amount)
-                }).ToListAsync();
+                    TotalNet = grouped.TryGetValue(k, out var net) ? net : 0
+                }).ToList();
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate monthly earnings report");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpGet("payouts/daily")]

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Atlas.Api.Controllers
 {
     [ApiController]
-    [Route("")]
+    [Route("admin/reports")]
     [Produces("application/json")]
     [Authorize]
     public class AdminReportsController : ControllerBase
@@ -88,7 +88,7 @@ namespace Atlas.Api.Controllers
             return Ok(result);
         }
 
-        [HttpPost("reports/earnings/monthly")]
+        [HttpPost("earnings/monthly")]
         public async Task<ActionResult<IEnumerable<MonthlyEarningsSummary>>> GetMonthlyEarnings([FromBody] ReportFilter filter)
         {
             var query = from p in _context.Payments
@@ -113,7 +113,7 @@ namespace Atlas.Api.Controllers
             return Ok(result);
         }
 
-        [HttpGet("reports/payouts/daily")]
+        [HttpGet("payouts/daily")]
         public async Task<ActionResult<IEnumerable<DailyPayout>>> GetDailyPayoutReport(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -143,7 +143,7 @@ namespace Atlas.Api.Controllers
             return Ok(result);
         }
 
-        [HttpGet("reports/bookings/source")]
+        [HttpGet("bookings/source")]
         public async Task<ActionResult<IEnumerable<SourceBookingSummary>>> GetBookingSourceReport(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -168,7 +168,7 @@ namespace Atlas.Api.Controllers
             return Ok(result);
         }
 
-        [HttpGet("reports/bookings/calendar")]
+        [HttpGet("bookings/calendar")]
         public async Task<ActionResult<IEnumerable<CalendarBooking>>> GetCalendarBookings(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,

@@ -15,14 +15,12 @@ namespace Atlas.Api
             // Add services
             builder.Services.AddCors(options =>
             {
-                options.AddDefaultPolicy(policy =>
+                // TODO: Restrict CORS to specific domains after 1 month (e.g., by July 26, 2025)
+                options.AddPolicy("AllowAllOriginsTemp", policy =>
                 {
-                    policy.WithOrigins(
-                        "http://localhost:5173",
-                        "https://admin.atlashomestays.com" // add your production domain here later
-                    )
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
                 });
             });
             // Add services to the container.
@@ -81,7 +79,7 @@ namespace Atlas.Api
                 app.UseDeveloperExceptionPage(); // Use detailed error page only in development
             }
             app.UseHttpsRedirection();
-            app.UseCors();
+            app.UseCors("AllowAllOriginsTemp");
             app.UseAuthorization();
             app.MapControllers();
             app.Run();

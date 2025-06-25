@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Atlas.Api.Models
 {
@@ -7,10 +8,16 @@ namespace Atlas.Api.Models
         public int Id { get; set; }
 
         [Required]
+        [ForeignKey(nameof(Listing))]
         public int ListingId { get; set; }
 
+        public Listing Listing { get; set; } = null!;
+
         [Required]
+        [ForeignKey(nameof(Guest))]
         public int GuestId { get; set; }
+
+        public Guest Guest { get; set; } = null!;
 
         public DateTime CheckinDate { get; set; }
         public DateTime CheckoutDate { get; set; }

@@ -1,5 +1,7 @@
 using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using System.Text.Json.Serialization;
 
 namespace Atlas.Api
 {
@@ -25,10 +27,20 @@ namespace Atlas.Api
             });
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services
+                .AddControllers()
+                .AddJsonOptions(opts =>
+                {
+                    opts.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Atlas API", Version = "v1" });
+                c.CustomSchemaIds(type => type.FullName);
+                c.IgnoreObsoleteProperties();
+            });
             // Connection string can come from appsettings.json, appsettings.{Environment}.json
             // or environment variables. Azure App Service typically injects the
             // connection string as `ConnectionStrings__DefaultConnection` so we
@@ -46,7 +58,13 @@ namespace Atlas.Api
                 throw new InvalidOperationException("Database connection string is not configured.");
             }
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(connectionString));
+            {
+                options.UseSqlServer(connectionString);
+                if (builder.Environment.IsDevelopment())
+                {
+                    options.LogTo(Console.WriteLine);
+                }
+            });
 
             var app = builder.Build();
 

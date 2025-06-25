@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Atlas.Api.Data;
 using Atlas.Api.Models;
 
@@ -10,23 +11,48 @@ namespace Atlas.Api.Controllers
     public class BookingsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<BookingsController> _logger;
 
-        public BookingsController(AppDbContext context)
+        public BookingsController(AppDbContext context, ILogger<BookingsController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Booking>>> GetAll()
         {
-            return await _context.Bookings.ToListAsync();
+            try
+            {
+                var bookings = await _context.Bookings
+                    .Include(b => b.Listing)
+                    .Include(b => b.Guest)
+                    .ToListAsync();
+                return Ok(bookings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving bookings");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Booking>> Get(int id)
         {
-            var item = await _context.Bookings.FindAsync(id);
-            return item == null ? NotFound() : item;
+            try
+            {
+                var item = await _context.Bookings
+                    .Include(b => b.Listing)
+                    .Include(b => b.Guest)
+                    .FirstOrDefaultAsync(b => b.Id == id);
+                return item == null ? NotFound() : Ok(item);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving booking {BookingId}", id);
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpPost]
@@ -40,38 +66,45 @@ namespace Atlas.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                _logger.LogError(ex, "Error creating booking");
+                return StatusCode(500, "Internal server error");
             }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] Booking booking)
         {
-            if (id != booking.Id) return BadRequest();
-
-            var existingBooking = await _context.Bookings.FindAsync(id);
-            if (existingBooking == null) return NotFound();
-
-            // Update allowed fields
-            existingBooking.CheckinDate = booking.CheckinDate;
-            existingBooking.CheckoutDate = booking.CheckoutDate;
-            existingBooking.PlannedCheckinTime = booking.PlannedCheckinTime;
-            existingBooking.ActualCheckinTime = booking.ActualCheckinTime;
-            existingBooking.PlannedCheckoutTime = booking.PlannedCheckoutTime;
-            existingBooking.ActualCheckoutTime = booking.ActualCheckoutTime;
-            existingBooking.BookingSource = booking.BookingSource;
-            existingBooking.PaymentStatus = booking.PaymentStatus;
-            existingBooking.AmountReceived = booking.AmountReceived;
-            existingBooking.Notes = booking.Notes;
-
             try
             {
+                if (id != booking.Id) return BadRequest();
+
+                var existingBooking = await _context.Bookings.FindAsync(id);
+                if (existingBooking == null) return NotFound();
+
+                // Update allowed fields
+                existingBooking.CheckinDate = booking.CheckinDate;
+                existingBooking.CheckoutDate = booking.CheckoutDate;
+                existingBooking.PlannedCheckinTime = booking.PlannedCheckinTime;
+                existingBooking.ActualCheckinTime = booking.ActualCheckinTime;
+                existingBooking.PlannedCheckoutTime = booking.PlannedCheckoutTime;
+                existingBooking.ActualCheckoutTime = booking.ActualCheckoutTime;
+                existingBooking.BookingSource = booking.BookingSource;
+                existingBooking.PaymentStatus = booking.PaymentStatus;
+                existingBooking.AmountReceived = booking.AmountReceived;
+                existingBooking.Notes = booking.Notes;
+
                 await _context.SaveChangesAsync();
                 return NoContent();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException ex)
             {
-                return StatusCode(500, "A concurrency error occurred while updating the booking.");
+                _logger.LogError(ex, "Concurrency error updating booking {BookingId}", id);
+                return StatusCode(500, "Concurrency error updating booking");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating booking {BookingId}", id);
+                return StatusCode(500, "Internal server error");
             }
         }
 
@@ -88,7 +121,8 @@ namespace Atlas.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                _logger.LogError(ex, "Error deleting booking {BookingId}", id);
+                return StatusCode(500, "Internal server error");
             }
         }
     }

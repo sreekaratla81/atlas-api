@@ -88,6 +88,25 @@ namespace Atlas.Api.Controllers
             return Ok(result);
         }
 
+        [HttpGet("earnings/monthly")]
+        public async Task<ActionResult<IEnumerable<MonthlyEarningsSummary>>> GetMonthlyEarnings()
+        {
+            var query = from p in _context.Payments
+                        join b in _context.Bookings on p.BookingId equals b.Id
+                        select new { p, b };
+
+            var result = await query.GroupBy(x => x.p.ReceivedOn.ToString("yyyy-MM"))
+                .Select(g => new MonthlyEarningsSummary
+                {
+                    Month = g.Key,
+                    TotalGross = g.Sum(x => x.p.Amount),
+                    TotalFees = 0,
+                    TotalNet = g.Sum(x => x.p.Amount)
+                }).ToListAsync();
+
+            return Ok(result);
+        }
+
         [HttpPost("earnings/monthly")]
         public async Task<ActionResult<IEnumerable<MonthlyEarningsSummary>>> GetMonthlyEarnings([FromBody] ReportFilter filter)
         {

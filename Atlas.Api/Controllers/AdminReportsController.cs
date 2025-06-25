@@ -9,7 +9,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("admin/reports")]
     [Produces("application/json")]
-    [Authorize]
+    [AllowAnonymous]
     public class AdminReportsController : ControllerBase
     {
         private readonly AppDbContext _context;

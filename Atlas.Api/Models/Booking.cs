@@ -13,14 +13,14 @@ namespace Atlas.Api.Models
         public int ListingId { get; set; }
 
         [JsonIgnore]
-        public Listing Listing { get; set; } = null!;
+        public Listing? Listing { get; set; }
 
         [Required]
         [ForeignKey(nameof(Guest))]
         public int GuestId { get; set; }
 
         [JsonIgnore]
-        public Guest Guest { get; set; } = null!;
+        public Guest? Guest { get; set; }
 
         public DateTime CheckinDate { get; set; }
         public DateTime CheckoutDate { get; set; }

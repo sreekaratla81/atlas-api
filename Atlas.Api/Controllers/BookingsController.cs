@@ -77,12 +77,18 @@ namespace Atlas.Api.Controllers
         {
             try
             {
+                if (booking.Id == 0)
+                {
+                    booking.Id = id;
+                }
                 if (id != booking.Id) return BadRequest();
 
                 var existingBooking = await _context.Bookings.FindAsync(id);
                 if (existingBooking == null) return NotFound();
 
                 // Update allowed fields
+                existingBooking.GuestId = booking.GuestId;
+                existingBooking.ListingId = booking.ListingId;
                 existingBooking.CheckinDate = booking.CheckinDate;
                 existingBooking.CheckoutDate = booking.CheckoutDate;
                 existingBooking.PlannedCheckinTime = booking.PlannedCheckinTime;

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Atlas.Api.Models
 {
@@ -11,12 +12,14 @@ namespace Atlas.Api.Models
         [ForeignKey(nameof(Listing))]
         public int ListingId { get; set; }
 
+        [JsonIgnore]
         public Listing Listing { get; set; } = null!;
 
         [Required]
         [ForeignKey(nameof(Guest))]
         public int GuestId { get; set; }
 
+        [JsonIgnore]
         public Guest Guest { get; set; } = null!;
 
         public DateTime CheckinDate { get; set; }

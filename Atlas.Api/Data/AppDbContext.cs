@@ -15,6 +15,15 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<Booking>()
                 .Property(b => b.AmountReceived)
                 .HasPrecision(18, 2);
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.ExtraGuestCharge)
+                .HasPrecision(18, 2);
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.AmountGuestPaid)
+                .HasPrecision(18, 2);
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.CommissionAmount)
+                .HasPrecision(18, 2);
 
             modelBuilder.Entity<Payment>()
                 .Property(p => p.Amount)

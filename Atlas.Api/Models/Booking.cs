@@ -27,6 +27,11 @@ namespace Atlas.Api.Models
         public string BookingSource { get; set; }
         public string PaymentStatus { get; set; }
         public decimal AmountReceived { get; set; }
+        public int GuestsPlanned { get; set; }
+        public int GuestsActual { get; set; }
+        public decimal ExtraGuestCharge { get; set; }
+        public decimal AmountGuestPaid { get; set; }
+        public decimal CommissionAmount { get; set; }
         public string Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

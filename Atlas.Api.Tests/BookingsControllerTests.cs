@@ -1,6 +1,7 @@
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
 using Atlas.Api.Models;
+using Atlas.Api.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -20,21 +21,26 @@ public class BookingsControllerTests
 
         using var context = new AppDbContext(options);
         var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
-        var booking = new Booking
+        var request = new CreateBookingRequest
         {
             ListingId = 1,
             GuestId = 1,
-            BookingSource = "Direct",
-            PaymentStatus = "Paid",
+            BookingSource = "airbnb",
+            AmountReceived = 100,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
             Notes = "test"
         };
 
         // Act
-        var result = await controller.Create(booking);
+        var result = await controller.Create(request);
 
         // Assert
         var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
         Assert.Equal(nameof(BookingsController.Get), createdResult.ActionName);
-        Assert.Same(booking, createdResult.Value);
+        var dto = Assert.IsType<BookingDto>(createdResult.Value);
+        Assert.Equal(1, dto.ListingId);
+        Assert.Equal(100, dto.AmountReceived);
     }
 }

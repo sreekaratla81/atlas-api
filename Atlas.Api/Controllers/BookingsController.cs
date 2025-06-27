@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Atlas.Api.Data;
 using Atlas.Api.Models;
+using Atlas.Api.DTOs;
+using System.Linq;
 
 namespace Atlas.Api.Controllers
 {
@@ -21,7 +23,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Booking>>> GetAll()
+        public async Task<ActionResult<IEnumerable<BookingDto>>> GetAll()
         {
             try
             {
@@ -29,7 +31,9 @@ namespace Atlas.Api.Controllers
                     .Include(b => b.Listing)
                     .Include(b => b.Guest)
                     .ToListAsync();
-                return Ok(bookings);
+
+                var result = bookings.Select(MapToDto).ToList();
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -39,7 +43,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Booking>> Get(int id)
+        public async Task<ActionResult<BookingDto>> Get(int id)
         {
             try
             {
@@ -47,7 +51,7 @@ namespace Atlas.Api.Controllers
                     .Include(b => b.Listing)
                     .Include(b => b.Guest)
                     .FirstOrDefaultAsync(b => b.Id == id);
-                return item == null ? NotFound() : Ok(item);
+                return item == null ? NotFound() : Ok(MapToDto(item));
             }
             catch (Exception ex)
             {
@@ -57,13 +61,44 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Booking>> Create([FromBody] Booking booking)
+        public async Task<ActionResult<BookingDto>> Create([FromBody] CreateBookingRequest request)
         {
             try
             {
+                var commissionRate = request.BookingSource.ToLower() switch
+                {
+                    "airbnb" => 0.16m,
+                    "booking.com" => 0.15m,
+                    "agoda" => 0.18m,
+                    _ => 0m
+                };
+
+                var amountGuestPaid = request.AmountReceived + request.ExtraGuestCharge;
+                var commissionAmount = amountGuestPaid * commissionRate;
+
+                var booking = new Booking
+                {
+                    ListingId = request.ListingId,
+                    GuestId = request.GuestId,
+                    BookingSource = request.BookingSource,
+                    CheckinDate = request.CheckinDate,
+                    CheckoutDate = request.CheckoutDate,
+                    AmountReceived = request.AmountReceived,
+                    GuestsPlanned = request.GuestsPlanned,
+                    GuestsActual = request.GuestsActual,
+                    ExtraGuestCharge = request.ExtraGuestCharge,
+                    AmountGuestPaid = amountGuestPaid,
+                    CommissionAmount = commissionAmount,
+                    Notes = request.Notes,
+                    CreatedAt = DateTime.UtcNow,
+                    PaymentStatus = request.AmountReceived > 0 ? "Paid" : "Unpaid"
+                };
+
                 _context.Bookings.Add(booking);
                 await _context.SaveChangesAsync();
-                return CreatedAtAction(nameof(Get), new { id = booking.Id }, booking);
+
+                var dto = MapToDto(booking);
+                return CreatedAtAction(nameof(Get), new { id = booking.Id }, dto);
             }
             catch (Exception ex)
             {
@@ -94,6 +129,11 @@ namespace Atlas.Api.Controllers
                 existingBooking.BookingSource = booking.BookingSource;
                 existingBooking.PaymentStatus = booking.PaymentStatus;
                 existingBooking.AmountReceived = booking.AmountReceived;
+                existingBooking.GuestsPlanned = booking.GuestsPlanned;
+                existingBooking.GuestsActual = booking.GuestsActual;
+                existingBooking.ExtraGuestCharge = booking.ExtraGuestCharge;
+                existingBooking.AmountGuestPaid = booking.AmountGuestPaid;
+                existingBooking.CommissionAmount = booking.CommissionAmount;
                 existingBooking.Notes = booking.Notes;
 
                 await _context.SaveChangesAsync();
@@ -127,6 +167,27 @@ namespace Atlas.Api.Controllers
                 _logger.LogError(ex, "Error deleting booking {BookingId}", id);
                 return StatusCode(500, "Internal server error");
             }
+        }
+
+        private static BookingDto MapToDto(Booking booking)
+        {
+            return new BookingDto
+            {
+                Id = booking.Id,
+                ListingId = booking.ListingId,
+                GuestId = booking.GuestId,
+                CheckinDate = booking.CheckinDate,
+                CheckoutDate = booking.CheckoutDate,
+                BookingSource = booking.BookingSource,
+                AmountReceived = booking.AmountReceived,
+                GuestsPlanned = booking.GuestsPlanned,
+                GuestsActual = booking.GuestsActual,
+                ExtraGuestCharge = booking.ExtraGuestCharge,
+                AmountGuestPaid = booking.AmountGuestPaid,
+                CommissionAmount = booking.CommissionAmount,
+                Notes = booking.Notes,
+                CreatedAt = booking.CreatedAt
+            };
         }
     }
 }

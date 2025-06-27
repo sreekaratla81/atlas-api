@@ -21,9 +21,9 @@ public class AdminReportsControllerTests
         var start = new DateTime(now.Year, now.Month, 1).AddMonths(-11);
 
         context.Bookings.AddRange(
-            new Booking { ListingId = 1, GuestId = 1, CheckinDate = start.AddDays(1), BookingSource = "airbnb", PaymentStatus = "Paid", AmountReceived = 100, Notes = string.Empty },
-            new Booking { ListingId = 1, GuestId = 1, CheckinDate = start.AddMonths(1).AddDays(2), BookingSource = "booking.com", PaymentStatus = "Paid", AmountReceived = 200, Notes = string.Empty },
-            new Booking { ListingId = 1, GuestId = 1, CheckinDate = start.AddMonths(1).AddDays(3), BookingSource = "agoda", PaymentStatus = "Paid", AmountReceived = 300, Notes = string.Empty }
+            new Booking { ListingId = 1, GuestId = 1, CheckinDate = start.AddDays(1), BookingSource = "airbnb", AmountReceived = 100, Notes = string.Empty },
+            new Booking { ListingId = 1, GuestId = 1, CheckinDate = start.AddMonths(1).AddDays(2), BookingSource = "booking.com", AmountReceived = 200, Notes = string.Empty },
+            new Booking { ListingId = 1, GuestId = 1, CheckinDate = start.AddMonths(1).AddDays(3), BookingSource = "agoda", AmountReceived = 300, Notes = string.Empty }
         );
         await context.SaveChangesAsync();
 

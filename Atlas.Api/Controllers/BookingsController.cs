@@ -179,11 +179,11 @@ namespace Atlas.Api.Controllers
                 CheckoutDate = booking.CheckoutDate,
                 BookingSource = booking.BookingSource,
                 AmountReceived = booking.AmountReceived,
-                GuestsPlanned = booking.GuestsPlanned,
-                GuestsActual = booking.GuestsActual,
-                ExtraGuestCharge = booking.ExtraGuestCharge,
-                AmountGuestPaid = booking.AmountGuestPaid,
-                CommissionAmount = booking.CommissionAmount,
+                GuestsPlanned = booking.GuestsPlanned ?? 0,
+                GuestsActual = booking.GuestsActual ?? 0,
+                ExtraGuestCharge = booking.ExtraGuestCharge ?? 0,
+                AmountGuestPaid = booking.AmountGuestPaid ?? 0,
+                CommissionAmount = booking.CommissionAmount ?? 0,
                 Notes = booking.Notes,
                 CreatedAt = booking.CreatedAt
             };

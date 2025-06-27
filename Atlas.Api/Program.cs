@@ -101,7 +101,7 @@ namespace Atlas.Api
             {
                 app.UseDeveloperExceptionPage(); // Use detailed error page only in development
             }
-            app.UseHttpsRedirection();
+            // app.UseHttpsRedirection();
             app.UseCors("AllowAllOriginsTemp");
             // app.UseAuthentication();
             // app.UseAuthorization();

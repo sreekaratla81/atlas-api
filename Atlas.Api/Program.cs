@@ -94,18 +94,32 @@ namespace Atlas.Api
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Atlas API v1");
-                c.RoutePrefix = "swagger"; // ensures URL ends with /swagger
+                c.RoutePrefix = "swagger";
             });
 
             if (app.Environment.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage(); // Use detailed error page only in development
+                app.UseDeveloperExceptionPage();
             }
-            // app.UseHttpsRedirection();
+
+            // ✅ Add Routing middleware
+            app.UseRouting();
+
+            // ✅ Enable CORS (must come after UseRouting and before MapControllers)
             app.UseCors("AllowAllOriginsTemp");
+
+            // Optional: HTTPS redirect
+            // app.UseHttpsRedirection();
+
             // app.UseAuthentication();
             // app.UseAuthorization();
+
+            // ✅ (Temporary) Allow OPTIONS test
+            app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
+
+            // ✅ Map your controllers
             app.MapControllers();
+
             app.Run();
         }
     }

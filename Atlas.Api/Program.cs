@@ -106,7 +106,21 @@ namespace Atlas.Api
             app.UseRouting();
 
             // ✅ Enable CORS (must come after UseRouting and before MapControllers)
-            app.UseCors("AllowAllOriginsTemp");
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Method == HttpMethods.Options)
+                {
+                    context.Response.StatusCode = 200;
+                    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                    context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
+                    context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                    await context.Response.CompleteAsync();
+                }
+                else
+                {
+                    await next();
+                }
+            });
 
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();

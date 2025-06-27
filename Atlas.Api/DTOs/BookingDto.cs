@@ -17,6 +17,6 @@ namespace Atlas.Api.DTOs
         public string Notes { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
 
-        public string PaymentStatus => AmountReceived > 0 ? "Paid" : "Unpaid";
+        public string PaymentStatus { get; set; } = "Pending";
     }
 }

@@ -34,6 +34,11 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Guest>> Create(Guest item)
         {
+            if (string.IsNullOrWhiteSpace(item.IdProofUrl))
+            {
+                item.IdProofUrl = "N/A";
+            }
+
             _context.Guests.Add(item);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(Get), new { id = item.Id }, item);

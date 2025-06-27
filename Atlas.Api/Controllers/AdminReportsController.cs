@@ -104,25 +104,34 @@ namespace Atlas.Api.Controllers
                     .Select(d => d.ToString("yyyy-MM"))
                     .ToList();
 
-                var payments = await (from p in _context.Payments
-                                       join b in _context.Bookings on p.BookingId equals b.Id
-                                       where p.ReceivedOn >= startDate && p.ReceivedOn < startDate.AddMonths(12)
-                                       select new { p.Amount, p.ReceivedOn }).ToListAsync();
+                var bookings = await _context.Bookings
+                    .Where(b => b.CheckinDate >= startDate && b.CheckinDate < startDate.AddMonths(12))
+                    .Select(b => new { b.CheckinDate, b.AmountReceived, b.BookingSource })
+                    .ToListAsync();
 
-                var grouped = payments
-                    .GroupBy(x => new { x.ReceivedOn.Year, x.ReceivedOn.Month })
+                var grouped = bookings
+                    .GroupBy(b => new { b.CheckinDate.Year, b.CheckinDate.Month })
                     .Select(g => new
                     {
                         Key = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("yyyy-MM"),
-                        Gross = g.Sum(x => x.Amount)
-                    }).ToDictionary(g => g.Key, g => g.Gross);
+                        TotalNet = g.Sum(x => x.AmountReceived),
+                        TotalFees = g.Sum(x =>
+                            x.BookingSource.ToLower() switch
+                            {
+                                "airbnb" => x.AmountReceived * 0.16m,
+                                "booking.com" => x.AmountReceived * 0.15m,
+                                "agoda" => x.AmountReceived * 0.18m,
+                                _ => 0m
+                            })
+                    })
+                    .ToDictionary(g => g.Key, g => new { g.TotalNet, g.TotalFees });
 
                 var result = monthKeys.Select(k => new MonthlyEarningsSummary
                 {
                     Month = k,
-                    TotalGross = grouped.TryGetValue(k, out var gross) ? gross : 0,
-                    TotalFees = 0,
-                    TotalNet = grouped.TryGetValue(k, out var net) ? net : 0
+                    TotalNet = grouped.TryGetValue(k, out var data) ? data.TotalNet : 0,
+                    TotalFees = grouped.TryGetValue(k, out data) ? data.TotalFees : 0,
+                    TotalGross = grouped.TryGetValue(k, out data) ? data.TotalNet + data.TotalFees : 0
                 }).ToList();
 
                 return Ok(result);
@@ -147,29 +156,38 @@ namespace Atlas.Api.Controllers
                     .Select(d => d.ToString("yyyy-MM"))
                     .ToList();
 
-                var query = from p in _context.Payments
-                            join b in _context.Bookings on p.BookingId equals b.Id
-                            where p.ReceivedOn >= startDate && p.ReceivedOn < startDate.AddMonths(12)
-                            select new { p, b };
+                var query = _context.Bookings.AsQueryable();
+                query = query.Where(b => b.CheckinDate >= startDate && b.CheckinDate < startDate.AddMonths(12));
                 if (filter.ListingIds != null && filter.ListingIds.Any())
-                    query = query.Where(x => filter.ListingIds.Contains(x.b.ListingId));
+                    query = query.Where(b => filter.ListingIds.Contains(b.ListingId));
 
-                var payments = await query.ToListAsync();
+                var bookings = await query
+                    .Select(b => new { b.CheckinDate, b.AmountReceived, b.BookingSource })
+                    .ToListAsync();
 
-                var grouped = payments
-                    .GroupBy(x => new { x.p.ReceivedOn.Year, x.p.ReceivedOn.Month })
+                var grouped = bookings
+                    .GroupBy(b => new { b.CheckinDate.Year, b.CheckinDate.Month })
                     .Select(g => new
                     {
                         Key = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("yyyy-MM"),
-                        Gross = g.Sum(x => x.p.Amount)
-                    }).ToDictionary(g => g.Key, g => g.Gross);
+                        TotalNet = g.Sum(x => x.AmountReceived),
+                        TotalFees = g.Sum(x =>
+                            x.BookingSource.ToLower() switch
+                            {
+                                "airbnb" => x.AmountReceived * 0.16m,
+                                "booking.com" => x.AmountReceived * 0.15m,
+                                "agoda" => x.AmountReceived * 0.18m,
+                                _ => 0m
+                            })
+                    })
+                    .ToDictionary(g => g.Key, g => new { g.TotalNet, g.TotalFees });
 
                 var result = monthKeys.Select(k => new MonthlyEarningsSummary
                 {
                     Month = k,
-                    TotalGross = grouped.TryGetValue(k, out var gross) ? gross : 0,
-                    TotalFees = 0,
-                    TotalNet = grouped.TryGetValue(k, out var net) ? net : 0
+                    TotalNet = grouped.TryGetValue(k, out var data) ? data.TotalNet : 0,
+                    TotalFees = grouped.TryGetValue(k, out data) ? data.TotalFees : 0,
+                    TotalGross = grouped.TryGetValue(k, out data) ? data.TotalNet + data.TotalFees : 0
                 }).ToList();
 
                 return Ok(result);

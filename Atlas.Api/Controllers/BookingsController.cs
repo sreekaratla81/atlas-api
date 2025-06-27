@@ -90,8 +90,7 @@ namespace Atlas.Api.Controllers
                     AmountGuestPaid = amountGuestPaid,
                     CommissionAmount = commissionAmount,
                     Notes = request.Notes,
-                    CreatedAt = DateTime.UtcNow,
-                    PaymentStatus = request.AmountReceived > 0 ? "Paid" : "Unpaid"
+                    CreatedAt = DateTime.UtcNow
                 };
 
                 _context.Bookings.Add(booking);
@@ -127,7 +126,6 @@ namespace Atlas.Api.Controllers
                 existingBooking.CheckinDate = booking.CheckinDate;
                 existingBooking.CheckoutDate = booking.CheckoutDate;
                 existingBooking.BookingSource = booking.BookingSource;
-                existingBooking.PaymentStatus = booking.PaymentStatus;
                 existingBooking.AmountReceived = booking.AmountReceived;
                 existingBooking.GuestsPlanned = booking.GuestsPlanned;
                 existingBooking.GuestsActual = booking.GuestsActual;

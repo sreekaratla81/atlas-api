@@ -28,6 +28,7 @@ namespace Atlas.Api.Controllers
             try
             {
                 var bookings = await _context.Bookings
+                    .AsNoTracking()
                     .Include(b => b.Listing)
                     .Include(b => b.Guest)
                     .ToListAsync();

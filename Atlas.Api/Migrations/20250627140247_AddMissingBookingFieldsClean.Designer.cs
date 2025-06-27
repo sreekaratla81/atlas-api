@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250627104226_AddGuestAndCommissionFieldsToBooking")]
-    partial class AddGuestAndCommissionFieldsToBooking
+    [Migration("20250627140247_AddMissingBookingFieldsClean")]
+    partial class AddMissingBookingFieldsClean
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,7 +33,7 @@ namespace Atlas.Api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("AmountGuestPaid")
+                    b.Property<decimal?>("AmountGuestPaid")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
@@ -51,34 +51,30 @@ namespace Atlas.Api.Migrations
                     b.Property<DateTime>("CheckoutDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("CommissionAmount")
+                    b.Property<decimal?>("CommissionAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("ExtraGuestCharge")
+                    b.Property<decimal?>("ExtraGuestCharge")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("GuestId")
                         .HasColumnType("int");
 
-                    b.Property<int>("GuestsActual")
+                    b.Property<int?>("GuestsActual")
                         .HasColumnType("int");
 
-                    b.Property<int>("GuestsPlanned")
+                    b.Property<int?>("GuestsPlanned")
                         .HasColumnType("int");
 
                     b.Property<int>("ListingId")
                         .HasColumnType("int");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentStatus")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

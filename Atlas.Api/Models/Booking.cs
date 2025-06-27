@@ -28,11 +28,11 @@ namespace Atlas.Api.Models
         [NotMapped]
         public string PaymentStatus => AmountReceived > 0 ? "Paid" : "Unpaid";
         public decimal AmountReceived { get; set; }
-        public int GuestsPlanned { get; set; }
-        public int GuestsActual { get; set; }
-        public decimal ExtraGuestCharge { get; set; }
-        public decimal AmountGuestPaid { get; set; }
-        public decimal CommissionAmount { get; set; }
+        public int? GuestsPlanned { get; set; }
+        public int? GuestsActual { get; set; }
+        public decimal? ExtraGuestCharge { get; set; }
+        public decimal? AmountGuestPaid { get; set; }
+        public decimal? CommissionAmount { get; set; }
         public string Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

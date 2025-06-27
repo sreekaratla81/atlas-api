@@ -30,7 +30,7 @@ namespace Atlas.Api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("AmountGuestPaid")
+                    b.Property<decimal?>("AmountGuestPaid")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
@@ -48,24 +48,24 @@ namespace Atlas.Api.Migrations
                     b.Property<DateTime>("CheckoutDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("CommissionAmount")
+                    b.Property<decimal?>("CommissionAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("ExtraGuestCharge")
+                    b.Property<decimal?>("ExtraGuestCharge")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("GuestId")
                         .HasColumnType("int");
 
-                    b.Property<int>("GuestsActual")
+                    b.Property<int?>("GuestsActual")
                         .HasColumnType("int");
 
-                    b.Property<int>("GuestsPlanned")
+                    b.Property<int?>("GuestsPlanned")
                         .HasColumnType("int");
 
                     b.Property<int>("ListingId")

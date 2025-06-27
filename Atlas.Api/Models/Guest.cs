@@ -7,6 +7,6 @@ namespace Atlas.Api.Models
         public string Name { get; set; }
         public string Phone { get; set; }
         public string Email { get; set; }
-        public string IdProofUrl { get; set; }
+        public string? IdProofUrl { get; set; }
     }
 }

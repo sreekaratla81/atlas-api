@@ -82,6 +82,7 @@ namespace Atlas.Api.Controllers
                     ListingId = request.ListingId,
                     GuestId = request.GuestId,
                     BookingSource = request.BookingSource,
+                    PaymentStatus = string.IsNullOrWhiteSpace(request.PaymentStatus) ? "Pending" : request.PaymentStatus,
                     CheckinDate = request.CheckinDate,
                     CheckoutDate = request.CheckoutDate,
                     AmountReceived = request.AmountReceived,
@@ -185,7 +186,8 @@ namespace Atlas.Api.Controllers
                 AmountGuestPaid = booking.AmountGuestPaid ?? 0,
                 CommissionAmount = booking.CommissionAmount ?? 0,
                 Notes = booking.Notes,
-                CreatedAt = booking.CreatedAt
+                CreatedAt = booking.CreatedAt,
+                PaymentStatus = booking.PaymentStatus
             };
         }
     }

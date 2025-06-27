@@ -11,6 +11,7 @@ namespace Atlas.Api.DTOs
         public int GuestsPlanned { get; set; }
         public int GuestsActual { get; set; }
         public decimal ExtraGuestCharge { get; set; }
+        public string? PaymentStatus { get; set; }
         public string Notes { get; set; } = string.Empty;
     }
 }

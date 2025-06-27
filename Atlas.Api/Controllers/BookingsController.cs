@@ -90,10 +90,6 @@ namespace Atlas.Api.Controllers
                 existingBooking.ListingId = booking.ListingId;
                 existingBooking.CheckinDate = booking.CheckinDate;
                 existingBooking.CheckoutDate = booking.CheckoutDate;
-                existingBooking.PlannedCheckinTime = booking.PlannedCheckinTime;
-                existingBooking.ActualCheckinTime = booking.ActualCheckinTime;
-                existingBooking.PlannedCheckoutTime = booking.PlannedCheckoutTime;
-                existingBooking.ActualCheckoutTime = booking.ActualCheckoutTime;
                 existingBooking.BookingSource = booking.BookingSource;
                 existingBooking.PaymentStatus = booking.PaymentStatus;
                 existingBooking.AmountReceived = booking.AmountReceived;

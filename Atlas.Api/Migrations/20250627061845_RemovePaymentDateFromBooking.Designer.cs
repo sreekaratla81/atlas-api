@@ -4,6 +4,7 @@ using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250627061845_RemovePaymentDateFromBooking")]
+    partial class RemovePaymentDateFromBooking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,6 +32,12 @@ namespace Atlas.Api.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<TimeSpan?>("ActualCheckinTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("ActualCheckoutTime")
+                        .HasColumnType("time");
 
                     b.Property<decimal>("AmountReceived")
                         .HasPrecision(18, 2)
@@ -61,11 +70,14 @@ namespace Atlas.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<TimeSpan?>("PlannedCheckinTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("PlannedCheckoutTime")
+                        .HasColumnType("time");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("GuestId");
-
-                    b.HasIndex("ListingId");
 
                     b.ToTable("Bookings");
                 });
@@ -182,7 +194,6 @@ namespace Atlas.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId");
 
                     b.ToTable("Listings");
                 });
@@ -298,18 +309,6 @@ namespace Atlas.Api.Migrations
 
             modelBuilder.Entity("Atlas.Api.Models.Booking", b =>
                 {
-                    b.HasOne("Atlas.Api.Models.Guest", "Guest")
-                        .WithMany()
-                        .HasForeignKey("GuestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Atlas.Api.Models.Listing", "Listing")
-                        .WithMany("Bookings")
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Guest");
 
                     b.Navigation("Listing");
@@ -317,12 +316,6 @@ namespace Atlas.Api.Migrations
 
             modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
                 {
-                    b.HasOne("Atlas.Api.Models.Property", "Property")
-                        .WithMany()
-                        .HasForeignKey("PropertyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Property");
                 });
 

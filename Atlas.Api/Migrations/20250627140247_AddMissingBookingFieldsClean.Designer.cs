@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250627134609_AddMissingBookingFieldsClean")]
+    [Migration("20250627140247_AddMissingBookingFieldsClean")]
     partial class AddMissingBookingFieldsClean
     {
         /// <inheritdoc />

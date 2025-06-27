@@ -5,7 +5,7 @@
 namespace Atlas.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddGuestAndCommissionFieldsToBooking : Migration
+    public partial class AddMissingBookingFieldsClean : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,8 +16,7 @@ namespace Atlas.Api.Migrations
                 type: "decimal(18,2)",
                 precision: 18,
                 scale: 2,
-                nullable: false,
-                defaultValue: 0m);
+                nullable: true);
 
             migrationBuilder.AddColumn<decimal>(
                 name: "CommissionAmount",
@@ -25,8 +24,7 @@ namespace Atlas.Api.Migrations
                 type: "decimal(18,2)",
                 precision: 18,
                 scale: 2,
-                nullable: false,
-                defaultValue: 0m);
+                nullable: true);
 
             migrationBuilder.AddColumn<decimal>(
                 name: "ExtraGuestCharge",
@@ -34,22 +32,19 @@ namespace Atlas.Api.Migrations
                 type: "decimal(18,2)",
                 precision: 18,
                 scale: 2,
-                nullable: false,
-                defaultValue: 0m);
+                nullable: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "GuestsActual",
                 table: "Bookings",
                 type: "int",
-                nullable: false,
-                defaultValue: 0);
+                nullable: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "GuestsPlanned",
                 table: "Bookings",
                 type: "int",
-                nullable: false,
-                defaultValue: 0);
+                nullable: true);
         }
 
         /// <inheritdoc />

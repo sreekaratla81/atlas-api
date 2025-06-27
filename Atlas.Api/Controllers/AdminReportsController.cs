@@ -273,7 +273,7 @@ namespace Atlas.Api.Controllers
                 ListingId = b.ListingId,
                 Date = b.CheckinDate,
                 Amount = b.AmountReceived,
-                Status = b.PaymentStatus
+                Status = b.AmountReceived > 0 ? "Paid" : "Unpaid"
             }).ToListAsync();
 
             return Ok(result);

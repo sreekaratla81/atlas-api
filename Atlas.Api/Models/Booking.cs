@@ -25,8 +25,7 @@ namespace Atlas.Api.Models
         public DateTime CheckinDate { get; set; }
         public DateTime CheckoutDate { get; set; }
         public string BookingSource { get; set; }
-        [NotMapped]
-        public string PaymentStatus => AmountReceived > 0 ? "Paid" : "Unpaid";
+        public string PaymentStatus { get; set; } = "Pending";
         public decimal AmountReceived { get; set; }
         public int? GuestsPlanned { get; set; }
         public int? GuestsActual { get; set; }

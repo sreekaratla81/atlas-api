@@ -107,7 +107,7 @@ namespace Atlas.Api
 
             // ✅ Correct CORS setup
             app.UseCors(policy => policy
-                .WithOrigins("https://admin.atlashomestays.com")
+                .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials() // Optional: only if you use cookies or Authorization headers

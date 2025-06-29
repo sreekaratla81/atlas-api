@@ -9,6 +9,7 @@ namespace Atlas.Api.DTOs
         public DateTime CheckoutDate { get; set; }
         public string BookingSource { get; set; } = string.Empty;
         public decimal AmountReceived { get; set; }
+        public int? BankAccountId { get; set; }
         public int GuestsPlanned { get; set; }
         public int GuestsActual { get; set; }
         public decimal ExtraGuestCharge { get; set; }

@@ -86,6 +86,7 @@ namespace Atlas.Api.Controllers
                     CheckinDate = request.CheckinDate,
                     CheckoutDate = request.CheckoutDate,
                     AmountReceived = request.AmountReceived,
+                    BankAccountId = request.BankAccountId,
                     GuestsPlanned = request.GuestsPlanned,
                     GuestsActual = request.GuestsActual,
                     ExtraGuestCharge = request.ExtraGuestCharge,
@@ -135,6 +136,7 @@ namespace Atlas.Api.Controllers
                 existingBooking.AmountGuestPaid = booking.AmountGuestPaid;
                 existingBooking.CommissionAmount = booking.CommissionAmount;
                 existingBooking.Notes = booking.Notes;
+                existingBooking.BankAccountId = booking.BankAccountId;
 
                 await _context.SaveChangesAsync();
                 return NoContent();
@@ -180,6 +182,7 @@ namespace Atlas.Api.Controllers
                 CheckoutDate = booking.CheckoutDate,
                 BookingSource = booking.BookingSource,
                 AmountReceived = booking.AmountReceived,
+                BankAccountId = booking.BankAccountId,
                 GuestsPlanned = booking.GuestsPlanned ?? 0,
                 GuestsActual = booking.GuestsActual ?? 0,
                 ExtraGuestCharge = booking.ExtraGuestCharge ?? 0,

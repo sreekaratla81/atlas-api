@@ -41,5 +41,6 @@ namespace Atlas.Api.Data
         public DbSet<Incident> Incidents { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<BankAccount> BankAccounts { get; set; }
     }
 }

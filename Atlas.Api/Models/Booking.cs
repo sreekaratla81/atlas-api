@@ -27,6 +27,11 @@ namespace Atlas.Api.Models
         public string BookingSource { get; set; }
         public string PaymentStatus { get; set; } = "Pending";
         public decimal AmountReceived { get; set; }
+        [ForeignKey(nameof(BankAccount))]
+        public int? BankAccountId { get; set; }
+
+        [JsonIgnore]
+        public BankAccount? BankAccount { get; set; }
         public int? GuestsPlanned { get; set; }
         public int? GuestsActual { get; set; }
         public decimal? ExtraGuestCharge { get; set; }

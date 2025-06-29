@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Atlas.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("bankaccounts")]
     public class BankAccountsController : ControllerBase
     {
         private readonly AppDbContext _context;

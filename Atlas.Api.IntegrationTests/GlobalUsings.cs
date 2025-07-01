@@ -1,3 +1,3 @@
 global using System.Net.Http.Json;
-using Xunit;
+global using Xunit;
 

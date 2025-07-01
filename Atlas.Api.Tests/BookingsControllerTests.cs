@@ -109,8 +109,8 @@ public class BookingsControllerTests
             Microsoft.Extensions.Logging.LogLevel.Error,
             Moq.It.IsAny<Microsoft.Extensions.Logging.EventId>(),
             Moq.It.IsAny<Moq.It.IsAnyType>(),
-            Moq.It.IsAny<DbUpdateConcurrencyException>(),
-            (Func<Moq.It.IsAnyType, Exception, string>)Moq.It.IsAny<object>()),
+            Moq.It.IsAny<DbUpdateConcurrencyException?>(),
+            (Func<Moq.It.IsAnyType, Exception?, string>)Moq.It.IsAny<object>()),
             Moq.Times.Once);
     }
 

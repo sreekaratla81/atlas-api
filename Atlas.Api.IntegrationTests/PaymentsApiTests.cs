@@ -109,4 +109,60 @@ public class PaymentsApiTests : IntegrationTestBase
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         Assert.Equal(1, await db2.Payments.CountAsync());
     }
+
+    [Fact]
+    public async Task Put_UpdatesPayment()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await SeedBookingAsync(db);
+        var payment = new Payment
+        {
+            BookingId = booking.Id,
+            Amount = 50,
+            Method = "cash",
+            Type = "partial",
+            ReceivedOn = DateTime.UtcNow,
+            Note = "first"
+        };
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        payment.Note = "updated";
+        var response = await Client.PutAsJsonAsync($"/api/payments/{payment.Id}", payment);
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var updated = await db2.Payments.FindAsync(payment.Id);
+        Assert.Equal("updated", updated!.Note);
+    }
+
+    [Fact]
+    public async Task Delete_RemovesPayment()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await SeedBookingAsync(db);
+        var payment = new Payment
+        {
+            BookingId = booking.Id,
+            Amount = 50,
+            Method = "cash",
+            Type = "partial",
+            ReceivedOn = DateTime.UtcNow,
+            Note = "first"
+        };
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+        var id = payment.Id;
+
+        var response = await Client.DeleteAsync($"/api/payments/{id}");
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var exists = await db2.Payments.AnyAsync(p => p.Id == id);
+        Assert.False(exists);
+    }
 }

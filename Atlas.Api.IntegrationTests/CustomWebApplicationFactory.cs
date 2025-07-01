@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -13,15 +12,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.ConfigureAppConfiguration((context, config) =>
-        {
-            var testConn = "Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_TestDb;Trusted_Connection=True;MultipleActiveResultSets=true";
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:DefaultConnection"] = testConn
-            });
-        });
-
         builder.ConfigureServices(services =>
         {
             var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
@@ -29,7 +19,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 services.Remove(descriptor);
             }
-            var testConn = "Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_TestDb;Trusted_Connection=True;MultipleActiveResultSets=true";
+
+            var testConn = "Server=localhost;Database=AtlasHomestays_TestDb;User Id=sa;Password=YourStrong!Passw0rd;";
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseSqlServer(testConn);
@@ -38,7 +29,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var sp = services.BuildServiceProvider();
             using var scope = sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
+            db.Database.Migrate();
         });
     }
 }

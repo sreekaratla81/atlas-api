@@ -10,7 +10,7 @@ namespace Atlas.Api.Models
         [ForeignKey(nameof(Property))]
         public int PropertyId { get; set; }
 
-        public required Property Property { get; set; };
+        public required Property Property { get; set; }
         public required string Name { get; set; }
         public int Floor { get; set; }
         public required string Type { get; set; }

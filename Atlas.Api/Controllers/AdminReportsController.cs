@@ -84,6 +84,7 @@ namespace Atlas.Api.Controllers
                 {
                     Date = g.Key.Date,
                     ListingId = g.Key.ListingId,
+                    Listing = string.Empty,
                     Amount = g.Sum(x => x.p.Amount),
                     Status = "Sent"
                 }).ToListAsync();

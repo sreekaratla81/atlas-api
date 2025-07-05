@@ -23,16 +23,24 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BookingDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<BookingDto>>> GetAll(
+            [FromQuery] DateTime? checkinStart,
+            [FromQuery] DateTime? checkinEnd)
         {
             try
             {
-                var bookings = await _context.Bookings
+                var query = _context.Bookings
                     .AsNoTracking()
                     .Include(b => b.Listing)
                     .Include(b => b.Guest)
-                    .ToListAsync();
+                    .AsQueryable();
 
+                if (checkinStart.HasValue && checkinEnd.HasValue)
+                {
+                    query = query.Where(b => b.CheckinDate >= checkinStart.Value && b.CheckinDate <= checkinEnd.Value);
+                }
+
+                var bookings = await query.ToListAsync();
                 var result = bookings.Select(MapToDto).ToList();
                 return Ok(result);
             }

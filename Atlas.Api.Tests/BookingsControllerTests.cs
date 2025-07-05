@@ -88,6 +88,47 @@ public class BookingsControllerTests
     }
 
     [Fact]
+    public async Task GetAll_ReturnsAllBookings_WhenNoFilters()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(GetAll_ReturnsAllBookings_WhenNoFilters))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.Bookings.AddRange(
+            new Booking { ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending", CheckinDate = new DateTime(2025, 7, 10), CheckoutDate = new DateTime(2025, 7, 12) },
+            new Booking { ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending", CheckinDate = new DateTime(2025, 8, 1), CheckoutDate = new DateTime(2025, 8, 3) }
+        );
+        await context.SaveChangesAsync();
+        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+
+        var result = await controller.GetAll(null, null);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var items = Assert.IsType<List<BookingDto>>(ok.Value);
+        Assert.Equal(2, items.Count);
+    }
+
+    [Fact]
+    public async Task GetAll_FiltersBookings_WhenCheckinRangeProvided()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(GetAll_FiltersBookings_WhenCheckinRangeProvided))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.Bookings.AddRange(
+            new Booking { ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending", CheckinDate = new DateTime(2025, 7, 10), CheckoutDate = new DateTime(2025, 7, 12) },
+            new Booking { ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending", CheckinDate = new DateTime(2025, 8, 1), CheckoutDate = new DateTime(2025, 8, 3) }
+        );
+        await context.SaveChangesAsync();
+        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+
+        var result = await controller.GetAll(new DateTime(2025, 7, 1), new DateTime(2025, 7, 31));
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var items = Assert.IsType<List<BookingDto>>(ok.Value);
+        Assert.Single(items);
+        Assert.Equal(new DateTime(2025, 7, 10), items[0].CheckinDate);
+    }
+
+    [Fact]
     public async Task Update_ReturnsConcurrencyError_WhenSaveFails()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

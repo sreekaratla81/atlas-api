@@ -1,0 +1,3 @@
+dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --collect:"XPlat Code Coverage" --settings ./coverage.runsettings --results-directory ./Atlas.Api.Tests/TestResults
+reportgenerator -reports:"Atlas.Api.Tests/TestResults/**/coverage.cobertura.xml" -targetdir:"Atlas.Api.Tests/coverage-report" -reporttypes:Html
+start Atlas.Api.Tests/coverage-report/index.html

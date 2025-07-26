@@ -31,18 +31,37 @@ namespace Atlas.Api.Controllers
             {
                 var query = _context.Bookings
                     .AsNoTracking()
-                    .Include(b => b.Listing)
-                    .Include(b => b.Guest)
                     .AsQueryable();
 
-                if (checkinStart.HasValue && checkinEnd.HasValue)
-                {
-                    query = query.Where(b => b.CheckinDate >= checkinStart.Value && b.CheckinDate <= checkinEnd.Value);
-                }
+                if (checkinStart.HasValue)
+                    query = query.Where(b => b.CheckinDate >= checkinStart.Value);
 
-                var bookings = await query.ToListAsync();
-                var result = bookings.Select(MapToDto).ToList();
-                return Ok(result);
+                if (checkinEnd.HasValue)
+                    query = query.Where(b => b.CheckinDate <= checkinEnd.Value);
+
+                var bookings = await query
+                    .Select(b => new BookingDto
+                    {
+                        Id = b.Id,
+                        ListingId = b.ListingId,
+                        GuestId = b.GuestId,
+                        CheckinDate = b.CheckinDate,
+                        CheckoutDate = b.CheckoutDate,
+                        BookingSource = b.BookingSource,
+                        AmountReceived = b.AmountReceived,
+                        BankAccountId = b.BankAccountId,
+                        GuestsPlanned = b.GuestsPlanned ?? 0,
+                        GuestsActual = b.GuestsActual ?? 0,
+                        ExtraGuestCharge = b.ExtraGuestCharge ?? 0,
+                        AmountGuestPaid = b.AmountGuestPaid ?? 0,
+                        CommissionAmount = b.CommissionAmount ?? 0,
+                        Notes = b.Notes,
+                        CreatedAt = b.CreatedAt,
+                        PaymentStatus = b.PaymentStatus
+                    })
+                    .ToListAsync();
+
+                return Ok(bookings);
             }
             catch (Exception ex)
             {

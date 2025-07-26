@@ -24,8 +24,8 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      - name: Publish
-        run: dotnet publish --configuration Release --output ./publish
+      - name: Publish .NET API
+        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2

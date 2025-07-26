@@ -24,8 +24,8 @@ namespace Atlas.Api.Models
 
         public DateTime CheckinDate { get; set; }
         public DateTime CheckoutDate { get; set; }
-        public string BookingSource { get; set; }
-        public string PaymentStatus { get; set; } = "Pending";
+        public required string BookingSource { get; set; }
+        public required string PaymentStatus { get; set; } = "Pending";
         public decimal AmountReceived { get; set; }
         [ForeignKey(nameof(BankAccount))]
         public int? BankAccountId { get; set; }
@@ -37,7 +37,7 @@ namespace Atlas.Api.Models
         public decimal? ExtraGuestCharge { get; set; }
         public decimal? AmountGuestPaid { get; set; }
         public decimal? CommissionAmount { get; set; }
-        public string Notes { get; set; }
+        public required string Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

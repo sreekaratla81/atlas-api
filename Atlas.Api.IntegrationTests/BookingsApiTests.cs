@@ -1,0 +1,149 @@
+using Atlas.Api.Data;
+using Atlas.Api.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Atlas.Api.IntegrationTests;
+
+public class BookingsApiTests : IntegrationTestBase
+{
+    public BookingsApiTests(CustomWebApplicationFactory factory) : base(factory) {}
+
+    private async Task<(Property property, Listing listing, Guest guest, Booking booking)> SeedBookingAsync(AppDbContext db)
+    {
+        var property = new Property
+        {
+            Name = "Test Property",
+            Address = "123 Street",
+            Type = "House",
+            OwnerName = "Owner",
+            ContactPhone = "555-0000",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        db.Properties.Add(property);
+        await db.SaveChangesAsync();
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Test Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "wifi",
+            WifiPassword = "pass",
+            MaxGuests = 2
+        };
+        db.Listings.Add(listing);
+        var guest = new Guest
+        {
+            Name = "Guest",
+            Phone = "123456",
+            Email = "guest@example.com",
+            IdProofUrl = "N/A"
+        };
+        db.Guests.Add(guest);
+        await db.SaveChangesAsync();
+        var booking = new Booking
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BookingSource = "airbnb",
+            PaymentStatus = "Pending",
+            CheckinDate = DateTime.UtcNow.Date,
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(1),
+            AmountReceived = 100,
+            GuestsPlanned = 1,
+            GuestsActual = 1,
+            ExtraGuestCharge = 0,
+            AmountGuestPaid = 100,
+            CommissionAmount = 0,
+            Notes = "note",
+            BankAccountId = null
+        };
+        db.Bookings.Add(booking);
+        await db.SaveChangesAsync();
+        return (property, listing, guest, booking);
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsOk()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await SeedBookingAsync(db);
+
+        var response = await Client.GetAsync("/api/bookings");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_CreatesBooking()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var newBooking = new Booking
+        {
+            ListingId = data.listing.Id,
+            GuestId = data.guest.Id,
+            BookingSource = "airbnb",
+            PaymentStatus = "Pending",
+            CheckinDate = DateTime.UtcNow.Date,
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(2),
+            AmountReceived = 200,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
+            AmountGuestPaid = 200,
+            CommissionAmount = 0,
+            Notes = "create",
+            BankAccountId = null
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var count = await db2.Bookings.CountAsync();
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    public async Task Put_UpdatesBooking()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+        var id = data.booking.Id;
+
+        data.booking.Notes = "updated";
+        var response = await Client.PutAsJsonAsync($"/api/bookings/{id}", data.booking);
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var updated = await db2.Bookings.FindAsync(id);
+        Assert.Equal("updated", updated!.Notes);
+    }
+
+    [Fact]
+    public async Task Delete_RemovesBooking()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+        var id = data.booking.Id;
+
+        var response = await Client.DeleteAsync($"/api/bookings/{id}");
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var exists = await db2.Bookings.AnyAsync(b => b.Id == id);
+        Assert.False(exists);
+    }
+}

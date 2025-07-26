@@ -9,22 +9,69 @@ public class PropertiesApiTests : IntegrationTestBase
 {
     public PropertiesApiTests(CustomWebApplicationFactory factory) : base(factory) {}
 
+    private static async Task<(Property property, Listing listing, Guest guest, Booking booking)> SeedDataAsync(AppDbContext db)
+    {
+        var property = new Property
+        {
+            Name = "SeedProp",
+            Address = "Addr",
+            Type = "House",
+            OwnerName = "Owner",
+            ContactPhone = "000",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        db.Properties.Add(property);
+        await db.SaveChangesAsync();
+
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "wifi",
+            WifiPassword = "pass",
+            MaxGuests = 2
+        };
+        db.Listings.Add(listing);
+
+        var guest = new Guest
+        {
+            Name = "Guest",
+            Phone = "1",
+            Email = "g@example.com",
+            IdProofUrl = "N/A"
+        };
+        db.Guests.Add(guest);
+        await db.SaveChangesAsync();
+
+        var booking = new Booking
+        {
+            PropertyId = property.Id,
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BookingSource = "airbnb",
+            PaymentStatus = "Pending",
+            CheckinDate = DateTime.UtcNow.Date,
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(1),
+            AmountReceived = 100,
+            Notes = "seed"
+        };
+        db.Bookings.Add(booking);
+        await db.SaveChangesAsync();
+
+        return (property, listing, guest, booking);
+    }
+
     [Fact]
     public async Task GetAll_ReturnsOk()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Properties.Add(new Property
-        {
-            Name = "Prop1",
-            Address = "Addr",
-            Type = "House",
-            OwnerName = "Owner",
-            ContactPhone = "111",
-            CommissionPercent = 10,
-            Status = "Active"
-        });
-        await db.SaveChangesAsync();
+        await SeedDataAsync(db);
 
         var response = await Client.GetAsync("/api/properties");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);

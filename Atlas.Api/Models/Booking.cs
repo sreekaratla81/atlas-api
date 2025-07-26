@@ -16,6 +16,13 @@ namespace Atlas.Api.Models
         public Listing? Listing { get; set; }
 
         [Required]
+        [ForeignKey(nameof(Property))]
+        public int PropertyId { get; set; }
+
+        [JsonIgnore]
+        public Property? Property { get; set; }
+
+        [Required]
         [ForeignKey(nameof(Guest))]
         public int GuestId { get; set; }
 

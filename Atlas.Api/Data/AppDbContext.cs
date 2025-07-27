@@ -37,14 +37,12 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
                 .WithMany()
-                .HasForeignKey(b => b.GuestId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(b => b.GuestId);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Listing)
                 .WithMany()
-                .HasForeignKey(b => b.ListingId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(b => b.ListingId);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Property)

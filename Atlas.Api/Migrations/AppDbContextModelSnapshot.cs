@@ -372,7 +372,7 @@ namespace Atlas.Api.Migrations
                         .IsRequired();
 
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
-                        .WithMany("Bookings")
+                        .WithMany()
                         .HasForeignKey("ListingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

@@ -32,6 +32,23 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<Property>()
                 .Property(p => p.CommissionPercent)
                 .HasPrecision(5, 2);
+
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Guest)
+                .WithMany()
+                .HasForeignKey(b => b.GuestId);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Listing)
+                .WithMany()
+                .HasForeignKey(b => b.ListingId);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Property)
+                .WithMany()
+                .HasForeignKey(b => b.PropertyId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         public DbSet<Property> Properties { get; set; }

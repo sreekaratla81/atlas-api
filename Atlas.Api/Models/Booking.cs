@@ -12,15 +12,20 @@ namespace Atlas.Api.Models
         [ForeignKey(nameof(Listing))]
         public int ListingId { get; set; }
 
+        public Listing Listing { get; set; }
+
+        [Required]
+        [ForeignKey(nameof(Property))]
+        public int PropertyId { get; set; }
+
         [JsonIgnore]
-        public Listing? Listing { get; set; }
+        public Property? Property { get; set; }
 
         [Required]
         [ForeignKey(nameof(Guest))]
         public int GuestId { get; set; }
 
-        [JsonIgnore]
-        public Guest? Guest { get; set; }
+        public Guest Guest { get; set; }
 
         public DateTime CheckinDate { get; set; }
         public DateTime CheckoutDate { get; set; }

@@ -33,6 +33,7 @@ namespace Atlas.Api.Data
                 .Property(p => p.CommissionPercent)
                 .HasPrecision(5, 2);
 
+
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
                 .WithMany()
@@ -41,7 +42,7 @@ namespace Atlas.Api.Data
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Listing)
-                .WithMany(l => l.Bookings)
+                .WithMany()
                 .HasForeignKey(b => b.ListingId)
                 .OnDelete(DeleteBehavior.Cascade);
 

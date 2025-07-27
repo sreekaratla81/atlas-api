@@ -385,10 +385,6 @@ namespace Atlas.Api.Migrations
 
                     b.Navigation("BankAccount");
 
-                    b.Navigation("Guest");
-
-                    b.Navigation("Listing");
-
                     b.Navigation("Property");
                 });
 

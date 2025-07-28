@@ -1,4 +1,5 @@
 using Atlas.Api.Data;
+using System.Net.Http.Json;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,12 +70,20 @@ public class PropertiesApiTests : IntegrationTestBase
     [Fact]
     public async Task GetAll_ReturnsOk()
     {
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await SeedDataAsync(db);
-
         var response = await Client.GetAsync("/api/properties");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var properties = await response.Content.ReadFromJsonAsync<List<Property>>();
+        Assert.Contains(properties, p => p.Name == "Test Villa");
+    }
+
+    [Fact]
+    public async Task Get_ReturnsNotFound_WhenMissing()
+    {
+        // Id 1 is seeded in every test run. Use a high value that will not exist
+        // to verify the NotFound response.
+        var response = await Client.GetAsync("/api/properties/999");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -96,7 +105,7 @@ public class PropertiesApiTests : IntegrationTestBase
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var count = await db.Properties.CountAsync();
-        Assert.Equal(1, count);
+        Assert.Equal(2, count);
     }
 
     [Fact]
@@ -128,6 +137,14 @@ public class PropertiesApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Put_ReturnsBadRequest_OnIdMismatch()
+    {
+        var property = new Property { Id = 1, Name = "P", Address = "A", Type = "T", OwnerName = "O", ContactPhone = "0", CommissionPercent = 10, Status = "A" };
+        var response = await Client.PutAsJsonAsync("/api/properties/2", property);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Delete_RemovesProperty()
     {
         using var scope = Factory.Services.CreateScope();
@@ -153,5 +170,14 @@ public class PropertiesApiTests : IntegrationTestBase
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var exists = await db2.Properties.AnyAsync(p => p.Id == id);
         Assert.False(exists);
+    }
+
+    [Fact]
+    public async Task Delete_ReturnsNotFound_WhenMissing()
+    {
+        // The database always contains a seed property with Id 1. Use a
+        // non-existent id to ensure the API returns NotFound.
+        var response = await Client.DeleteAsync("/api/properties/999");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

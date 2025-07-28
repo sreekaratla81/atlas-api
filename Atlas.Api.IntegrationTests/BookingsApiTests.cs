@@ -148,6 +148,90 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var request = new
+        {
+            ListingId = data.listing.Id,
+            GuestId = data.guest.Id,
+            BookingSource = "airbnb",
+            CheckinDate = DateTime.UtcNow.Date,
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(2),
+            AmountReceived = 200,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
+            Notes = "create"
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/bookings", request);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Put_ReturnsBadRequest_WhenPaymentStatusMissing()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var request = new
+        {
+            Id = data.booking.Id,
+            ListingId = data.booking.ListingId,
+            PropertyId = data.booking.PropertyId,
+            GuestId = data.booking.GuestId,
+            BookingSource = data.booking.BookingSource,
+            CheckinDate = data.booking.CheckinDate,
+            CheckoutDate = data.booking.CheckoutDate,
+            AmountReceived = data.booking.AmountReceived,
+            GuestsPlanned = data.booking.GuestsPlanned,
+            GuestsActual = data.booking.GuestsActual,
+            ExtraGuestCharge = data.booking.ExtraGuestCharge,
+            AmountGuestPaid = data.booking.AmountGuestPaid,
+            CommissionAmount = data.booking.CommissionAmount,
+            Notes = "updated",
+            BankAccountId = data.booking.BankAccountId
+        };
+
+        var response = await Client.PutAsJsonAsync($"/api/bookings/{data.booking.Id}", request);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_ReturnsCreated_WhenPaymentStatusProvided()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var request = new
+        {
+            ListingId = data.listing.Id,
+            GuestId = data.guest.Id,
+            BookingSource = "airbnb",
+            PaymentStatus = "Paid",
+            CheckinDate = DateTime.UtcNow.Date,
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(3),
+            AmountReceived = 250,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
+            Notes = "full"
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/bookings", request);
+
+        Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Delete_RemovesBooking()
     {
         using var scope = Factory.Services.CreateScope();

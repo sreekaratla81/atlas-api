@@ -89,6 +89,25 @@ public class PaymentsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Get_ReturnsOk()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await SeedBookingAsync(db);
+        var payment = await DataSeeder.SeedPaymentAsync(db, booking);
+
+        var response = await Client.GetAsync($"/api/payments/{payment.Id}");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.GetAsync("/api/payments/1");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Post_CreatesPayment()
     {
         using var scope = Factory.Services.CreateScope();
@@ -139,6 +158,14 @@ public class PaymentsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Put_ReturnsBadRequest_OnIdMismatch()
+    {
+        var payment = new Payment { Id = 1, BookingId = 1, Amount = 1, Method = "c", Type = "t", ReceivedOn = DateTime.UtcNow, Note = "n" };
+        var response = await Client.PutAsJsonAsync("/api/payments/2", payment);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Delete_RemovesPayment()
     {
         using var scope = Factory.Services.CreateScope();
@@ -164,5 +191,12 @@ public class PaymentsApiTests : IntegrationTestBase
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var exists = await db2.Payments.AnyAsync(p => p.Id == id);
         Assert.False(exists);
+    }
+
+    [Fact]
+    public async Task Delete_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.DeleteAsync("/api/payments/1");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

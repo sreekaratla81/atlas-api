@@ -80,6 +80,13 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Get_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.GetAsync("/api/bookings/1");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Post_CreatesBooking()
     {
         using var scope = Factory.Services.CreateScope();
@@ -133,6 +140,14 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Put_ReturnsBadRequest_OnIdMismatch()
+    {
+        var booking = new Booking { Id = 1, ListingId = 1, PropertyId = 1, GuestId = 1, BookingSource = "a", PaymentStatus = "p", CheckinDate = DateTime.UtcNow, CheckoutDate = DateTime.UtcNow, AmountReceived = 0, Notes = "n" };
+        var response = await Client.PutAsJsonAsync("/api/bookings/2", booking);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Delete_RemovesBooking()
     {
         using var scope = Factory.Services.CreateScope();
@@ -147,5 +162,12 @@ public class BookingsApiTests : IntegrationTestBase
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var exists = await db2.Bookings.AnyAsync(b => b.Id == id);
         Assert.False(exists);
+    }
+
+    [Fact]
+    public async Task Delete_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.DeleteAsync("/api/bookings/1");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

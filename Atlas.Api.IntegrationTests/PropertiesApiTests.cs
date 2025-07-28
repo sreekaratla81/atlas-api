@@ -78,6 +78,13 @@ public class PropertiesApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Get_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.GetAsync("/api/properties/1");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Post_CreatesProperty()
     {
         var property = new Property
@@ -128,6 +135,14 @@ public class PropertiesApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Put_ReturnsBadRequest_OnIdMismatch()
+    {
+        var property = new Property { Id = 1, Name = "P", Address = "A", Type = "T", OwnerName = "O", ContactPhone = "0", CommissionPercent = 10, Status = "A" };
+        var response = await Client.PutAsJsonAsync("/api/properties/2", property);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Delete_RemovesProperty()
     {
         using var scope = Factory.Services.CreateScope();
@@ -153,5 +168,12 @@ public class PropertiesApiTests : IntegrationTestBase
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var exists = await db2.Properties.AnyAsync(p => p.Id == id);
         Assert.False(exists);
+    }
+
+    [Fact]
+    public async Task Delete_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.DeleteAsync("/api/properties/1");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

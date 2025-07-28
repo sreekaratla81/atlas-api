@@ -5,83 +5,84 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Api.IntegrationTests;
 
-public class GuestsApiTests : IntegrationTestBase
+public class UsersApiTests : IntegrationTestBase
 {
-    public GuestsApiTests(CustomWebApplicationFactory factory) : base(factory) {}
+    public UsersApiTests(CustomWebApplicationFactory factory) : base(factory) { }
 
     [Fact]
     public async Task GetAll_ReturnsOk()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Guests.Add(new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" });
-        await db.SaveChangesAsync();
-        var response = await Client.GetAsync("/api/guests");
+        await DataSeeder.SeedUserAsync(db);
+
+        var response = await Client.GetAsync("/api/api/users");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync("/api/guests/1");
+        var response = await Client.GetAsync("/api/api/users/1");
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task Post_CreatesGuest()
+    public async Task Post_CreatesUser()
     {
-        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" };
-        var response = await Client.PostAsJsonAsync("/api/guests", guest);
+        var user = new User { Name = "User", Phone = "1", Email = "u@example.com", PasswordHash = "hash", Role = "admin" };
+        var response = await Client.PostAsJsonAsync("/api/api/users", user);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
+
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(1, await db.Guests.CountAsync());
+        Assert.Equal(1, await db.Users.CountAsync());
     }
 
     [Fact]
-    public async Task Put_UpdatesGuest()
+    public async Task Put_UpdatesUser()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" };
-        db.Guests.Add(guest);
-        await db.SaveChangesAsync();
-        guest.Name = "Updated";
-        var response = await Client.PutAsJsonAsync($"/api/guests/{guest.Id}", guest);
+        var user = await DataSeeder.SeedUserAsync(db);
+        user.Name = "Updated";
+
+        var response = await Client.PutAsJsonAsync($"/api/api/users/{user.Id}", user);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal("Updated", (await db2.Guests.FindAsync(guest.Id))!.Name);
+        Assert.Equal("Updated", (await db2.Users.FindAsync(user.Id))!.Name);
     }
 
     [Fact]
     public async Task Put_ReturnsBadRequest_OnIdMismatch()
     {
-        var guest = new Guest { Id = 1, Name = "G", Phone = "1", Email = "e", IdProofUrl = "N/A" };
-        var response = await Client.PutAsJsonAsync("/api/guests/2", guest);
+        var user = new User { Id = 1, Name = "U", Phone = "1", Email = "e", PasswordHash = "p", Role = "r" };
+        var response = await Client.PutAsJsonAsync("/api/api/users/2", user);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
-    public async Task Delete_RemovesGuest()
+    public async Task Delete_RemovesUser()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" };
-        db.Guests.Add(guest);
-        await db.SaveChangesAsync();
-        var id = guest.Id;
-        var response = await Client.DeleteAsync($"/api/guests/{id}");
+        var user = await DataSeeder.SeedUserAsync(db);
+        var id = user.Id;
+
+        var response = await Client.DeleteAsync($"/api/api/users/{id}");
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.False(await db2.Guests.AnyAsync(g => g.Id == id));
+        Assert.False(await db2.Users.AnyAsync(u => u.Id == id));
     }
 
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync("/api/guests/1");
+        var response = await Client.DeleteAsync("/api/api/users/1");
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

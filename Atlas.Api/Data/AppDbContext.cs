@@ -48,7 +48,7 @@ namespace Atlas.Api.Data
                 .HasOne(b => b.Property)
                 .WithMany()
                 .HasForeignKey(b => b.PropertyId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         public DbSet<Property> Properties { get; set; }

@@ -15,9 +15,7 @@ namespace Atlas.Api.Data
             base.OnModelCreating(modelBuilder);
 
             var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            var deleteBehavior = env == "IntegrationTest"
-                ? DeleteBehavior.Cascade
-                : DeleteBehavior.Restrict;
+            var isIntegrationTest = env == "IntegrationTest";
 
             modelBuilder.Entity<Booking>()
                 .Property(b => b.AmountReceived)
@@ -45,25 +43,25 @@ namespace Atlas.Api.Data
                 .HasOne(b => b.Guest)
                 .WithMany()
                 .HasForeignKey(b => b.GuestId)
-                .OnDelete(deleteBehavior);
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Listing)
                 .WithMany(l => l.Bookings)
                 .HasForeignKey(b => b.ListingId)
-                .OnDelete(deleteBehavior);
+                .OnDelete(isIntegrationTest ? DeleteBehavior.Cascade : DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.BankAccount)
                 .WithMany()
                 .HasForeignKey(b => b.BankAccountId)
-                .OnDelete(deleteBehavior);
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Property)
                 .WithMany()
                 .HasForeignKey(b => b.PropertyId)
-                .OnDelete(deleteBehavior);
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         public DbSet<Property> Properties { get; set; }

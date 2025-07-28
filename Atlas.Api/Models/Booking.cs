@@ -22,9 +22,9 @@ namespace Atlas.Api.Models
         public Property? Property { get; set; }
 
         [Required]
-        [ForeignKey(nameof(Guest))]
         public int GuestId { get; set; }
 
+        [ForeignKey("GuestId")]
         public Guest Guest { get; set; } = null!;
 
         public DateTime CheckinDate { get; set; }

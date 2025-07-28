@@ -39,11 +39,10 @@ namespace Atlas.Api.Data
                 .WithMany()
                 .HasForeignKey(b => b.GuestId);
 
-            modelBuilder.Entity<Listing>()
-                .HasMany(l => l.Bookings)
-                .WithOne(b => b.Listing)
-                .HasForeignKey(b => b.ListingId)
-                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Listing)
+                .WithMany()
+                .HasForeignKey(b => b.ListingId);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Property)

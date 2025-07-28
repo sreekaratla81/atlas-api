@@ -368,7 +368,7 @@ namespace Atlas.Api.Migrations
                     b.HasOne("Atlas.Api.Models.Guest", "Guest")
                         .WithMany()
                         .HasForeignKey("GuestId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")

@@ -14,7 +14,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Test");
+        builder.UseEnvironment("IntegrationTest");
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "IntegrationTest");
 
         // Create a unique database name for each test run to avoid
         // conflicts with leftover connections or data from previous runs.

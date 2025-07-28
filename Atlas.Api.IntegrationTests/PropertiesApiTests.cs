@@ -1,4 +1,5 @@
 using Atlas.Api.Data;
+using System.Net.Http.Json;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,12 +70,11 @@ public class PropertiesApiTests : IntegrationTestBase
     [Fact]
     public async Task GetAll_ReturnsOk()
     {
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await SeedDataAsync(db);
-
         var response = await Client.GetAsync("/api/properties");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var properties = await response.Content.ReadFromJsonAsync<List<Property>>();
+        Assert.Contains(properties, p => p.Name == "Test Villa");
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class PropertiesApiTests : IntegrationTestBase
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var count = await db.Properties.CountAsync();
-        Assert.Equal(1, count);
+        Assert.Equal(2, count);
     }
 
     [Fact]

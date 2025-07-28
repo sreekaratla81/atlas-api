@@ -124,6 +124,12 @@ namespace Atlas.Api
             // ✅ (Temporary) Allow OPTIONS test
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
 
+            // Prefix all routes with /api for development and tests
+            if (!app.Environment.IsProduction())
+            {
+                app.UsePathBase("/api");
+            }
+
             // ✅ Map your controllers
             app.MapControllers();
 

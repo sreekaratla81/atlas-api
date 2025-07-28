@@ -119,6 +119,32 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Post_CreatesBookingWithoutNotes()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var newBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = DateTime.UtcNow.Date,
+            checkoutDate = DateTime.UtcNow.Date.AddDays(2),
+            bookingSource = "airbnb",
+            paymentStatus = "Pending",
+            amountReceived = 200m,
+            bankAccountId = (int?)null,
+            guestsPlanned = 2,
+            guestsActual = 2,
+            extraGuestCharge = 0m
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing_Alt()
     {
         using var scope = Factory.Services.CreateScope();

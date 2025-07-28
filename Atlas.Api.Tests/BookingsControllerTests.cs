@@ -46,6 +46,34 @@ public class BookingsControllerTests
     }
 
     [Fact]
+    public async Task Create_AllowsNullNotes()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(Create_AllowsNullNotes))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var request = new CreateBookingRequest
+        {
+            ListingId = 1,
+            GuestId = 1,
+            BookingSource = "airbnb",
+            AmountReceived = 100,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
+            PaymentStatus = "Pending"
+            // Notes left null
+        };
+
+        var result = await controller.Create(request);
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var dto = Assert.IsType<BookingDto>(createdResult.Value);
+        Assert.Equal(string.Empty, dto.Notes);
+    }
+
+    [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

@@ -21,7 +21,6 @@ namespace Atlas.Api.DTOs
         [Required]
         public string? PaymentStatus { get; set; }
 
-        [Required]
-        public string Notes { get; set; } = string.Empty;
+        public string? Notes { get; set; }
     }
 }

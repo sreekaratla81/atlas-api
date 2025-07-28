@@ -4,6 +4,7 @@ using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250728160020_FixListingBookingNavigation")]
+    partial class FixListingBookingNavigation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -372,9 +375,9 @@ namespace Atlas.Api.Migrations
                         .IsRequired();
 
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
-                        .WithMany()
+                        .WithMany("Bookings")
                         .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Atlas.Api.Models.Property", "Property")
@@ -384,6 +387,10 @@ namespace Atlas.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("BankAccount");
+
+                    b.Navigation("Guest");
+
+                    b.Navigation("Listing");
 
                     b.Navigation("Property");
                 });
@@ -399,6 +406,10 @@ namespace Atlas.Api.Migrations
                     b.Navigation("Property");
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
+                {
+                    b.Navigation("Bookings");
+                });
 #pragma warning restore 612, 618
         }
     }

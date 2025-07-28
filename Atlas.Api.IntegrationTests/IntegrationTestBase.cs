@@ -1,17 +1,19 @@
 using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Atlas.Api.Models;
 
 namespace Atlas.Api.IntegrationTests;
 
 public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
 {
     protected readonly CustomWebApplicationFactory Factory;
-    protected HttpClient Client => Factory.CreateClient();
+    protected HttpClient Client { get; }
 
     protected IntegrationTestBase(CustomWebApplicationFactory factory)
     {
         Factory = factory;
+        Client = factory.CreateClient();
     }
 
     public async Task InitializeAsync()
@@ -26,7 +28,22 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.EnsureDeletedAsync();
-        await db.Database.MigrateAsync();
+        await db.Database.EnsureCreatedAsync();
+
+        if (!await db.Properties.AnyAsync())
+        {
+            db.Properties.Add(new Property
+            {
+                Name = "Test Villa",
+                Address = "Seed Address",
+                Type = "Villa",
+                OwnerName = "Owner",
+                ContactPhone = "000",
+                CommissionPercent = 10,
+                Status = "Active"
+            });
+            await db.SaveChangesAsync();
+        }
     }
 
     protected T GetService<T>() where T : notnull

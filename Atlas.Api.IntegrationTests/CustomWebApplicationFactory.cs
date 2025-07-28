@@ -1,5 +1,6 @@
 using Atlas.Api;
 using Atlas.Api.Data;
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -14,14 +15,19 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
-        Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", "Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_TestDb;Trusted_Connection=True;");
+
+        // Create a unique database name for each test run to avoid
+        // conflicts with leftover connections or data from previous runs.
+        var dbName = $"AtlasHomestays_TestDb_{Guid.NewGuid()}";
+        var connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
+        Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", connectionString);
 
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
 
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_TestDb;Trusted_Connection=True;"));
+                options.UseSqlServer(connectionString));
 
             using (var scope = services.BuildServiceProvider().CreateScope())
             {

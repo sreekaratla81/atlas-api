@@ -11,3 +11,8 @@ git clone https://github.com/sreekaratla81/atlas-api.git
 git clone https://github.com/sreekaratla81/atlas-staff-app.git
 git clone https://github.com/sreekaratla81/atlas-sql.git
 git clone https://github.com/sreekaratla81/atlas-shared-utils.git
+
+## Running Integration Tests
+
+Integration tests automatically detect and apply any pending EF Core migrations
+at runtime. You don't need to run `dotnet ef database update` before testing.

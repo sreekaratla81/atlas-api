@@ -60,6 +60,16 @@ namespace Atlas.Api.Controllers
         {
             try
             {
+                // Ensure the associated Property exists and attach it to the context
+                var property = await _context.Properties.FindAsync(item.PropertyId);
+                if (property == null)
+                {
+                    return BadRequest();
+                }
+
+                // Replace any deserialized Property instance with the tracked entity
+                item.Property = property;
+
                 _context.Listings.Add(item);
                 await _context.SaveChangesAsync();
                 return CreatedAtAction(nameof(Get), new { id = item.Id }, item);

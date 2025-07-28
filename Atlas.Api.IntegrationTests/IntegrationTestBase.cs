@@ -28,7 +28,7 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.EnsureDeletedAsync();
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.MigrateAsync();
 
         if (!await db.Properties.AnyAsync())
         {

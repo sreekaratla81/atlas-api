@@ -28,7 +28,7 @@ namespace Atlas.Api.Migrations
                 column: "PropertyId",
                 principalTable: "Properties",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Restrict);
         }
 
         /// <inheritdoc />

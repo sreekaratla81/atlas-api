@@ -119,7 +119,7 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing()
+    public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing_Alt()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -163,7 +163,7 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Put_ReturnsBadRequest_WhenPaymentStatusMissing()
+    public async Task Put_ReturnsBadRequest_WhenPaymentStatusMissing_Alt()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

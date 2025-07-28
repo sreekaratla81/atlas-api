@@ -14,40 +14,37 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
+        Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", "Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_TestDb;Trusted_Connection=True;");
 
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
 
-            var provider = new ServiceCollection()
-                .AddEntityFrameworkInMemoryDatabase()
-                .BuildServiceProvider();
-
             services.AddDbContext<AppDbContext>(options =>
-            {
-                options.UseInMemoryDatabase("IntegrationTests");
-                options.UseInternalServiceProvider(provider);
-            });
+                options.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_TestDb;Trusted_Connection=True;"));
 
             var sp = services.BuildServiceProvider();
-            using var scope = sp.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureDeleted();
-            db.Database.EnsureCreated();
-
-            if (!db.Properties.Any())
+            var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+            using (var scope = scopeFactory.CreateScope())
             {
-                db.Properties.Add(new Atlas.Api.Models.Property
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.EnsureDeleted();
+                db.Database.Migrate();
+
+                if (!db.Properties.Any())
                 {
-                    Name = "Test Villa",
-                    Address = "Seed Address",
-                    Type = "Villa",
-                    OwnerName = "Owner",
-                    ContactPhone = "000",
-                    CommissionPercent = 10,
-                    Status = "Active"
-                });
-                db.SaveChanges();
+                    db.Properties.Add(new Atlas.Api.Models.Property
+                    {
+                        Name = "Test Villa",
+                        Address = "Seed Address",
+                        Type = "Villa",
+                        OwnerName = "Owner",
+                        ContactPhone = "000",
+                        CommissionPercent = 10,
+                        Status = "Active"
+                    });
+                    db.SaveChanges();
+                }
             }
         });
     }

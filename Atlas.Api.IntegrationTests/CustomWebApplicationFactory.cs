@@ -32,14 +32,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             using (var scope = services.BuildServiceProvider().CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                var pending = db.Database.GetPendingMigrations();
+
+                var pending = db.Database.GetPendingMigrations().ToList();
                 if (pending.Any())
                 {
-                    throw new InvalidOperationException(
-                        "You have pending migrations. Run 'dotnet ef migrations add' to create them.");
+                    Console.WriteLine("\u26A0\uFE0F Applying pending migrations automatically...");
+                    db.Database.Migrate();
                 }
-                db.Database.EnsureDeleted();
-                db.Database.Migrate();
 
                 if (!db.Properties.Any())
                 {

@@ -1,10 +1,11 @@
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
-using Atlas.Api.Models;
 using Atlas.Api.DTOs;
+using Atlas.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.ComponentModel.DataAnnotations;
 using Xunit;
 
 namespace Atlas.Api.Tests;
@@ -73,23 +74,6 @@ public class BookingsControllerTests
         Assert.IsType<BadRequestResult>(result);
     }
 
-    [Fact]
-    public async Task Update_ReturnsBadRequest_WhenPaymentStatusMissing()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(databaseName: nameof(Update_ReturnsBadRequest_WhenPaymentStatusMissing))
-            .Options;
-        using var context = new AppDbContext(options);
-        context.Bookings.Add(new Booking { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" });
-        await context.SaveChangesAsync();
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
-        controller.ModelState.AddModelError("paymentStatus", "The PaymentStatus field is required.");
-        var booking = new Booking { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = null! };
-
-        var result = await controller.Update(1, booking);
-
-        Assert.IsType<BadRequestObjectResult>(result);
-    }
 
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()

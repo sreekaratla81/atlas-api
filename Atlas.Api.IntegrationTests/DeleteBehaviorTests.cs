@@ -11,15 +11,13 @@ public class DeleteBehaviorTests : IntegrationTestBase
     public DeleteBehaviorTests(CustomWebApplicationFactory factory) : base(factory) { }
 
     [Fact]
-    public void OnModelCreating_AllCascadeInIntegrationTest()
+    public void OnModelCreating_CascadesInIntegrationTest()
     {
         using var scope = Factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var entity = context.Model.FindEntityType(typeof(Booking))!;
+        var fks = entity.GetForeignKeys();
 
-        foreach (var fk in entity.GetForeignKeys())
-        {
-            Assert.Equal(DeleteBehavior.Cascade, fk.DeleteBehavior);
-        }
+        Assert.All(fks, fk => Assert.Equal(DeleteBehavior.Cascade, fk.DeleteBehavior));
     }
 }

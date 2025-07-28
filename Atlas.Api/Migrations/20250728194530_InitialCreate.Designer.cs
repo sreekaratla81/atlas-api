@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250728171842_EnsureModelUpToDate_20250728_1717")]
-    partial class EnsureModelUpToDate_20250728_1717
+    [Migration("20250728194530_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -366,7 +366,8 @@ namespace Atlas.Api.Migrations
                 {
                     b.HasOne("Atlas.Api.Models.BankAccount", "BankAccount")
                         .WithMany()
-                        .HasForeignKey("BankAccountId");
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Atlas.Api.Models.Guest", "Guest")
                         .WithMany()
@@ -377,7 +378,7 @@ namespace Atlas.Api.Migrations
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
                         .WithMany("Bookings")
                         .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Atlas.Api.Models.Property", "Property")

@@ -33,13 +33,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             using (var scope = services.BuildServiceProvider().CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                var pending = db.Database.GetPendingMigrations().ToList();
-                if (pending.Any())
-                {
-                    Console.WriteLine("\u26A0\uFE0F Applying pending migrations automatically...");
-                    db.Database.Migrate();
-                }
+                db.Database.EnsureDeleted();
+                db.Database.Migrate(); // This applies all migrations and creates the schema
 
                 if (!db.Properties.Any())
                 {

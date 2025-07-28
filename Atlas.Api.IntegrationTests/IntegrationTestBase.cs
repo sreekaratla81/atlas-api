@@ -17,12 +17,8 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var pendingMigrations = db.Database.GetPendingMigrations().ToList();
-            if (pendingMigrations.Any())
-            {
-                Console.WriteLine("\u26A0\uFE0F Applying pending migrations automatically...");
-                db.Database.Migrate();
-            }
+            db.Database.EnsureDeleted();
+            db.Database.Migrate();
         }
 
         Client = factory.CreateClient();

@@ -12,7 +12,7 @@ namespace Atlas.Api.Models
         [ForeignKey(nameof(Listing))]
         public int ListingId { get; set; }
 
-        public Listing Listing { get; set; } = null!;
+        public Listing Listing { get; set; }
 
         [Required]
         [ForeignKey(nameof(Property))]

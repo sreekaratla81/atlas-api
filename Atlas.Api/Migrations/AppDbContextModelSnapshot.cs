@@ -372,9 +372,9 @@ namespace Atlas.Api.Migrations
                         .IsRequired();
 
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
-                        .WithMany("Bookings")
+                        .WithMany()
                         .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Atlas.Api.Models.Property", "Property")
@@ -384,10 +384,6 @@ namespace Atlas.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("BankAccount");
-
-                    b.Navigation("Guest");
-
-                    b.Navigation("Listing");
 
                     b.Navigation("Property");
                 });

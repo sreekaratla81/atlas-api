@@ -13,6 +13,13 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
     protected IntegrationTestBase(CustomWebApplicationFactory factory)
     {
         Factory = factory;
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.Migrate();
+        }
+
         Client = factory.CreateClient();
     }
 

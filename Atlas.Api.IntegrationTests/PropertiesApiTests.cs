@@ -80,7 +80,9 @@ public class PropertiesApiTests : IntegrationTestBase
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync("/api/properties/1");
+        // Id 1 is seeded in every test run. Use a high value that will not exist
+        // to verify the NotFound response.
+        var response = await Client.GetAsync("/api/properties/999");
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -173,7 +175,9 @@ public class PropertiesApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync("/api/properties/1");
+        // The database always contains a seed property with Id 1. Use a
+        // non-existent id to ensure the API returns NotFound.
+        var response = await Client.DeleteAsync("/api/properties/999");
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

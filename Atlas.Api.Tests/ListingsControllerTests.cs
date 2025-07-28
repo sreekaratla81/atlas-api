@@ -21,8 +21,12 @@ public class ListingsControllerTests
     public async Task Create_ReturnsCreatedAtAction()
     {
         using var context = GetContext(nameof(Create_ReturnsCreatedAtAction));
+        // Seed the property so the controller can attach it
+        context.Properties.Add(new Property { Id = 1, Name = "p", Address = "a", Type = "t", OwnerName = "o", ContactPhone = "c", CommissionPercent = 0, Status = "s" });
+        await context.SaveChangesAsync();
+
         var controller = new ListingsController(context, NullLogger<ListingsController>.Instance);
-        var listing = new Listing { Id = 1, PropertyId = 1, Property = new Property { Id = 1, Name = "p", Address = "a", Type = "t", OwnerName = "o", ContactPhone = "c", Status = "s" }, Name = "L", Floor = 1, Type = "t", Status = "Active", WifiName="w", WifiPassword="pass", MaxGuests=2 };
+        var listing = new Listing { Id = 1, PropertyId = 1, Property = new Property { Id = 1, Name = "p", Address = "a", Type = "t", OwnerName = "o", ContactPhone = "c", CommissionPercent = 0, Status = "s" }, Name = "L", Floor = 1, Type = "t", Status = "Active", WifiName="w", WifiPassword="pass", MaxGuests=2 };
 
         var result = await controller.Create(listing);
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);

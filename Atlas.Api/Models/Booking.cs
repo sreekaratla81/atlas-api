@@ -25,7 +25,7 @@ namespace Atlas.Api.Models
         [ForeignKey(nameof(Guest))]
         public int GuestId { get; set; }
 
-        public Guest Guest { get; set; }
+        public Guest Guest { get; set; } = null!;
 
         public DateTime CheckinDate { get; set; }
         public DateTime CheckoutDate { get; set; }

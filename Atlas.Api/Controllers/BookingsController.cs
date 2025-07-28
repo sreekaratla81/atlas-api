@@ -156,6 +156,10 @@ namespace Atlas.Api.Controllers
                 existingBooking.CheckinDate = booking.CheckinDate;
                 existingBooking.CheckoutDate = booking.CheckoutDate;
                 existingBooking.BookingSource = booking.BookingSource;
+                if (!string.IsNullOrWhiteSpace(booking.PaymentStatus))
+                {
+                    existingBooking.PaymentStatus = booking.PaymentStatus;
+                }
                 existingBooking.AmountReceived = booking.AmountReceived;
                 existingBooking.GuestsPlanned = booking.GuestsPlanned;
                 existingBooking.GuestsActual = booking.GuestsActual;

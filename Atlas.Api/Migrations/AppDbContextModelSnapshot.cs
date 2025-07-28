@@ -363,16 +363,17 @@ namespace Atlas.Api.Migrations
                 {
                     b.HasOne("Atlas.Api.Models.BankAccount", "BankAccount")
                         .WithMany()
-                        .HasForeignKey("BankAccountId");
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Atlas.Api.Models.Guest", "Guest")
                         .WithMany()
                         .HasForeignKey("GuestId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
-                        .WithMany()
+                        .WithMany("Bookings")
                         .HasForeignKey("ListingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -380,10 +381,14 @@ namespace Atlas.Api.Migrations
                     b.HasOne("Atlas.Api.Models.Property", "Property")
                         .WithMany()
                         .HasForeignKey("PropertyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("BankAccount");
+
+                    b.Navigation("Guest");
+
+                    b.Navigation("Listing");
 
                     b.Navigation("Property");
                 });

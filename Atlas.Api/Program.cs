@@ -29,7 +29,10 @@ namespace Atlas.Api
             // Add services to the container.
 
             builder.Services
-                .AddControllers()
+                .AddControllers(options =>
+                {
+                    options.Filters.Add<Atlas.Api.Filters.ValidateModelAttribute>();
+                })
                 .AddJsonOptions(opts =>
                 {
                     opts.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;

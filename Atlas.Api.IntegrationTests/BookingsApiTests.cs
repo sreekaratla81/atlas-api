@@ -93,23 +93,20 @@ public class BookingsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var data = await SeedBookingAsync(db);
 
-        var newBooking = new Booking
+        var newBooking = new
         {
-            PropertyId = data.property.Id,
-            ListingId = data.listing.Id,
-            GuestId = data.guest.Id,
-            BookingSource = "airbnb",
-            PaymentStatus = "Pending",
-            CheckinDate = DateTime.UtcNow.Date,
-            CheckoutDate = DateTime.UtcNow.Date.AddDays(2),
-            AmountReceived = 200,
-            GuestsPlanned = 2,
-            GuestsActual = 2,
-            ExtraGuestCharge = 0,
-            AmountGuestPaid = 200,
-            CommissionAmount = 0,
-            Notes = "create",
-            BankAccountId = null
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = DateTime.UtcNow.Date,
+            checkoutDate = DateTime.UtcNow.Date.AddDays(2),
+            bookingSource = "airbnb",
+            paymentStatus = "Pending",
+            amountReceived = 200m,
+            bankAccountId = (int?)null,
+            guestsPlanned = 2,
+            guestsActual = 2,
+            extraGuestCharge = 0m,
+            notes = "create"
         };
 
         var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
@@ -119,6 +116,32 @@ public class BookingsApiTests : IntegrationTestBase
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var count = await db2.Bookings.CountAsync();
         Assert.Equal(2, count);
+    }
+
+    [Fact]
+    public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing_Alt()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var newBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = DateTime.UtcNow.Date,
+            checkoutDate = DateTime.UtcNow.Date.AddDays(2),
+            bookingSource = "airbnb",
+            amountReceived = 200m,
+            bankAccountId = (int?)null,
+            guestsPlanned = 2,
+            guestsActual = 2,
+            extraGuestCharge = 0m,
+            notes = "create"
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -140,11 +163,144 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Put_ReturnsBadRequest_WhenPaymentStatusMissing_Alt()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+        var id = data.booking.Id;
+
+        var payload = new
+        {
+            id = id,
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            propertyId = data.property.Id,
+            checkinDate = data.booking.CheckinDate,
+            checkoutDate = data.booking.CheckoutDate,
+            bookingSource = data.booking.BookingSource,
+            amountReceived = data.booking.AmountReceived,
+            bankAccountId = data.booking.BankAccountId,
+            guestsPlanned = data.booking.GuestsPlanned,
+            guestsActual = data.booking.GuestsActual,
+            extraGuestCharge = data.booking.ExtraGuestCharge,
+            amountGuestPaid = data.booking.AmountGuestPaid,
+            commissionAmount = data.booking.CommissionAmount,
+            notes = "bad"
+        };
+
+        var response = await Client.PutAsJsonAsync($"/api/bookings/{id}", payload);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Put_ReturnsBadRequest_OnIdMismatch()
     {
-        var booking = new Booking { Id = 1, ListingId = 1, PropertyId = 1, GuestId = 1, BookingSource = "a", PaymentStatus = "p", CheckinDate = DateTime.UtcNow, CheckoutDate = DateTime.UtcNow, AmountReceived = 0, Notes = "n" };
+        var booking = new
+        {
+            id = 1,
+            listingId = 1,
+            guestId = 1,
+            propertyId = 1,
+            checkinDate = DateTime.UtcNow,
+            checkoutDate = DateTime.UtcNow,
+            bookingSource = "a",
+            paymentStatus = "p",
+            amountReceived = 0m,
+            bankAccountId = (int?)null,
+            guestsPlanned = 0,
+            guestsActual = 0,
+            extraGuestCharge = 0m,
+            amountGuestPaid = 0m,
+            commissionAmount = 0m,
+            notes = "n"
+        };
         var response = await Client.PutAsJsonAsync("/api/bookings/2", booking);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var request = new
+        {
+            ListingId = data.listing.Id,
+            GuestId = data.guest.Id,
+            BookingSource = "airbnb",
+            CheckinDate = DateTime.UtcNow.Date,
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(2),
+            AmountReceived = 200,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
+            Notes = "create"
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/bookings", request);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Put_ReturnsBadRequest_WhenPaymentStatusMissing()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var request = new
+        {
+            Id = data.booking.Id,
+            ListingId = data.booking.ListingId,
+            PropertyId = data.booking.PropertyId,
+            GuestId = data.booking.GuestId,
+            BookingSource = data.booking.BookingSource,
+            CheckinDate = data.booking.CheckinDate,
+            CheckoutDate = data.booking.CheckoutDate,
+            AmountReceived = data.booking.AmountReceived,
+            GuestsPlanned = data.booking.GuestsPlanned,
+            GuestsActual = data.booking.GuestsActual,
+            ExtraGuestCharge = data.booking.ExtraGuestCharge,
+            AmountGuestPaid = data.booking.AmountGuestPaid,
+            CommissionAmount = data.booking.CommissionAmount,
+            Notes = "updated",
+            BankAccountId = data.booking.BankAccountId
+        };
+
+        var response = await Client.PutAsJsonAsync($"/api/bookings/{data.booking.Id}", request);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_ReturnsCreated_WhenPaymentStatusProvided()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var request = new
+        {
+            ListingId = data.listing.Id,
+            GuestId = data.guest.Id,
+            BookingSource = "airbnb",
+            PaymentStatus = "Paid",
+            CheckinDate = DateTime.UtcNow.Date,
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(3),
+            AmountReceived = 250,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
+            Notes = "full"
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/bookings", request);
+
+        Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]

@@ -12,7 +12,7 @@ namespace Atlas.Api.Models
         [ForeignKey(nameof(Listing))]
         public int ListingId { get; set; }
 
-        public Listing Listing { get; set; }
+        public Listing Listing { get; set; } = null!;
 
         [Required]
         [ForeignKey(nameof(Property))]
@@ -22,15 +22,19 @@ namespace Atlas.Api.Models
         public Property? Property { get; set; }
 
         [Required]
-        [ForeignKey(nameof(Guest))]
         public int GuestId { get; set; }
 
-        public Guest Guest { get; set; }
+        [ForeignKey("GuestId")]
+        public Guest Guest { get; set; } = null!;
 
         public DateTime CheckinDate { get; set; }
         public DateTime CheckoutDate { get; set; }
-        public required string BookingSource { get; set; }
-        public required string PaymentStatus { get; set; } = "Pending";
+
+        [Required]
+        public string BookingSource { get; set; } = string.Empty;
+
+        [Required]
+        public string PaymentStatus { get; set; } = "Pending";
         public decimal AmountReceived { get; set; }
         [ForeignKey(nameof(BankAccount))]
         public int? BankAccountId { get; set; }
@@ -42,7 +46,8 @@ namespace Atlas.Api.Models
         public decimal? ExtraGuestCharge { get; set; }
         public decimal? AmountGuestPaid { get; set; }
         public decimal? CommissionAmount { get; set; }
-        public required string Notes { get; set; }
+        [Required]
+        public string Notes { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

@@ -1,10 +1,11 @@
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
-using Atlas.Api.Models;
 using Atlas.Api.DTOs;
+using Atlas.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.ComponentModel.DataAnnotations;
 using Xunit;
 
 namespace Atlas.Api.Tests;
@@ -72,6 +73,7 @@ public class BookingsControllerTests
 
         Assert.IsType<BadRequestResult>(result);
     }
+
 
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()

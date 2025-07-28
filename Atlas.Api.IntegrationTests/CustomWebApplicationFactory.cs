@@ -23,9 +23,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_TestDb;Trusted_Connection=True;"));
 
-            var sp = services.BuildServiceProvider();
-            var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
-            using (var scope = scopeFactory.CreateScope())
+            using (var scope = services.BuildServiceProvider().CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 db.Database.EnsureDeleted();

@@ -17,8 +17,8 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureDeleted();
-            db.Database.Migrate();
+            db.Database.EnsureDeleted();   // Clean test schema
+            db.Database.Migrate();         // Apply EF Core migrations
         }
 
         Client = factory.CreateClient();
@@ -35,8 +35,8 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.EnsureDeletedAsync();
-        await db.Database.MigrateAsync();
+        await db.Database.EnsureDeletedAsync();   // Clean test schema
+        await db.Database.MigrateAsync();         // Apply EF Core migrations
 
         if (!await db.Properties.AnyAsync())
         {

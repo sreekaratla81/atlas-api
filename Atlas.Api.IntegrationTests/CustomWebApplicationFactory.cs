@@ -32,8 +32,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             using (var scope = services.BuildServiceProvider().CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                db.Database.EnsureDeleted();
-                db.Database.Migrate();
+
+                db.Database.EnsureDeleted();   // Clean test schema
+                db.Database.Migrate();         // Apply EF Core migrations
 
                 if (!db.Properties.Any())
                 {

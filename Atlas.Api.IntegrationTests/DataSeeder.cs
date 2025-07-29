@@ -58,7 +58,7 @@ public static class DataSeeder
             GuestId = guest.Id,
             Guest = guest,
             BookingSource = "airbnb",
-            PaymentStatus = "Pending",
+            PaymentStatus = "Paid",
             CheckinDate = DateTime.UtcNow.Date,
             CheckoutDate = DateTime.UtcNow.Date.AddDays(1),
             AmountReceived = 100,

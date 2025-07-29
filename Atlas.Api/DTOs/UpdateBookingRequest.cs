@@ -19,7 +19,7 @@ namespace Atlas.Api.DTOs
         public string BookingSource { get; set; } = string.Empty;
 
         [Required]
-        public string PaymentStatus { get; set; } = string.Empty;
+        public string PaymentStatus { get; set; } = "Paid";
 
         public decimal AmountReceived { get; set; }
         public int? BankAccountId { get; set; }

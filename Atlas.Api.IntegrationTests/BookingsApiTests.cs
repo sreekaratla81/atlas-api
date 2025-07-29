@@ -144,7 +144,7 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing_Alt()
+    public async Task Post_CreatesBooking_WhenPaymentStatusMissing_Alt()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -166,7 +166,7 @@ public class BookingsApiTests : IntegrationTestBase
         };
 
         var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Put_ReturnsBadRequest_WhenPaymentStatusMissing_Alt()
+    public async Task Put_UpdatesBooking_WhenPaymentStatusMissing_Alt()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -235,7 +235,7 @@ public class BookingsApiTests : IntegrationTestBase
         };
 
         var response = await Client.PutAsJsonAsync($"/api/bookings/{id}", payload);
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing()
+    public async Task Post_CreatesBooking_WhenPaymentStatusMissing()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -287,11 +287,11 @@ public class BookingsApiTests : IntegrationTestBase
 
         var response = await Client.PostAsJsonAsync("/api/bookings", request);
 
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
-    public async Task Put_ReturnsBadRequest_WhenPaymentStatusMissing()
+    public async Task Put_UpdatesBooking_WhenPaymentStatusMissing()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -317,7 +317,7 @@ public class BookingsApiTests : IntegrationTestBase
 
         var response = await Client.PutAsJsonAsync($"/api/bookings/{data.booking.Id}", request);
 
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }
 
     [Fact]

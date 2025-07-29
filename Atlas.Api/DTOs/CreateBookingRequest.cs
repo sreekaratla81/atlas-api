@@ -19,7 +19,7 @@ namespace Atlas.Api.DTOs
         public int GuestsActual { get; set; }
         public decimal ExtraGuestCharge { get; set; }
         [Required]
-        public string? PaymentStatus { get; set; }
+        public string? PaymentStatus { get; set; } = "Paid";
 
         public string? Notes { get; set; }
     }

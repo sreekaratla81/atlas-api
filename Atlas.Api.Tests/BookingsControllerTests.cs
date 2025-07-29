@@ -54,7 +54,7 @@ public class BookingsControllerTests
         await context.SaveChangesAsync();
 
         var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
-        var request = new CreateBookingRequest
+        var request = new BookingCreateRequest
         {
             ListingId = listing.Id,
             GuestId = guest.Id,
@@ -118,7 +118,7 @@ public class BookingsControllerTests
         await context.SaveChangesAsync();
 
         var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
-        var request = new CreateBookingRequest
+        var request = new BookingCreateRequest
         {
             ListingId = listing.Id,
             GuestId = guest.Id,
@@ -159,7 +159,7 @@ public class BookingsControllerTests
             .Options;
         using var context = new AppDbContext(options);
         var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
-        var booking = new Booking { Id = 1, ListingId = 1, GuestId = 1, BookingSource="a", Notes="n", PaymentStatus="Pending" };
+        var booking = new BookingUpdateRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource="a", Notes="n", PaymentStatus="Pending" };
 
         var result = await controller.Update(2, booking);
 
@@ -234,7 +234,7 @@ public class BookingsControllerTests
         context.ThrowOnSave = true;
         var logger = new Moq.Mock<Microsoft.Extensions.Logging.ILogger<BookingsController>>();
         var controller = new BookingsController(context, logger.Object);
-        var booking = new Booking { Id = 1, ListingId = 1, GuestId = 1, BookingSource="a", Notes="n", PaymentStatus="Pending" };
+        var booking = new BookingUpdateRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource="a", Notes="n", PaymentStatus="Pending" };
 
         var result = await controller.Update(1, booking);
 

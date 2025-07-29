@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs
 {
-    public class CreateBookingRequest
+    public class BookingCreateRequest
     {
         [Required]
         public int ListingId { get; set; }

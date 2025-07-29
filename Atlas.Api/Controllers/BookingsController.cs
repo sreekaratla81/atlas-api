@@ -201,13 +201,16 @@ namespace Atlas.Api.Controllers
                 existingBooking.Notes = booking.Notes;
                 existingBooking.BankAccountId = booking.BankAccountId;
 
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    _logger.LogError(ex, "Concurrency error updating booking {BookingId}", id);
+                    return StatusCode(500, "A concurrency error occurred while updating the booking.");
+                }
                 return NoContent();
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                _logger.LogError(ex, "Concurrency error updating booking {BookingId}", id);
-                return StatusCode(500, "Concurrency error updating booking");
             }
             catch (Exception ex)
             {

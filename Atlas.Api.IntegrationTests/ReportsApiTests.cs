@@ -1,6 +1,7 @@
 using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Atlas.Api.Models.Reports;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -27,6 +28,27 @@ public class ReportsApiTests : IntegrationTestBase
         await db.SaveChangesAsync();
     }
 
+    private static async Task SeedBankAccountDataAsync(AppDbContext db)
+    {
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        var guest = await DataSeeder.SeedGuestAsync(db);
+        var account = await DataSeeder.SeedBankAccountAsync(db);
+        db.Bookings.Add(new Booking
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BankAccountId = account.Id,
+            CheckinDate = new DateTime(2025, 5, 10),
+            CheckoutDate = new DateTime(2025, 5, 12),
+            BookingSource = "airbnb",
+            AmountReceived = 400,
+            Notes = string.Empty,
+            PaymentStatus = "Paid"
+        });
+        await db.SaveChangesAsync();
+    }
+
     [Fact]
     public async Task GetCalendarEarnings_ReturnsOk()
     {
@@ -40,5 +62,20 @@ public class ReportsApiTests : IntegrationTestBase
         var dict = await response.Content.ReadFromJsonAsync<Dictionary<string, decimal>>();
         Assert.NotNull(dict);
         Assert.Equal(2, dict!.Count);
+    }
+
+    [Fact]
+    public async Task GetBankAccountEarnings_ReturnsOk()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await SeedBankAccountDataAsync(db);
+
+        var response = await Client.GetAsync("/api/reports/bank-account-earnings");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();
+        Assert.NotNull(data);
+        Assert.Single(data!);
     }
 }

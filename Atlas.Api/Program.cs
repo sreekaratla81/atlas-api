@@ -14,6 +14,13 @@ namespace Atlas.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Fix: Correctly assign the environment variable to the `env` object
+            var env = builder.Environment;
+
+            builder.Configuration
+                .AddJsonFile("appsettings.json")
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables();
 
             // Add services
             builder.Services.AddCors(options =>
@@ -26,7 +33,6 @@ namespace Atlas.Api
                           .AllowAnyMethod();
                 });
             });
-            // Add services to the container.
 
             builder.Services
                 .AddControllers(options =>
@@ -37,7 +43,7 @@ namespace Atlas.Api
                 {
                     opts.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                 });
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -45,17 +51,9 @@ namespace Atlas.Api
                 c.CustomSchemaIds(type => type.FullName);
                 c.IgnoreObsoleteProperties();
             });
-            // Connection string can come from appsettings.json, appsettings.{Environment}.json
-            // or environment variables. Azure App Service typically injects the
-            // connection string as `ConnectionStrings__DefaultConnection` so we
-            // read from configuration first which already checks that variable.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-            // Fall back to older environment variable name if provided
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION");
-            }
+            var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
+                ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
             if (string.IsNullOrWhiteSpace(connectionString))
             {
@@ -92,7 +90,6 @@ namespace Atlas.Api
 
             var app = builder.Build();
 
-            // Enable Swagger even in production
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -105,18 +102,15 @@ namespace Atlas.Api
                 app.UseDeveloperExceptionPage();
             }
 
-            // ✅ Add Routing middleware
             app.UseRouting();
 
-            // ✅ Correct CORS setup
             app.UseCors(policy => policy
                 .WithOrigins("https://admin.atlashomestays.com")
                 .WithOrigins("http://localhost:5173/") // Local development origin
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .AllowCredentials() // Optional: only if you use cookies or Authorization headers
+                .AllowCredentials()
             );
-
 
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();
@@ -124,16 +118,13 @@ namespace Atlas.Api
             // app.UseAuthentication();
             // app.UseAuthorization();
 
-            // ✅ (Temporary) Allow OPTIONS test
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
 
-            // Prefix all routes with /api for development and tests
             if (!app.Environment.IsProduction())
             {
                 app.UsePathBase("/api");
             }
 
-            // ✅ Map your controllers
             app.MapControllers();
 
             app.Run();

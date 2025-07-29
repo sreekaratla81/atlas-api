@@ -152,7 +152,6 @@ namespace Atlas.Api.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ListingId = table.Column<int>(type: "int", nullable: false),
-                    PropertyId = table.Column<int>(type: "int", nullable: false),
                     GuestId = table.Column<int>(type: "int", nullable: false),
                     CheckinDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CheckoutDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -189,12 +188,6 @@ namespace Atlas.Api.Migrations
                         principalTable: "Listings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Bookings_Properties_PropertyId",
-                        column: x => x.PropertyId,
-                        principalTable: "Properties",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -211,11 +204,6 @@ namespace Atlas.Api.Migrations
                 name: "IX_Bookings_ListingId",
                 table: "Bookings",
                 column: "ListingId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Bookings_PropertyId",
-                table: "Bookings",
-                column: "PropertyId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Listings_PropertyId",

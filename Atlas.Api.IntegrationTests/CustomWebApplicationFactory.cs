@@ -17,24 +17,25 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("IntegrationTest");
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "IntegrationTest");
 
-        // Create a unique database name for each test run to avoid
-        // conflicts with leftover connections or data from previous runs.
         var dbName = $"AtlasHomestays_TestDb_{Guid.NewGuid()}";
-        var connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
+        var connectionString =
+            Environment.GetEnvironmentVariable("Atlas_TestDb") ??
+            $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
+
         Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", connectionString);
 
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
-
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(connectionString));
+            services.AddDbContext<AppDbContext>(o =>
+                o.UseSqlServer(connectionString));
 
             using (var scope = services.BuildServiceProvider().CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                db.Database.EnsureDeleted();
-                db.Database.Migrate(); // This applies all migrations and creates the schema
+
+                db.Database.EnsureDeleted();   // Clean test schema
+                db.Database.Migrate();         // Apply EF Core migrations
 
                 if (!db.Properties.Any())
                 {

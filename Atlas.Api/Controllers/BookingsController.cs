@@ -119,7 +119,7 @@ namespace Atlas.Api.Controllers
                     ExtraGuestCharge = request.ExtraGuestCharge,
                     AmountGuestPaid = amountGuestPaid,
                     CommissionAmount = commissionAmount,
-                    Notes = request.Notes,
+                    Notes = request.Notes ?? string.Empty,
                     CreatedAt = DateTime.UtcNow
                 };
 

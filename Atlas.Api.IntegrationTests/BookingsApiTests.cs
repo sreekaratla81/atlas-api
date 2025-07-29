@@ -47,7 +47,6 @@ public class BookingsApiTests : IntegrationTestBase
         await db.SaveChangesAsync();
         var booking = new Booking
         {
-            PropertyId = property.Id,
             ListingId = listing.Id,
             GuestId = guest.Id,
             BookingSource = "airbnb",
@@ -119,6 +118,32 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Post_CreatesBookingWithoutNotes()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var newBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = DateTime.UtcNow.Date,
+            checkoutDate = DateTime.UtcNow.Date.AddDays(2),
+            bookingSource = "airbnb",
+            paymentStatus = "Pending",
+            amountReceived = 200m,
+            bankAccountId = (int?)null,
+            guestsPlanned = 2,
+            guestsActual = 2,
+            extraGuestCharge = 0m
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Post_ReturnsBadRequest_WhenPaymentStatusMissing_Alt()
     {
         using var scope = Factory.Services.CreateScope();
@@ -152,8 +177,28 @@ public class BookingsApiTests : IntegrationTestBase
         var data = await SeedBookingAsync(db);
         var id = data.booking.Id;
 
-        data.booking.Notes = "updated";
-        var response = await Client.PutAsJsonAsync($"/api/bookings/{id}", data.booking);
+
+
+        var payload = new
+        {
+            id = id,
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            propertyId = data.property.Id,
+            checkinDate = data.booking.CheckinDate,
+            checkoutDate = data.booking.CheckoutDate,
+            bookingSource = data.booking.BookingSource,
+            amountReceived = data.booking.AmountReceived,
+            bankAccountId = data.booking.BankAccountId,
+            guestsPlanned = data.booking.GuestsPlanned,
+            guestsActual = data.booking.GuestsActual,
+            extraGuestCharge = data.booking.ExtraGuestCharge,
+            amountGuestPaid = data.booking.AmountGuestPaid,
+            commissionAmount = data.booking.CommissionAmount,
+            paymentStatus = data.booking.PaymentStatus,
+            notes = "updated"
+        };
+        var response = await Client.PutAsJsonAsync($"/api/bookings/{id}", payload);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -256,7 +301,6 @@ public class BookingsApiTests : IntegrationTestBase
         {
             Id = data.booking.Id,
             ListingId = data.booking.ListingId,
-            PropertyId = data.booking.PropertyId,
             GuestId = data.booking.GuestId,
             BookingSource = data.booking.BookingSource,
             CheckinDate = data.booking.CheckinDate,

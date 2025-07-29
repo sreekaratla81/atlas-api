@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250728194530_InitialCreate")]
+    [Migration("20250729100604_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -121,9 +121,6 @@ namespace Atlas.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PropertyId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BankAccountId");
@@ -131,8 +128,6 @@ namespace Atlas.Api.Migrations
                     b.HasIndex("GuestId");
 
                     b.HasIndex("ListingId");
-
-                    b.HasIndex("PropertyId");
 
                     b.ToTable("Bookings");
                 });
@@ -381,19 +376,11 @@ namespace Atlas.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Atlas.Api.Models.Property", "Property")
-                        .WithMany()
-                        .HasForeignKey("PropertyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("BankAccount");
 
                     b.Navigation("Guest");
 
                     b.Navigation("Listing");
-
-                    b.Navigation("Property");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Listing", b =>

@@ -21,11 +21,43 @@ public class BookingsControllerTests
             .Options;
 
         using var context = new AppDbContext(options);
+        // Seed required related entities
+        var property = new Property
+        {
+            Name = "Property",
+            Address = "Addr",
+            Type = "House",
+            OwnerName = "Owner",
+            ContactPhone = "000",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        context.Properties.Add(property);
+        await context.SaveChangesAsync();
+
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "wifi",
+            WifiPassword = "pass",
+            MaxGuests = 2
+        };
+        context.Listings.Add(listing);
+
+        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com" };
+        context.Guests.Add(guest);
+        await context.SaveChangesAsync();
+
         var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
         var request = new CreateBookingRequest
         {
-            ListingId = 1,
-            GuestId = 1,
+            ListingId = listing.Id,
+            GuestId = guest.Id,
             BookingSource = "airbnb",
             AmountReceived = 100,
             GuestsPlanned = 2,
@@ -43,6 +75,66 @@ public class BookingsControllerTests
         var dto = Assert.IsType<BookingDto>(createdResult.Value);
         Assert.Equal(1, dto.ListingId);
         Assert.Equal(100, dto.AmountReceived);
+    }
+
+    [Fact]
+    public async Task Create_AllowsNullNotes()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(Create_AllowsNullNotes))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        // Seed required related entities
+        var property = new Property
+        {
+            Name = "Property",
+            Address = "Addr",
+            Type = "House",
+            OwnerName = "Owner",
+            ContactPhone = "000",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        context.Properties.Add(property);
+        await context.SaveChangesAsync();
+
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "wifi",
+            WifiPassword = "pass",
+            MaxGuests = 2
+        };
+        context.Listings.Add(listing);
+
+        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com" };
+        context.Guests.Add(guest);
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var request = new CreateBookingRequest
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BookingSource = "airbnb",
+            AmountReceived = 100,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
+            PaymentStatus = "Pending"
+            // Notes left null
+        };
+
+        var result = await controller.Create(request);
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var dto = Assert.IsType<BookingDto>(createdResult.Value);
+        Assert.Equal(string.Empty, dto.Notes);
     }
 
     [Fact]

@@ -156,7 +156,26 @@ public class ReportsControllerTests
         var result = await controller.GetBankAccountEarnings();
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var list = Assert.IsAssignableFrom<IEnumerable<BankAccountEarnings>>(ok.Value).ToList();
-        Assert.Empty(list);
+        Assert.Single(list);
+        Assert.Equal(0, list[0].AmountReceived);
+    }
+
+    [Fact]
+    public async Task GetBankAccountEarnings_ReturnsZero_WhenAccountHasNoBookings()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(nameof(GetBankAccountEarnings_ReturnsZero_WhenAccountHasNoBookings))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.BankAccounts.Add(new BankAccount { Id = 1, BankName = "Bank", AccountNumber = "123456", IFSC = "I", AccountType = "S" });
+        await context.SaveChangesAsync();
+
+        var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
+        var result = await controller.GetBankAccountEarnings();
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var list = Assert.IsAssignableFrom<IEnumerable<BankAccountEarnings>>(ok.Value).ToList();
+        Assert.Single(list);
+        Assert.Equal(0, list[0].AmountReceived);
     }
 
     [Fact]

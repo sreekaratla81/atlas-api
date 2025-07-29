@@ -28,7 +28,7 @@ namespace Atlas.Api.Models
         public string BookingSource { get; set; } = string.Empty;
 
         [Required]
-        public string PaymentStatus { get; set; } = "Pending";
+        public string PaymentStatus { get; set; } = "Paid";
         public decimal AmountReceived { get; set; }
         [ForeignKey(nameof(BankAccount))]
         public int? BankAccountId { get; set; }

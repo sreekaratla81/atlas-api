@@ -47,7 +47,7 @@ namespace Atlas.Api.Data
                     .HasOne(b => b.Guest)
                     .WithMany()
                     .HasForeignKey(b => b.GuestId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 modelBuilder.Entity<Booking>()
                     .HasOne(b => b.Listing)
@@ -59,13 +59,13 @@ namespace Atlas.Api.Data
                     .HasOne(b => b.BankAccount)
                     .WithMany()
                     .HasForeignKey(b => b.BankAccountId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 modelBuilder.Entity<Booking>()
                     .HasOne(b => b.Property)
                     .WithMany()
                     .HasForeignKey(b => b.PropertyId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
             }
             else
             {

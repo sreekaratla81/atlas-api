@@ -16,3 +16,7 @@ git clone https://github.com/sreekaratla81/atlas-shared-utils.git
 
 Integration tests automatically detect and apply any pending EF Core migrations
 at runtime. You don't need to run `dotnet ef database update` before testing.
+
+If the test setup cannot connect to the local SQL Server instance, the host
+automatically falls back to an in-memory database so tests can run in CI
+environments without additional configuration.

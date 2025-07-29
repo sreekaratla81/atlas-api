@@ -125,7 +125,7 @@ namespace Atlas.Api.Controllers
                     GuestId = guest.Id,
                     Guest = guest,
                     BookingSource = request.BookingSource,
-                    PaymentStatus = string.IsNullOrWhiteSpace(request.PaymentStatus) ? "Pending" : request.PaymentStatus,
+                    PaymentStatus = string.IsNullOrWhiteSpace(request.PaymentStatus) ? "Paid" : request.PaymentStatus,
                     CheckinDate = request.CheckinDate,
                     CheckoutDate = request.CheckoutDate,
                     AmountReceived = request.AmountReceived,

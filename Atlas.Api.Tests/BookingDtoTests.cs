@@ -5,10 +5,10 @@ namespace Atlas.Api.Tests;
 public class BookingDtoTests
 {
     [Fact]
-    public void PaymentStatus_DefaultsToPending()
+    public void PaymentStatus_DefaultsToPaid()
     {
         var dto = new BookingDto();
-        Assert.Equal("Pending", dto.PaymentStatus);
+        Assert.Equal("Paid", dto.PaymentStatus);
     }
 
     [Fact]

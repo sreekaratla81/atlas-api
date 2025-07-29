@@ -13,10 +13,10 @@ public class BookingModelTests
             GuestId = 1,
             BookingSource = "b",
             Notes = "n",
-            PaymentStatus = "Pending"
+            PaymentStatus = "Paid"
         };
 
-        Assert.Equal("Pending", booking.PaymentStatus);
+        Assert.Equal("Paid", booking.PaymentStatus);
         Assert.True((DateTime.UtcNow - booking.CreatedAt).TotalSeconds < 5);
     }
 }

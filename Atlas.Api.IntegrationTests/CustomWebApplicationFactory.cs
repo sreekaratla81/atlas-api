@@ -22,10 +22,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             Environment.GetEnvironmentVariable("Atlas_TestDb") ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
+        Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", connectionString);
+
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
-            Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", connectionString);
             services.AddDbContext<AppDbContext>(o =>
                 o.UseSqlServer(connectionString));
 

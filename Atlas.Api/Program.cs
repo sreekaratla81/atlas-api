@@ -14,6 +14,10 @@ namespace Atlas.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Configuration
+                .AddJsonFile(".env.local", optional: true)
+                .AddEnvironmentVariables();
+
 
             // Add services
             builder.Services.AddCors(options =>
@@ -49,13 +53,8 @@ namespace Atlas.Api
             // or environment variables. Azure App Service typically injects the
             // connection string as `ConnectionStrings__DefaultConnection` so we
             // read from configuration first which already checks that variable.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-            // Fall back to older environment variable name if provided
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION");
-            }
+            var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
+                ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
             if (string.IsNullOrWhiteSpace(connectionString))
             {

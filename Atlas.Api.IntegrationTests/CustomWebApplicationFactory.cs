@@ -1,12 +1,13 @@
 using Atlas.Api;
 using Atlas.Api.Data;
-using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using System;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -29,7 +30,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.AddDbContext<AppDbContext>(o =>
                 o.UseSqlServer(connectionString, sqlOptions =>
-                    sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+                    sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
+                 .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
         });
     }
 }

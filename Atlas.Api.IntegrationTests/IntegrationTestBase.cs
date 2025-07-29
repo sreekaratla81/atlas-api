@@ -18,14 +18,7 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureDeleted();
-            if (db.Database.IsInMemory())
-            {
-                db.Database.EnsureCreated();
-            }
-            else
-            {
-                db.Database.Migrate();
-            }
+            db.Database.Migrate();
         }
 
         Client = factory.CreateClient();
@@ -43,14 +36,7 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.EnsureDeletedAsync();
-        if (db.Database.IsInMemory())
-        {
-            await db.Database.EnsureCreatedAsync();
-        }
-        else
-        {
-            await db.Database.MigrateAsync();
-        }
+        await db.Database.MigrateAsync();
 
         if (!await db.Properties.AnyAsync())
         {

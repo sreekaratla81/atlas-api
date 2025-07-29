@@ -177,12 +177,7 @@ public class BookingsApiTests : IntegrationTestBase
         var data = await SeedBookingAsync(db);
         var id = data.booking.Id;
 
-        // Skip assertion when using in-memory fallback as serialization
-        // of tracked entities can cause model validation to fail.
-        if (db.Database.IsInMemory())
-        {
-            return;
-        }
+
 
         var payload = new
         {

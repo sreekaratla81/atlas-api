@@ -14,10 +14,9 @@ namespace Atlas.Api.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-
-            // Use cascade deletes for integration tests. In other environments
-            // apply cascade to only one FK to avoid multiple cascade paths.
+            // All environments use DeleteBehavior.Restrict to avoid accidental
+            // cascading deletes. Integration tests explicitly clean up related
+            // entities when necessary.
 
             modelBuilder.Entity<Booking>()
                 .Property(b => b.AmountReceived)
@@ -41,48 +40,23 @@ namespace Atlas.Api.Data
                 .HasPrecision(5, 2);
 
 
-            if (env == "IntegrationTest")
-            {
-                modelBuilder.Entity<Booking>()
-                    .HasOne(b => b.Guest)
-                    .WithMany()
-                    .HasForeignKey(b => b.GuestId)
-                    .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Guest)
+                .WithMany()
+                .HasForeignKey(b => b.GuestId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-                modelBuilder.Entity<Booking>()
-                    .HasOne(b => b.Listing)
-                    .WithMany(l => l.Bookings)
-                    .HasForeignKey(b => b.ListingId)
-                    .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Listing)
+                .WithMany(l => l.Bookings)
+                .HasForeignKey(b => b.ListingId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-                modelBuilder.Entity<Booking>()
-                    .HasOne(b => b.BankAccount)
-                    .WithMany()
-                    .HasForeignKey(b => b.BankAccountId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-            }
-            else
-            {
-                modelBuilder.Entity<Booking>()
-                    .HasOne(b => b.Guest)
-                    .WithMany()
-                    .HasForeignKey(b => b.GuestId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                modelBuilder.Entity<Booking>()
-                    .HasOne(b => b.Listing)
-                    .WithMany(l => l.Bookings)
-                    .HasForeignKey(b => b.ListingId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                modelBuilder.Entity<Booking>()
-                    .HasOne(b => b.BankAccount)
-                    .WithMany()
-                    .HasForeignKey(b => b.BankAccountId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-            }
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.BankAccount)
+                .WithMany()
+                .HasForeignKey(b => b.BankAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         public DbSet<Property> Properties { get; set; }

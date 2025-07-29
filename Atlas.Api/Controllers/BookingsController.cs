@@ -93,6 +93,20 @@ namespace Atlas.Api.Controllers
         {
             try
             {
+                var listing = await _context.Listings.FindAsync(request.ListingId);
+                if (listing == null)
+                {
+                    ModelState.AddModelError(nameof(request.ListingId), "Listing not found");
+                    return ValidationProblem(ModelState);
+                }
+
+                var guest = await _context.Guests.FindAsync(request.GuestId);
+                if (guest == null)
+                {
+                    ModelState.AddModelError(nameof(request.GuestId), "Guest not found");
+                    return ValidationProblem(ModelState);
+                }
+
                 var commissionRate = request.BookingSource.ToLower() switch
                 {
                     "airbnb" => 0.16m,
@@ -106,8 +120,10 @@ namespace Atlas.Api.Controllers
 
                 var booking = new Booking
                 {
-                    ListingId = request.ListingId,
-                    GuestId = request.GuestId,
+                    ListingId = listing.Id,
+                    Listing = listing,
+                    GuestId = guest.Id,
+                    Guest = guest,
                     BookingSource = request.BookingSource,
                     PaymentStatus = string.IsNullOrWhiteSpace(request.PaymentStatus) ? "Pending" : request.PaymentStatus,
                     CheckinDate = request.CheckinDate,
@@ -137,7 +153,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Booking booking)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateBookingRequest booking)
         {
             try
             {
@@ -150,9 +166,25 @@ namespace Atlas.Api.Controllers
                 var existingBooking = await _context.Bookings.FindAsync(id);
                 if (existingBooking == null) return NotFound();
 
+                var listing = await _context.Listings.FindAsync(booking.ListingId);
+                if (listing == null)
+                {
+                    ModelState.AddModelError(nameof(booking.ListingId), "Listing not found");
+                    return ValidationProblem(ModelState);
+                }
+
+                var guest = await _context.Guests.FindAsync(booking.GuestId);
+                if (guest == null)
+                {
+                    ModelState.AddModelError(nameof(booking.GuestId), "Guest not found");
+                    return ValidationProblem(ModelState);
+                }
+
                 // Update allowed fields
-                existingBooking.GuestId = booking.GuestId;
-                existingBooking.ListingId = booking.ListingId;
+                existingBooking.GuestId = guest.Id;
+                existingBooking.Guest = guest;
+                existingBooking.ListingId = listing.Id;
+                existingBooking.Listing = listing;
                 existingBooking.CheckinDate = booking.CheckinDate;
                 existingBooking.CheckoutDate = booking.CheckoutDate;
                 existingBooking.BookingSource = booking.BookingSource;
@@ -169,13 +201,16 @@ namespace Atlas.Api.Controllers
                 existingBooking.Notes = booking.Notes;
                 existingBooking.BankAccountId = booking.BankAccountId;
 
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    _logger.LogError(ex, "Concurrency error updating booking {BookingId}", id);
+                    return StatusCode(500, "A concurrency error occurred while updating the booking.");
+                }
                 return NoContent();
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                _logger.LogError(ex, "Concurrency error updating booking {BookingId}", id);
-                return StatusCode(500, "Concurrency error updating booking");
             }
             catch (Exception ex)
             {

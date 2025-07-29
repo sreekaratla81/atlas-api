@@ -1,12 +1,13 @@
 using Atlas.Api;
 using Atlas.Api.Data;
-using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using System;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -28,30 +29,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.AddDbContext<AppDbContext>(o =>
-                o.UseSqlServer(connectionString));
-
-            using (var scope = services.BuildServiceProvider().CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                db.Database.EnsureDeleted();   // Clean test schema
-                db.Database.Migrate();         // Apply EF Core migrations
-
-                if (!db.Properties.Any())
-                {
-                    db.Properties.Add(new Atlas.Api.Models.Property
-                    {
-                        Name = "Test Villa",
-                        Address = "Seed Address",
-                        Type = "Villa",
-                        OwnerName = "Owner",
-                        ContactPhone = "000",
-                        CommissionPercent = 10,
-                        Status = "Active"
-                    });
-                    db.SaveChanges();
-                }
-            }
+                o.UseSqlServer(connectionString, sqlOptions =>
+                    sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
+                 .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
         });
     }
 }

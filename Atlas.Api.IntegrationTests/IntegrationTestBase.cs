@@ -14,13 +14,6 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
     {
         Factory = factory;
 
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureDeleted();   // Clean test schema
-            db.Database.Migrate();         // Apply EF Core migrations
-        }
-
         Client = factory.CreateClient();
     }
 

@@ -89,10 +89,17 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<BookingDto>> Create([FromBody] CreateBookingRequest request)
+        public async Task<ActionResult<BookingDto>> Create([FromBody] BookingCreateRequest request)
         {
             try
             {
+                var guest = await _context.Guests.FindAsync(request.GuestId);
+                var listing = await _context.Listings.FindAsync(request.ListingId);
+                if (guest == null || listing == null)
+                {
+                    return BadRequest("Invalid guest or listing");
+                }
+
                 var commissionRate = request.BookingSource.ToLower() switch
                 {
                     "airbnb" => 0.16m,
@@ -108,6 +115,8 @@ namespace Atlas.Api.Controllers
                 {
                     ListingId = request.ListingId,
                     GuestId = request.GuestId,
+                    Listing = listing,
+                    Guest = guest,
                     BookingSource = request.BookingSource,
                     PaymentStatus = string.IsNullOrWhiteSpace(request.PaymentStatus) ? "Pending" : request.PaymentStatus,
                     CheckinDate = request.CheckinDate,
@@ -137,37 +146,46 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Booking booking)
+        public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateRequest request)
         {
             try
             {
-                if (booking.Id == 0)
+                if (request.Id == 0)
                 {
-                    booking.Id = id;
+                    request.Id = id;
                 }
-                if (id != booking.Id) return BadRequest();
+                if (id != request.Id) return BadRequest();
 
                 var existingBooking = await _context.Bookings.FindAsync(id);
                 if (existingBooking == null) return NotFound();
 
-                // Update allowed fields
-                existingBooking.GuestId = booking.GuestId;
-                existingBooking.ListingId = booking.ListingId;
-                existingBooking.CheckinDate = booking.CheckinDate;
-                existingBooking.CheckoutDate = booking.CheckoutDate;
-                existingBooking.BookingSource = booking.BookingSource;
-                if (!string.IsNullOrWhiteSpace(booking.PaymentStatus))
+                var guest = await _context.Guests.FindAsync(request.GuestId);
+                var listing = await _context.Listings.FindAsync(request.ListingId);
+                if (guest == null || listing == null)
                 {
-                    existingBooking.PaymentStatus = booking.PaymentStatus;
+                    return BadRequest("Invalid guest or listing");
                 }
-                existingBooking.AmountReceived = booking.AmountReceived;
-                existingBooking.GuestsPlanned = booking.GuestsPlanned;
-                existingBooking.GuestsActual = booking.GuestsActual;
-                existingBooking.ExtraGuestCharge = booking.ExtraGuestCharge;
-                existingBooking.AmountGuestPaid = booking.AmountGuestPaid;
-                existingBooking.CommissionAmount = booking.CommissionAmount;
-                existingBooking.Notes = booking.Notes;
-                existingBooking.BankAccountId = booking.BankAccountId;
+
+                // Update allowed fields
+                existingBooking.GuestId = request.GuestId;
+                existingBooking.ListingId = request.ListingId;
+                existingBooking.Guest = guest;
+                existingBooking.Listing = listing;
+                existingBooking.CheckinDate = request.CheckinDate;
+                existingBooking.CheckoutDate = request.CheckoutDate;
+                existingBooking.BookingSource = request.BookingSource;
+                if (!string.IsNullOrWhiteSpace(request.PaymentStatus))
+                {
+                    existingBooking.PaymentStatus = request.PaymentStatus;
+                }
+                existingBooking.AmountReceived = request.AmountReceived;
+                existingBooking.GuestsPlanned = request.GuestsPlanned;
+                existingBooking.GuestsActual = request.GuestsActual;
+                existingBooking.ExtraGuestCharge = request.ExtraGuestCharge;
+                existingBooking.AmountGuestPaid = request.AmountGuestPaid;
+                existingBooking.CommissionAmount = request.CommissionAmount;
+                existingBooking.Notes = request.Notes;
+                existingBooking.BankAccountId = request.BankAccountId;
 
                 await _context.SaveChangesAsync();
                 return NoContent();

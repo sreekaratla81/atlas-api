@@ -66,20 +66,24 @@ namespace Atlas.Api.Controllers
             var fyStart = new DateTime(2025, 4, 1);
             var fyEnd = new DateTime(2026, 4, 1);
 
-            var query = from b in _context.Bookings
-                        join a in _context.BankAccounts on b.BankAccountId equals a.Id
-                        where b.BankAccountId != null &&
-                              b.CheckinDate >= fyStart &&
-                              b.CheckinDate < fyEnd
-                        group new { b, a } by new { a.Id, a.BankName, a.AccountNumber } into g
-                        select new Atlas.Api.Models.Reports.BankAccountEarnings
-                        {
-                            Bank = g.Key.BankName,
-                            AccountDisplay = g.Key.BankName + " - " + g.Key.AccountNumber.Substring(g.Key.AccountNumber.Length - 4),
-                            AmountReceived = g.Sum(x => x.b.AmountReceived)
-                        };
+            var result = await _context.BankAccounts
+                .Select(account => new Atlas.Api.Models.Reports.BankAccountEarnings
+                {
+                    Bank = account.BankName,
+                    AccountDisplay = account.BankName + " - " +
+                        (account.AccountNumber.Length >= 4
+                            ? account.AccountNumber.Substring(account.AccountNumber.Length - 4)
+                            : account.AccountNumber),
+                    AmountReceived = _context.Bookings
+                        .Where(b =>
+                            b.BankAccountId == account.Id &&
+                            b.CheckinDate >= fyStart &&
+                            b.CheckinDate < fyEnd)
+                        .Sum(b => (decimal?)b.AmountReceived) ?? 0
+                })
+                .OrderBy(r => r.Bank)
+                .ToListAsync();
 
-            var result = await query.ToListAsync();
             return Ok(result);
         }
     }

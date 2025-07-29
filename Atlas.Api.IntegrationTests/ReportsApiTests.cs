@@ -77,5 +77,22 @@ public class ReportsApiTests : IntegrationTestBase
         var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();
         Assert.NotNull(data);
         Assert.Single(data!);
+        Assert.Equal(400, data![0].AmountReceived);
+    }
+
+    [Fact]
+    public async Task GetBankAccountEarnings_ReturnsZeroForAccountWithoutBookings()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await DataSeeder.SeedBankAccountAsync(db);
+
+        var response = await Client.GetAsync("/api/reports/bank-account-earnings");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();
+        Assert.NotNull(data);
+        Assert.Single(data!);
+        Assert.Equal(0, data![0].AmountReceived);
     }
 }

@@ -8,7 +8,7 @@ namespace Atlas.Api.Tests;
 public class DeleteBehaviorTests
 {
     [Fact]
-    public void OnModelCreating_UsesCascadeOnListingOnly()
+    public void OnModelCreating_RestrictsDeletes()
     {
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -19,8 +19,6 @@ public class DeleteBehaviorTests
         var entity = context.Model.FindEntityType(typeof(Booking))!;
         var fks = entity.GetForeignKeys();
 
-        Assert.Equal(DeleteBehavior.Restrict, fks.Single(f => f.Properties.Any(p => p.Name == nameof(Booking.GuestId))).DeleteBehavior);
-        Assert.Equal(DeleteBehavior.Cascade, fks.Single(f => f.Properties.Any(p => p.Name == nameof(Booking.ListingId))).DeleteBehavior);
-        Assert.Equal(DeleteBehavior.Restrict, fks.Single(f => f.Properties.Any(p => p.Name == nameof(Booking.BankAccountId))).DeleteBehavior);
+        Assert.All(fks, fk => Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior));
     }
 }

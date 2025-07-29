@@ -51,7 +51,6 @@ public class PropertiesApiTests : IntegrationTestBase
 
         var booking = new Booking
         {
-            PropertyId = property.Id,
             ListingId = listing.Id,
             GuestId = guest.Id,
             BookingSource = "airbnb",

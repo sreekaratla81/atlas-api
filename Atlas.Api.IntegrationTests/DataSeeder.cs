@@ -53,7 +53,6 @@ public static class DataSeeder
     {
         var booking = new Booking
         {
-            PropertyId = property.Id,
             ListingId = listing.Id,
             Listing = listing,
             GuestId = guest.Id,

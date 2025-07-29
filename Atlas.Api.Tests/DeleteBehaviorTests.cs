@@ -22,6 +22,5 @@ public class DeleteBehaviorTests
         Assert.Equal(DeleteBehavior.Restrict, fks.Single(f => f.Properties.Any(p => p.Name == nameof(Booking.GuestId))).DeleteBehavior);
         Assert.Equal(DeleteBehavior.Cascade, fks.Single(f => f.Properties.Any(p => p.Name == nameof(Booking.ListingId))).DeleteBehavior);
         Assert.Equal(DeleteBehavior.Restrict, fks.Single(f => f.Properties.Any(p => p.Name == nameof(Booking.BankAccountId))).DeleteBehavior);
-        Assert.Equal(DeleteBehavior.Restrict, fks.Single(f => f.Properties.Any(p => p.Name == nameof(Booking.PropertyId))).DeleteBehavior);
     }
 }

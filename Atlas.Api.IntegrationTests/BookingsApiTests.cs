@@ -47,7 +47,6 @@ public class BookingsApiTests : IntegrationTestBase
         await db.SaveChangesAsync();
         var booking = new Booking
         {
-            PropertyId = property.Id,
             ListingId = listing.Id,
             GuestId = guest.Id,
             BookingSource = "airbnb",
@@ -307,7 +306,6 @@ public class BookingsApiTests : IntegrationTestBase
         {
             Id = data.booking.Id,
             ListingId = data.booking.ListingId,
-            PropertyId = data.booking.PropertyId,
             GuestId = data.booking.GuestId,
             BookingSource = data.booking.BookingSource,
             CheckinDate = data.booking.CheckinDate,

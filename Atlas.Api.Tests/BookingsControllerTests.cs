@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.ComponentModel.DataAnnotations;
+using Moq;
 using Xunit;
 
 namespace Atlas.Api.Tests;
@@ -159,7 +160,7 @@ public class BookingsControllerTests
             .Options;
         using var context = new AppDbContext(options);
         var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
-        var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource="a", Notes="n", PaymentStatus="Pending" };
+        var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" };
 
         var result = await controller.Update(2, booking);
 
@@ -228,13 +229,60 @@ public class BookingsControllerTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: nameof(Update_ReturnsConcurrencyError_WhenSaveFails))
             .Options;
-        using var context = new ThrowingDbContext(options);
-        context.Bookings.Add(new Booking { Id = 1, ListingId = 1, GuestId = 1, BookingSource="a", Notes="n", PaymentStatus="Pending" });
-        await context.SaveChangesAsync();
-        context.ThrowOnSave = true;
+
+        // Seed related entities and a booking using a real context
+        using (var seed = new AppDbContext(options))
+        {
+            var property = new Property
+            {
+                Name = "Property",
+                Address = "Addr",
+                Type = "House",
+                OwnerName = "Owner",
+                ContactPhone = "000",
+                CommissionPercent = 10,
+                Status = "Active"
+            };
+            seed.Properties.Add(property);
+            await seed.SaveChangesAsync();
+
+            var listing = new Listing
+            {
+                PropertyId = property.Id,
+                Property = property,
+                Name = "Listing",
+                Floor = 1,
+                Type = "Room",
+                Status = "Available",
+                WifiName = "wifi",
+                WifiPassword = "pass",
+                MaxGuests = 2
+            };
+            seed.Listings.Add(listing);
+
+            var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com" };
+            seed.Guests.Add(guest);
+            await seed.SaveChangesAsync();
+
+            seed.Bookings.Add(new Booking
+            {
+                Id = 1,
+                ListingId = listing.Id,
+                GuestId = guest.Id,
+                BookingSource = "a",
+                Notes = "n",
+                PaymentStatus = "Pending"
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        var mockContext = new Moq.Mock<AppDbContext>(options) { CallBase = true };
+        mockContext.Setup(x => x.SaveChangesAsync(Moq.It.IsAny<CancellationToken>()))
+                   .ThrowsAsync(new DbUpdateConcurrencyException());
+
         var logger = new Moq.Mock<Microsoft.Extensions.Logging.ILogger<BookingsController>>();
-        var controller = new BookingsController(context, logger.Object);
-        var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource="a", Notes="n", PaymentStatus="Pending" };
+        var controller = new BookingsController(mockContext.Object, logger.Object);
+        var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" };
 
         var result = await controller.Update(1, booking);
 
@@ -249,15 +297,4 @@ public class BookingsControllerTests
             Moq.Times.Once);
     }
 
-    private class ThrowingDbContext : AppDbContext
-    {
-        public bool ThrowOnSave { get; set; }
-        public ThrowingDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            if (ThrowOnSave)
-                throw new DbUpdateConcurrencyException();
-            return base.SaveChangesAsync(cancellationToken);
-        }
-    }
 }

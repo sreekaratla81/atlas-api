@@ -59,5 +59,28 @@ namespace Atlas.Api.Controllers
             var rounded = result.ToDictionary(kvp => kvp.Key, kvp => Math.Round(kvp.Value, 2));
             return Ok(rounded);
         }
+
+        [HttpGet("bank-account-earnings")]
+        public async Task<ActionResult<IEnumerable<Atlas.Api.Models.Reports.BankAccountEarnings>>> GetBankAccountEarnings()
+        {
+            var fyStart = new DateTime(2025, 4, 1);
+            var fyEnd = new DateTime(2026, 4, 1);
+
+            var query = from b in _context.Bookings
+                        join a in _context.BankAccounts on b.BankAccountId equals a.Id
+                        where b.BankAccountId != null &&
+                              b.CheckinDate >= fyStart &&
+                              b.CheckinDate < fyEnd
+                        group new { b, a } by new { a.Id, a.BankName, a.AccountNumber } into g
+                        select new Atlas.Api.Models.Reports.BankAccountEarnings
+                        {
+                            Bank = g.Key.BankName,
+                            AccountDisplay = g.Key.BankName + " - " + g.Key.AccountNumber.Substring(g.Key.AccountNumber.Length - 4),
+                            AmountReceived = g.Sum(x => x.b.AmountReceived)
+                        };
+
+            var result = await query.ToListAsync();
+            return Ok(result);
+        }
     }
 }

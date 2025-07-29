@@ -68,7 +68,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             using (var scope = services.BuildServiceProvider().CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                db.Database.EnsureDeleted();
                 if (useInMemory)
                 {
                     db.Database.EnsureCreated();

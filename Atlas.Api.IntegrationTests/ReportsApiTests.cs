@@ -59,9 +59,9 @@ public class ReportsApiTests : IntegrationTestBase
         var response = await Client.GetAsync("/api/reports/calendar-earnings?listingId=1&month=2025-07");
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
-        var dict = await response.Content.ReadFromJsonAsync<Dictionary<string, decimal>>();
-        Assert.NotNull(dict);
-        Assert.Equal(2, dict!.Count);
+        var list = await response.Content.ReadFromJsonAsync<List<DailySourceEarnings>>();
+        Assert.NotNull(list);
+        Assert.Equal(2, list!.Count);
     }
 
     [Fact]

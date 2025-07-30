@@ -1,4 +1,5 @@
 using Atlas.Api.Data;
+using Atlas.Api.Models.Reports;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -21,7 +22,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("calendar-earnings")]
-        public async Task<ActionResult<Dictionary<string, decimal>>> GetCalendarEarnings([
+        public async Task<ActionResult<IEnumerable<DailySourceEarnings>>> GetCalendarEarnings([
             FromQuery] int listingId,
             [FromQuery] string month)
         {
@@ -36,10 +37,10 @@ namespace Atlas.Api.Controllers
                 .Where(b => b.ListingId == listingId &&
                             b.CheckinDate < monthEnd &&
                             b.CheckoutDate > monthStart)
-                .Select(b => new { b.CheckinDate, b.CheckoutDate, b.AmountReceived })
+                .Select(b => new { b.CheckinDate, b.CheckoutDate, b.AmountReceived, b.BookingSource })
                 .ToListAsync();
 
-            var result = new Dictionary<string, decimal>();
+            var result = new Dictionary<(DateTime Date, string Source), decimal>();
             foreach (var b in bookings)
             {
                 var nights = (b.CheckoutDate.Date - b.CheckinDate.Date).TotalDays;
@@ -49,14 +50,19 @@ namespace Atlas.Api.Controllers
                 {
                     if (day >= monthStart && day < monthEnd)
                     {
-                        var key = day.ToString("yyyy-MM-dd");
+                        var key = (day, b.BookingSource);
                         result.TryGetValue(key, out var current);
                         result[key] = current + dailyAmount;
                     }
                 }
             }
 
-            var rounded = result.ToDictionary(kvp => kvp.Key, kvp => Math.Round(kvp.Value, 2));
+            var rounded = result.Select(kvp => new DailySourceEarnings
+            {
+                Date = kvp.Key.Date.ToString("yyyy-MM-dd"),
+                Source = kvp.Key.Source,
+                Amount = Math.Round(kvp.Value, 2)
+            }).ToList();
             return Ok(rounded);
         }
 

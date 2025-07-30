@@ -21,7 +21,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("calendar-earnings")]
-        public async Task<ActionResult<Dictionary<string, decimal>>> GetCalendarEarnings([
+        public async Task<ActionResult<IEnumerable<Atlas.Api.Models.Reports.DailySourceEarnings>>> GetCalendarEarnings([
             FromQuery] int listingId,
             [FromQuery] string month)
         {
@@ -36,10 +36,10 @@ namespace Atlas.Api.Controllers
                 .Where(b => b.ListingId == listingId &&
                             b.CheckinDate < monthEnd &&
                             b.CheckoutDate > monthStart)
-                .Select(b => new { b.CheckinDate, b.CheckoutDate, b.AmountReceived })
+                .Select(b => new { b.CheckinDate, b.CheckoutDate, b.AmountReceived, b.BookingSource })
                 .ToListAsync();
 
-            var result = new Dictionary<string, decimal>();
+            var result = new List<Atlas.Api.Models.Reports.DailySourceEarnings>();
             foreach (var b in bookings)
             {
                 var nights = (b.CheckoutDate.Date - b.CheckinDate.Date).TotalDays;
@@ -49,15 +49,17 @@ namespace Atlas.Api.Controllers
                 {
                     if (day >= monthStart && day < monthEnd)
                     {
-                        var key = day.ToString("yyyy-MM-dd");
-                        result.TryGetValue(key, out var current);
-                        result[key] = current + dailyAmount;
+                        result.Add(new Atlas.Api.Models.Reports.DailySourceEarnings
+                        {
+                            Date = day,
+                            Source = b.BookingSource,
+                            Amount = Math.Round(dailyAmount, 2)
+                        });
                     }
                 }
             }
 
-            var rounded = result.ToDictionary(kvp => kvp.Key, kvp => Math.Round(kvp.Value, 2));
-            return Ok(rounded);
+            return Ok(result);
         }
 
         [HttpGet("bank-account-earnings")]

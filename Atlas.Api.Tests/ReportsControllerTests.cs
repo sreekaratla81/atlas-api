@@ -34,11 +34,15 @@ public class ReportsControllerTests
         var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
         var result = await controller.GetCalendarEarnings(1, "2025-07");
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var dict = Assert.IsType<Dictionary<string, decimal>>(ok.Value);
-        Assert.Equal(3, dict.Count);
-        Assert.Equal(100, dict["2025-07-05"]);
-        Assert.Equal(100, dict["2025-07-06"]);
-        Assert.Equal(100, dict["2025-07-07"]);
+        var list = Assert.IsAssignableFrom<IEnumerable<DailySourceEarnings>>(ok.Value).OrderBy(x => x.Date).ToList();
+        Assert.Equal(3, list.Count);
+        Assert.All(list, item => Assert.Equal("airbnb", item.Source));
+        Assert.Equal(new DateTime(2025,7,5), list[0].Date);
+        Assert.Equal(100, list[0].Amount);
+        Assert.Equal(new DateTime(2025,7,6), list[1].Date);
+        Assert.Equal(100, list[1].Amount);
+        Assert.Equal(new DateTime(2025,7,7), list[2].Date);
+        Assert.Equal(100, list[2].Amount);
     }
 
     [Fact]
@@ -64,9 +68,10 @@ public class ReportsControllerTests
         var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
         var result = await controller.GetCalendarEarnings(1, "2025-07");
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var dict = Assert.IsType<Dictionary<string, decimal>>(ok.Value);
-        Assert.Single(dict);
-        Assert.Equal(100, dict["2025-07-01"]);
+        var list = Assert.IsAssignableFrom<IEnumerable<DailySourceEarnings>>(ok.Value).ToList();
+        Assert.Single(list);
+        Assert.Equal(new DateTime(2025,7,1), list[0].Date);
+        Assert.Equal(100, list[0].Amount);
     }
 
     [Fact]
@@ -92,10 +97,12 @@ public class ReportsControllerTests
         var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
         var result = await controller.GetCalendarEarnings(1, "2025-07");
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var dict = Assert.IsType<Dictionary<string, decimal>>(ok.Value);
-        Assert.Equal(2, dict.Count);
-        Assert.Equal(100, dict["2025-07-10"]);
-        Assert.Equal(100, dict["2025-07-11"]);
+        var list = Assert.IsAssignableFrom<IEnumerable<DailySourceEarnings>>(ok.Value).OrderBy(x => x.Date).ToList();
+        Assert.Equal(2, list.Count);
+        Assert.Equal(new DateTime(2025,7,10), list[0].Date);
+        Assert.Equal(100, list[0].Amount);
+        Assert.Equal(new DateTime(2025,7,11), list[1].Date);
+        Assert.Equal(100, list[1].Amount);
     }
 
     [Fact]

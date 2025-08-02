@@ -44,7 +44,18 @@ namespace Atlas.Api.Controllers
             foreach (var b in bookings)
             {
                 var nights = (b.CheckoutDate.Date - b.CheckinDate.Date).TotalDays;
-                if (nights <= 0) continue;
+                if (nights <= 0)
+                {
+                    var day = b.CheckinDate.Date;
+                    if (day >= monthStart && day < monthEnd)
+                    {
+                        var key = (day, b.BookingSource);
+                        result.TryGetValue(key, out var current);
+                        result[key] = current + b.AmountReceived;
+                    }
+                    continue;
+                }
+
                 var dailyAmount = b.AmountReceived / (decimal)nights;
                 for (var day = b.CheckinDate.Date; day < b.CheckoutDate.Date; day = day.AddDays(1))
                 {

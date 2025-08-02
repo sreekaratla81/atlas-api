@@ -28,6 +28,25 @@ public class ReportsApiTests : IntegrationTestBase
         await db.SaveChangesAsync();
     }
 
+    private static async Task SeedSameDayBookingAsync(AppDbContext db)
+    {
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        var guest = await DataSeeder.SeedGuestAsync(db);
+        db.Bookings.Add(new Booking
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            CheckinDate = new DateTime(2025, 6, 18),
+            CheckoutDate = new DateTime(2025, 6, 18),
+            BookingSource = "direct",
+            AmountReceived = 2650.88m,
+            Notes = string.Empty,
+            PaymentStatus = "Paid"
+        });
+        await db.SaveChangesAsync();
+    }
+
     private static async Task SeedBankAccountDataAsync(AppDbContext db)
     {
         var property = await DataSeeder.SeedPropertyAsync(db);
@@ -62,6 +81,25 @@ public class ReportsApiTests : IntegrationTestBase
         var list = await response.Content.ReadFromJsonAsync<List<DailySourceEarnings>>();
         Assert.NotNull(list);
         Assert.Equal(2, list!.Count);
+    }
+
+    [Fact]
+    public async Task GetCalendarEarnings_IncludesSameDayBooking()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await SeedSameDayBookingAsync(db);
+
+        var response = await Client.GetAsync("/api/reports/calendar-earnings?listingId=1&month=2025-06");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var list = await response.Content.ReadFromJsonAsync<List<DailySourceEarnings>>();
+        Assert.NotNull(list);
+        Assert.Single(list!);
+        var entry = list![0];
+        Assert.Equal("2025-06-18", entry.Date);
+        Assert.Equal("direct", entry.Source);
+        Assert.Equal(2650.88m, entry.Amount);
     }
 
     [Fact]

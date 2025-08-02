@@ -10,7 +10,7 @@ using System.Linq;
 public class AdminReportsControllerTests
 {
     [Fact]
-    public async Task GetMonthlyEarnings_ComputesGrossNetAndFees()
+    public async Task GetMonthlyEarnings_ComputesNetAndFees()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: "MonthlyEarningsTest")
@@ -40,14 +40,15 @@ public class AdminReportsControllerTests
         var first = list.Single(x => x.Month == key0);
         Assert.Equal(100, first.TotalNet);
         Assert.Equal(100 * 0.16m, first.TotalFees);
-        Assert.Equal(100 + 100 * 0.16m, first.TotalGross);
 
         var second = list.Single(x => x.Month == key1);
         var net = 200 + 300;
         var fees = 200 * 0.15m + 300 * 0.18m;
         Assert.Equal(net, second.TotalNet);
         Assert.Equal(fees, second.TotalFees);
-        Assert.Equal(net + fees, second.TotalGross);
+        // For backward compatibility ensure TotalGross equals TotalNet + TotalFees
+        Assert.Equal(first.TotalNet + first.TotalFees, first.TotalGross);
+        Assert.Equal(second.TotalNet + second.TotalFees, second.TotalGross);
     }
 
     [Fact]

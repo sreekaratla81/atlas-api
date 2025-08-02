@@ -12,6 +12,37 @@ namespace Atlas.Api.Tests;
 public class ReportsControllerTests
 {
     [Fact]
+    public async Task GetCalendarEarnings_SameDayBooking()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(nameof(GetCalendarEarnings_SameDayBooking))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.Bookings.Add(new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            CheckinDate = new DateTime(2025, 6, 18),
+            CheckoutDate = new DateTime(2025, 6, 18),
+            BookingSource = "direct",
+            AmountReceived = 2650.88m,
+            Notes = string.Empty,
+            PaymentStatus = "Paid"
+        });
+        await context.SaveChangesAsync();
+
+        var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
+        var result = await controller.GetCalendarEarnings(1, "2025-06");
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var list = Assert.IsAssignableFrom<IEnumerable<DailySourceEarnings>>(ok.Value).ToList();
+        Assert.Single(list);
+        var entry = list.Single();
+        Assert.Equal("2025-06-18", entry.Date);
+        Assert.Equal(2650.88m, entry.Amount);
+        Assert.Equal("direct", entry.Source);
+    }
+
+    [Fact]
     public async Task GetCalendarEarnings_SpansMultipleDays()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

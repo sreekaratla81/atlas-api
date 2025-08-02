@@ -131,8 +131,7 @@ namespace Atlas.Api.Controllers
                 {
                     Month = k,
                     TotalNet = grouped.TryGetValue(k, out var data) ? data.TotalNet : 0,
-                    TotalFees = grouped.TryGetValue(k, out data) ? data.TotalFees : 0,
-                    TotalGross = grouped.TryGetValue(k, out data) ? data.TotalNet + data.TotalFees : 0
+                    TotalFees = grouped.TryGetValue(k, out data) ? data.TotalFees : 0
                 }).ToList();
 
                 return Ok(result);
@@ -187,8 +186,7 @@ namespace Atlas.Api.Controllers
                 {
                     Month = k,
                     TotalNet = grouped.TryGetValue(k, out var data) ? data.TotalNet : 0,
-                    TotalFees = grouped.TryGetValue(k, out data) ? data.TotalFees : 0,
-                    TotalGross = grouped.TryGetValue(k, out data) ? data.TotalNet + data.TotalFees : 0
+                    TotalFees = grouped.TryGetValue(k, out data) ? data.TotalFees : 0
                 }).ToList();
 
                 return Ok(result);

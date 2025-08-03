@@ -57,7 +57,6 @@ public class PaymentsApiTests : IntegrationTestBase
             GuestsPlanned = 1,
             GuestsActual = 1,
             ExtraGuestCharge = 0,
-            AmountGuestPaid = 100,
             CommissionAmount = 0,
             Notes = "note",
             BankAccountId = null

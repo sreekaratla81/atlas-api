@@ -38,7 +38,6 @@ namespace Atlas.Api.Models
         public int? GuestsPlanned { get; set; }
         public int? GuestsActual { get; set; }
         public decimal? ExtraGuestCharge { get; set; }
-        public decimal? AmountGuestPaid { get; set; }
         public decimal? CommissionAmount { get; set; }
         [Required]
         public string Notes { get; set; } = string.Empty;

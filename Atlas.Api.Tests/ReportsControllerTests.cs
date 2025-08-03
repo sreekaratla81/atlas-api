@@ -34,12 +34,15 @@ public class ReportsControllerTests
         var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
         var result = await controller.GetCalendarEarnings(1, "2025-06");
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var list = Assert.IsAssignableFrom<IEnumerable<DailySourceEarnings>>(ok.Value).ToList();
+        var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
         Assert.Single(list);
         var entry = list.Single();
-        Assert.Equal("2025-06-18", entry.Date);
-        Assert.Equal(2650.88m, entry.Amount);
-        Assert.Equal("direct", entry.Source);
+        Assert.Equal(new DateTime(2025, 6, 18), entry.Date);
+        Assert.Single(entry.Earnings);
+        var detail = entry.Earnings.Single();
+        Assert.Equal("direct", detail.Source);
+        Assert.Equal(2650.88m, detail.Amount);
+        Assert.Equal(2650.88m, entry.Total);
     }
 
     [Fact]
@@ -65,72 +68,112 @@ public class ReportsControllerTests
         var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
         var result = await controller.GetCalendarEarnings(1, "2025-07");
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var list = Assert.IsAssignableFrom<IEnumerable<DailySourceEarnings>>(ok.Value).ToList();
+        var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
         Assert.Equal(3, list.Count);
-        Assert.All(list, i => Assert.Equal("airbnb", i.Source));
-        Assert.Contains(list, i => i.Date == "2025-07-05" && i.Amount == 100);
-        Assert.Contains(list, i => i.Date == "2025-07-06" && i.Amount == 100);
-        Assert.Contains(list, i => i.Date == "2025-07-07" && i.Amount == 100);
+        Assert.All(list, i => Assert.Equal(1, i.Earnings.Count));
+        Assert.All(list, i => Assert.Equal("airbnb", i.Earnings[0].Source));
+        Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 5) && i.Earnings[0].Amount == 100);
+        Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 6) && i.Earnings[0].Amount == 100);
+        Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 7) && i.Earnings[0].Amount == 100);
     }
 
     [Fact]
-    public async Task GetCalendarEarnings_PartialOverlap()
+    public async Task GetCalendarEarnings_MultipleEntriesSameSource()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(nameof(GetCalendarEarnings_PartialOverlap))
+            .UseInMemoryDatabase(nameof(GetCalendarEarnings_MultipleEntriesSameSource))
             .Options;
         using var context = new AppDbContext(options);
-        context.Bookings.Add(new Booking
-        {
-            ListingId = 1,
-            GuestId = 1,
-            CheckinDate = new DateTime(2025, 6, 30),
-            CheckoutDate = new DateTime(2025, 7, 2),
-            BookingSource = "airbnb",
-            AmountReceived = 200,
-            Notes = string.Empty,
-            PaymentStatus = "Paid"
-        });
+        context.Bookings.AddRange(
+            new Booking
+            {
+                ListingId = 1,
+                GuestId = 1,
+                CheckinDate = new DateTime(2025, 7, 15),
+                CheckoutDate = new DateTime(2025, 7, 15),
+                BookingSource = "walk-in",
+                AmountReceived = 100,
+                Notes = string.Empty,
+                PaymentStatus = "Paid"
+            },
+            new Booking
+            {
+                ListingId = 1,
+                GuestId = 1,
+                CheckinDate = new DateTime(2025, 7, 15),
+                CheckoutDate = new DateTime(2025, 7, 15),
+                BookingSource = "walk-in",
+                AmountReceived = 150,
+                Notes = string.Empty,
+                PaymentStatus = "Paid"
+            });
         await context.SaveChangesAsync();
 
         var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
         var result = await controller.GetCalendarEarnings(1, "2025-07");
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var list = Assert.IsAssignableFrom<IEnumerable<DailySourceEarnings>>(ok.Value).ToList();
+        var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
         Assert.Single(list);
         var entry = list.Single();
-        Assert.Equal("2025-07-01", entry.Date);
-        Assert.Equal(100, entry.Amount);
-        Assert.Equal("airbnb", entry.Source);
+        Assert.Equal(new DateTime(2025, 7, 15), entry.Date);
+        Assert.Equal(2, entry.Earnings.Count);
+        Assert.All(entry.Earnings, e => Assert.Equal("walk-in", e.Source));
+        Assert.Contains(entry.Earnings, e => e.Amount == 100);
+        Assert.Contains(entry.Earnings, e => e.Amount == 150);
+        Assert.Equal(250, entry.Total);
     }
 
     [Fact]
-    public async Task GetCalendarEarnings_WithinMonth()
+    public async Task GetCalendarEarnings_ExcludesOutsideCalendarRange()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(nameof(GetCalendarEarnings_WithinMonth))
+            .UseInMemoryDatabase(nameof(GetCalendarEarnings_ExcludesOutsideCalendarRange))
             .Options;
         using var context = new AppDbContext(options);
-        context.Bookings.Add(new Booking
-        {
-            ListingId = 1,
-            GuestId = 1,
-            CheckinDate = new DateTime(2025, 7, 10),
-            CheckoutDate = new DateTime(2025, 7, 12),
-            BookingSource = "airbnb",
-            AmountReceived = 200,
-            Notes = string.Empty,
-            PaymentStatus = "Paid"
-        });
+        context.Bookings.AddRange(
+            new Booking
+            {
+                ListingId = 1,
+                GuestId = 1,
+                CheckinDate = new DateTime(2025, 6, 28),
+                CheckoutDate = new DateTime(2025, 6, 29),
+                BookingSource = "airbnb",
+                AmountReceived = 100,
+                Notes = string.Empty,
+                PaymentStatus = "Paid"
+            },
+            new Booking
+            {
+                ListingId = 1,
+                GuestId = 1,
+                CheckinDate = new DateTime(2025, 8, 10),
+                CheckoutDate = new DateTime(2025, 8, 11),
+                BookingSource = "airbnb",
+                AmountReceived = 100,
+                Notes = string.Empty,
+                PaymentStatus = "Paid"
+            },
+            new Booking
+            {
+                ListingId = 1,
+                GuestId = 1,
+                CheckinDate = new DateTime(2025, 7, 1),
+                CheckoutDate = new DateTime(2025, 7, 2),
+                BookingSource = "airbnb",
+                AmountReceived = 200,
+                Notes = string.Empty,
+                PaymentStatus = "Paid"
+            });
         await context.SaveChangesAsync();
 
         var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
         var result = await controller.GetCalendarEarnings(1, "2025-07");
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var list = Assert.IsAssignableFrom<IEnumerable<DailySourceEarnings>>(ok.Value).ToList();
-        Assert.Equal(2, list.Count);
-        Assert.Contains(list, i => i.Date == "2025-07-10" && i.Amount == 100 && i.Source == "airbnb");
-        Assert.Contains(list, i => i.Date == "2025-07-11" && i.Amount == 100 && i.Source == "airbnb");
+        var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
+        Assert.Single(list);
+        var entry = list.Single();
+        Assert.Equal(new DateTime(2025, 7, 1), entry.Date);
+        Assert.Equal(200, entry.Total);
     }
 
     [Fact]

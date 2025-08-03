@@ -22,7 +22,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("calendar-earnings")]
-        public async Task<ActionResult<IEnumerable<DailySourceEarnings>>> GetCalendarEarnings([
+        public async Task<ActionResult<IEnumerable<CalendarEarningEntry>>> GetCalendarEarnings([
             FromQuery] int listingId,
             [FromQuery] string month)
         {
@@ -31,50 +31,60 @@ namespace Atlas.Api.Controllers
             {
                 return BadRequest("Invalid month format. Use yyyy-MM.");
             }
-            var monthEnd = monthStart.AddMonths(1);
+
+            var startOffset = ((int)monthStart.DayOfWeek + 7 - (int)DayOfWeek.Sunday) % 7;
+            var calendarStart = monthStart.AddDays(-startOffset);
+            var calendarEnd = calendarStart.AddDays(42);
 
             var bookings = await _context.Bookings
                 .Where(b => b.ListingId == listingId &&
-                            b.CheckinDate < monthEnd &&
-                            b.CheckoutDate > monthStart)
+                            b.CheckinDate < calendarEnd &&
+                            b.CheckoutDate > calendarStart)
                 .Select(b => new { b.CheckinDate, b.CheckoutDate, b.AmountReceived, b.BookingSource })
                 .ToListAsync();
 
-            var result = new Dictionary<(DateTime Date, string Source), decimal>();
+            var result = new Dictionary<DateTime, List<BookingEarningDetail>>();
             foreach (var b in bookings)
             {
-                var nights = (b.CheckoutDate.Date - b.CheckinDate.Date).TotalDays;
+                var start = b.CheckinDate.Date;
+                var end = b.CheckoutDate.Date;
+                var nights = (end - start).TotalDays;
                 if (nights <= 0)
                 {
-                    var day = b.CheckinDate.Date;
-                    if (day >= monthStart && day < monthEnd)
+                    var day = start;
+                    if (day >= calendarStart && day < calendarEnd)
                     {
-                        var key = (day, b.BookingSource);
-                        result.TryGetValue(key, out var current);
-                        result[key] = current + b.AmountReceived;
+                        if (!result.TryGetValue(day, out var list))
+                        {
+                            list = new List<BookingEarningDetail>();
+                            result[day] = list;
+                        }
+                        list.Add(new BookingEarningDetail { Source = b.BookingSource, Amount = Math.Round(b.AmountReceived, 2) });
                     }
                     continue;
                 }
 
-                var dailyAmount = b.AmountReceived / (decimal)nights;
-                for (var day = b.CheckinDate.Date; day < b.CheckoutDate.Date; day = day.AddDays(1))
+                var dailyAmount = Math.Round(b.AmountReceived / (decimal)nights, 2);
+                for (var day = start; day < end; day = day.AddDays(1))
                 {
-                    if (day >= monthStart && day < monthEnd)
+                    if (day >= calendarStart && day < calendarEnd)
                     {
-                        var key = (day, b.BookingSource);
-                        result.TryGetValue(key, out var current);
-                        result[key] = current + dailyAmount;
+                        if (!result.TryGetValue(day, out var list))
+                        {
+                            list = new List<BookingEarningDetail>();
+                            result[day] = list;
+                        }
+                        list.Add(new BookingEarningDetail { Source = b.BookingSource, Amount = dailyAmount });
                     }
                 }
             }
 
-            var rounded = result.Select(kvp => new DailySourceEarnings
-            {
-                Date = kvp.Key.Date.ToString("yyyy-MM-dd"),
-                Source = kvp.Key.Source,
-                Amount = Math.Round(kvp.Value, 2)
-            }).ToList();
-            return Ok(rounded);
+            var entries = result
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => new CalendarEarningEntry { Date = kvp.Key, Earnings = kvp.Value })
+                .ToList();
+
+            return Ok(entries);
         }
 
         [HttpGet("bank-account-earnings")]

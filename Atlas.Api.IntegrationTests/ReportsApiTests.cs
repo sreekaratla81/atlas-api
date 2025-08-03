@@ -81,6 +81,8 @@ public class ReportsApiTests : IntegrationTestBase
         var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
         Assert.NotNull(list);
         Assert.Equal(2, list!.Count);
+        Assert.True(list![0].Earnings[0].BookingId > 0);
+        Assert.False(string.IsNullOrWhiteSpace(list![0].Earnings[0].GuestName));
     }
 
     [Fact]
@@ -99,8 +101,11 @@ public class ReportsApiTests : IntegrationTestBase
         var entry = list![0];
         Assert.Equal(new DateTime(2025, 6, 18), entry.Date);
         Assert.Single(entry.Earnings);
-        Assert.Equal("direct", entry.Earnings[0].Source);
-        Assert.Equal(2650.88m, entry.Earnings[0].Amount);
+        var earning = entry.Earnings[0];
+        Assert.Equal("direct", earning.Source);
+        Assert.Equal(2650.88m, earning.Amount);
+        Assert.True(earning.BookingId > 0);
+        Assert.Equal("Guest", earning.GuestName);
         Assert.Equal(2650.88m, entry.Total);
     }
 
@@ -146,6 +151,8 @@ public class ReportsApiTests : IntegrationTestBase
         var entry = list![0];
         Assert.Equal(2, entry.Earnings.Count);
         Assert.Equal(250, entry.Total);
+        Assert.NotEqual(entry.Earnings[0].BookingId, entry.Earnings[1].BookingId);
+        Assert.All(entry.Earnings, e => Assert.Equal("Guest", e.GuestName));
     }
 
     [Fact]

@@ -13,8 +13,8 @@ public class CalendarEarningEntry
 
 public class BookingEarningDetail
 {
-    public int BookingId { get; set; }
-    public required string GuestName { get; set; }
-    public required string Source { get; set; }
+    public string Source { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public string GuestName { get; set; } = string.Empty;
+    public DateTime CheckinDate { get; set; }
 }

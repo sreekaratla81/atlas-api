@@ -18,8 +18,8 @@ public class ReportsApiTests : IntegrationTestBase
         {
             ListingId = listing.Id,
             GuestId = guest.Id,
-            CheckinDate = new DateTime(2025, 7, 1),
-            CheckoutDate = new DateTime(2025, 7, 3),
+            CheckinDate = new DateTime(2025, 6, 30),
+            CheckoutDate = new DateTime(2025, 7, 2),
             BookingSource = "airbnb",
             AmountReceived = 200,
             Notes = string.Empty,
@@ -81,7 +81,7 @@ public class ReportsApiTests : IntegrationTestBase
         var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
         Assert.NotNull(list);
         Assert.Equal(2, list!.Count);
-        Assert.True(list![0].Earnings[0].BookingId > 0);
+        Assert.All(list!, e => Assert.Equal(new DateTime(2025, 6, 30), e.Earnings[0].CheckinDate));
         Assert.False(string.IsNullOrWhiteSpace(list![0].Earnings[0].GuestName));
     }
 
@@ -104,8 +104,8 @@ public class ReportsApiTests : IntegrationTestBase
         var earning = entry.Earnings[0];
         Assert.Equal("direct", earning.Source);
         Assert.Equal(2650.88m, earning.Amount);
-        Assert.True(earning.BookingId > 0);
         Assert.Equal("Guest", earning.GuestName);
+        Assert.Equal(new DateTime(2025, 6, 18), earning.CheckinDate);
         Assert.Equal(2650.88m, entry.Total);
     }
 
@@ -151,8 +151,8 @@ public class ReportsApiTests : IntegrationTestBase
         var entry = list![0];
         Assert.Equal(2, entry.Earnings.Count);
         Assert.Equal(250, entry.Total);
-        Assert.NotEqual(entry.Earnings[0].BookingId, entry.Earnings[1].BookingId);
         Assert.All(entry.Earnings, e => Assert.Equal("Guest", e.GuestName));
+        Assert.All(entry.Earnings, e => Assert.Equal(new DateTime(2025, 7, 15), e.CheckinDate));
     }
 
     [Fact]

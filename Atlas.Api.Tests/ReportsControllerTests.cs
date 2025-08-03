@@ -18,6 +18,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetCalendarEarnings_SameDayBooking))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Alice", Phone = "1", Email = "a@a.com", IdProofUrl = "id" });
         context.Bookings.Add(new Booking
         {
             ListingId = 1,
@@ -42,8 +43,8 @@ public class ReportsControllerTests
         var detail = entry.Earnings.Single();
         Assert.Equal("direct", detail.Source);
         Assert.Equal(2650.88m, detail.Amount);
-        Assert.Equal(1, detail.BookingId);
-        Assert.Equal("Unknown Guest", detail.GuestName);
+        Assert.Equal("Alice", detail.GuestName);
+        Assert.Equal(new DateTime(2025, 6, 18), detail.CheckinDate);
         Assert.Equal(2650.88m, entry.Total);
     }
 
@@ -74,8 +75,8 @@ public class ReportsControllerTests
         Assert.Equal(3, list.Count);
         Assert.All(list, i => Assert.Equal(1, i.Earnings.Count));
         Assert.All(list, i => Assert.Equal("airbnb", i.Earnings[0].Source));
-        Assert.All(list, i => Assert.Equal(1, i.Earnings[0].BookingId));
-        Assert.All(list, i => Assert.Equal("Unknown Guest", i.Earnings[0].GuestName));
+        Assert.All(list, i => Assert.Equal("Unknown", i.Earnings[0].GuestName));
+        Assert.All(list, i => Assert.Equal(new DateTime(2025, 7, 5), i.Earnings[0].CheckinDate));
         Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 5) && i.Earnings[0].Amount == 100);
         Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 6) && i.Earnings[0].Amount == 100);
         Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 7) && i.Earnings[0].Amount == 100);
@@ -124,8 +125,8 @@ public class ReportsControllerTests
         Assert.All(entry.Earnings, e => Assert.Equal("walk-in", e.Source));
         Assert.Contains(entry.Earnings, e => e.Amount == 100);
         Assert.Contains(entry.Earnings, e => e.Amount == 150);
-        Assert.Equal(2, entry.Earnings.Select(e => e.BookingId).Distinct().Count());
-        Assert.All(entry.Earnings, e => Assert.Equal("Unknown Guest", e.GuestName));
+        Assert.All(entry.Earnings, e => Assert.Equal("Unknown", e.GuestName));
+        Assert.All(entry.Earnings, e => Assert.Equal(new DateTime(2025, 7, 15), e.CheckinDate));
         Assert.Equal(250, entry.Total);
     }
 
@@ -180,6 +181,38 @@ public class ReportsControllerTests
         var entry = list.Single();
         Assert.Equal(new DateTime(2025, 7, 1), entry.Date);
         Assert.Equal(200, entry.Total);
+        Assert.Equal(new DateTime(2025, 7, 1), entry.Earnings[0].CheckinDate);
+        Assert.Equal("Unknown", entry.Earnings[0].GuestName);
+    }
+
+    [Fact]
+    public async Task GetCalendarEarnings_PreservesCheckinAcrossMonths()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(nameof(GetCalendarEarnings_PreservesCheckinAcrossMonths))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.Bookings.Add(new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            CheckinDate = new DateTime(2025, 7, 31),
+            CheckoutDate = new DateTime(2025, 8, 2),
+            BookingSource = "airbnb",
+            AmountReceived = 200,
+            Notes = string.Empty,
+            PaymentStatus = "Paid"
+        });
+        await context.SaveChangesAsync();
+
+        var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
+        var result = await controller.GetCalendarEarnings(1, "2025-08");
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
+        Assert.Contains(list, e => e.Date == new DateTime(2025, 7, 31));
+        Assert.Contains(list, e => e.Date == new DateTime(2025, 8, 1));
+        var august = list.Single(e => e.Date == new DateTime(2025, 8, 1));
+        Assert.All(august.Earnings, d => Assert.Equal(new DateTime(2025, 7, 31), d.CheckinDate));
     }
 
     [Fact]

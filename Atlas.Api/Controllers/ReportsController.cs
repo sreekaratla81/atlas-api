@@ -41,23 +41,21 @@ namespace Atlas.Api.Controllers
                 .Where(b => b.ListingId == listingId &&
                             b.CheckinDate < calendarEnd &&
                             b.CheckoutDate > calendarStart)
-                .Select(b => new
-                {
-                    b.Id,
-                    b.CheckinDate,
-                    b.CheckoutDate,
-                    b.AmountReceived,
-                    b.BookingSource,
-                    GuestName = b.Guest != null ? b.Guest.Name : null
-                })
                 .ToListAsync();
 
             var result = new Dictionary<DateTime, List<BookingEarningDetail>>();
-            foreach (var b in bookings)
+            foreach (var booking in bookings)
             {
-                var start = b.CheckinDate.Date;
-                var end = b.CheckoutDate.Date;
+                var start = booking.CheckinDate.Date;
+                var end = booking.CheckoutDate.Date;
                 var nights = (end - start).TotalDays;
+
+                var guestName = booking.Guest?.Name;
+                if (string.IsNullOrWhiteSpace(guestName))
+                {
+                    guestName = "Unknown";
+                }
+
                 if (nights <= 0)
                 {
                     var day = start;
@@ -70,16 +68,16 @@ namespace Atlas.Api.Controllers
                         }
                         list.Add(new BookingEarningDetail
                         {
-                            BookingId = b.Id,
-                            GuestName = b.GuestName ?? "Unknown Guest",
-                            Source = b.BookingSource,
-                            Amount = Math.Round(b.AmountReceived, 2)
+                            Source = booking.BookingSource,
+                            Amount = Math.Round(booking.AmountReceived, 2),
+                            GuestName = guestName,
+                            CheckinDate = booking.CheckinDate
                         });
                     }
                     continue;
                 }
 
-                var dailyAmount = Math.Round(b.AmountReceived / (decimal)nights, 2);
+                var dailyAmount = Math.Round(booking.AmountReceived / (decimal)nights, 2);
                 for (var day = start; day < end; day = day.AddDays(1))
                 {
                     if (day >= calendarStart && day < calendarEnd)
@@ -91,10 +89,10 @@ namespace Atlas.Api.Controllers
                         }
                         list.Add(new BookingEarningDetail
                         {
-                            BookingId = b.Id,
-                            GuestName = b.GuestName ?? "Unknown Guest",
-                            Source = b.BookingSource,
-                            Amount = dailyAmount
+                            Source = booking.BookingSource,
+                            Amount = dailyAmount,
+                            GuestName = guestName,
+                            CheckinDate = booking.CheckinDate
                         });
                     }
                 }

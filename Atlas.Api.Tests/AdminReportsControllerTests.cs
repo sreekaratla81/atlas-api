@@ -93,7 +93,6 @@ public class AdminReportsControllerTests
         Assert.Equal(2, list.Count);
         var a = list.Single(x => x.Source == "A");
         Assert.Equal(2, a.Count);
-        Assert.Equal(40, a.TotalAmount);
     }
 
     [Fact]

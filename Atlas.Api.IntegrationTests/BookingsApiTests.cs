@@ -57,7 +57,6 @@ public class BookingsApiTests : IntegrationTestBase
             GuestsPlanned = 1,
             GuestsActual = 1,
             ExtraGuestCharge = 0,
-            AmountGuestPaid = 100,
             CommissionAmount = 0,
             Notes = "note",
             BankAccountId = null
@@ -193,7 +192,6 @@ public class BookingsApiTests : IntegrationTestBase
             guestsPlanned = data.booking.GuestsPlanned,
             guestsActual = data.booking.GuestsActual,
             extraGuestCharge = data.booking.ExtraGuestCharge,
-            amountGuestPaid = data.booking.AmountGuestPaid,
             commissionAmount = data.booking.CommissionAmount,
             paymentStatus = data.booking.PaymentStatus,
             notes = "updated"
@@ -229,7 +227,6 @@ public class BookingsApiTests : IntegrationTestBase
             guestsPlanned = data.booking.GuestsPlanned,
             guestsActual = data.booking.GuestsActual,
             extraGuestCharge = data.booking.ExtraGuestCharge,
-            amountGuestPaid = data.booking.AmountGuestPaid,
             commissionAmount = data.booking.CommissionAmount,
             notes = "bad"
         };
@@ -256,7 +253,6 @@ public class BookingsApiTests : IntegrationTestBase
             guestsPlanned = 0,
             guestsActual = 0,
             extraGuestCharge = 0m,
-            amountGuestPaid = 0m,
             commissionAmount = 0m,
             notes = "n"
         };
@@ -309,7 +305,6 @@ public class BookingsApiTests : IntegrationTestBase
             GuestsPlanned = data.booking.GuestsPlanned,
             GuestsActual = data.booking.GuestsActual,
             ExtraGuestCharge = data.booking.ExtraGuestCharge,
-            AmountGuestPaid = data.booking.AmountGuestPaid,
             CommissionAmount = data.booking.CommissionAmount,
             Notes = "updated",
             BankAccountId = data.booking.BankAccountId

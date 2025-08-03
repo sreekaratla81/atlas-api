@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250729100604_InitialCreate")]
+    [Migration("20250803191211_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -68,10 +68,6 @@ namespace Atlas.Api.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal?>("AmountGuestPaid")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("AmountReceived")
                         .HasPrecision(18, 2)
@@ -373,7 +369,7 @@ namespace Atlas.Api.Migrations
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
                         .WithMany("Bookings")
                         .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("BankAccount");

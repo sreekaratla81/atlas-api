@@ -1,9 +1,20 @@
-namespace Atlas.Api.Models.Reports
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Atlas.Api.Models.Reports;
+
+public class CalendarEarningEntry
 {
-    public class DailySourceEarnings
-    {
-        public required string Date { get; set; } = string.Empty;
-        public required string Source { get; set; } = string.Empty;
-        public decimal Amount { get; set; }
-    }
+    public DateTime Date { get; set; }
+    public List<BookingEarningDetail> Earnings { get; set; } = new();
+    public decimal Total => Earnings.Sum(e => e.Amount);
+}
+
+public class BookingEarningDetail
+{
+    public string Source { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string GuestName { get; set; } = string.Empty;
+    public DateTime CheckinDate { get; set; }
 }

@@ -162,7 +162,6 @@ namespace Atlas.Api.Migrations
                     GuestsPlanned = table.Column<int>(type: "int", nullable: true),
                     GuestsActual = table.Column<int>(type: "int", nullable: true),
                     ExtraGuestCharge = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
-                    AmountGuestPaid = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     CommissionAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     Notes = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
@@ -187,7 +186,7 @@ namespace Atlas.Api.Migrations
                         column: x => x.ListingId,
                         principalTable: "Listings",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(

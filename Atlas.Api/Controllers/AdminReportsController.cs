@@ -246,8 +246,7 @@ namespace Atlas.Api.Controllers
                 .Select(g => new SourceBookingSummary
                 {
                     Source = g.Key,
-                    Count = g.Count(),
-                    TotalAmount = g.Sum(b => b.AmountReceived)
+                    Count = g.Count()
                 }).ToListAsync();
 
             return Ok(result);

@@ -53,7 +53,6 @@ namespace Atlas.Api.Controllers
                         GuestsPlanned = b.GuestsPlanned ?? 0,
                         GuestsActual = b.GuestsActual ?? 0,
                         ExtraGuestCharge = b.ExtraGuestCharge ?? 0,
-                        AmountGuestPaid = b.AmountGuestPaid ?? 0,
                         CommissionAmount = b.CommissionAmount ?? 0,
                         Notes = b.Notes,
                         CreatedAt = b.CreatedAt,
@@ -115,8 +114,7 @@ namespace Atlas.Api.Controllers
                     _ => 0m
                 };
 
-                var amountGuestPaid = request.AmountReceived + request.ExtraGuestCharge;
-                var commissionAmount = amountGuestPaid * commissionRate;
+                var commissionAmount = (request.AmountReceived + request.ExtraGuestCharge) * commissionRate;
 
                 var booking = new Booking
                 {
@@ -133,7 +131,6 @@ namespace Atlas.Api.Controllers
                     GuestsPlanned = request.GuestsPlanned,
                     GuestsActual = request.GuestsActual,
                     ExtraGuestCharge = request.ExtraGuestCharge,
-                    AmountGuestPaid = amountGuestPaid,
                     CommissionAmount = commissionAmount,
                     Notes = request.Notes ?? string.Empty,
                     CreatedAt = DateTime.UtcNow
@@ -196,7 +193,6 @@ namespace Atlas.Api.Controllers
                 existingBooking.GuestsPlanned = booking.GuestsPlanned;
                 existingBooking.GuestsActual = booking.GuestsActual;
                 existingBooking.ExtraGuestCharge = booking.ExtraGuestCharge;
-                existingBooking.AmountGuestPaid = booking.AmountGuestPaid;
                 existingBooking.CommissionAmount = booking.CommissionAmount;
                 existingBooking.Notes = booking.Notes;
                 existingBooking.BankAccountId = booking.BankAccountId;
@@ -252,7 +248,6 @@ namespace Atlas.Api.Controllers
                 GuestsPlanned = booking.GuestsPlanned ?? 0,
                 GuestsActual = booking.GuestsActual ?? 0,
                 ExtraGuestCharge = booking.ExtraGuestCharge ?? 0,
-                AmountGuestPaid = booking.AmountGuestPaid ?? 0,
                 CommissionAmount = booking.CommissionAmount ?? 0,
                 Notes = booking.Notes,
                 CreatedAt = booking.CreatedAt,

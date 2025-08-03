@@ -42,6 +42,8 @@ public class ReportsControllerTests
         var detail = entry.Earnings.Single();
         Assert.Equal("direct", detail.Source);
         Assert.Equal(2650.88m, detail.Amount);
+        Assert.Equal(1, detail.BookingId);
+        Assert.Equal("Unknown Guest", detail.GuestName);
         Assert.Equal(2650.88m, entry.Total);
     }
 
@@ -72,6 +74,8 @@ public class ReportsControllerTests
         Assert.Equal(3, list.Count);
         Assert.All(list, i => Assert.Equal(1, i.Earnings.Count));
         Assert.All(list, i => Assert.Equal("airbnb", i.Earnings[0].Source));
+        Assert.All(list, i => Assert.Equal(1, i.Earnings[0].BookingId));
+        Assert.All(list, i => Assert.Equal("Unknown Guest", i.Earnings[0].GuestName));
         Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 5) && i.Earnings[0].Amount == 100);
         Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 6) && i.Earnings[0].Amount == 100);
         Assert.Contains(list, i => i.Date == new DateTime(2025, 7, 7) && i.Earnings[0].Amount == 100);
@@ -120,6 +124,8 @@ public class ReportsControllerTests
         Assert.All(entry.Earnings, e => Assert.Equal("walk-in", e.Source));
         Assert.Contains(entry.Earnings, e => e.Amount == 100);
         Assert.Contains(entry.Earnings, e => e.Amount == 150);
+        Assert.Equal(2, entry.Earnings.Select(e => e.BookingId).Distinct().Count());
+        Assert.All(entry.Earnings, e => Assert.Equal("Unknown Guest", e.GuestName));
         Assert.Equal(250, entry.Total);
     }
 

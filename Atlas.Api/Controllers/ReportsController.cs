@@ -37,10 +37,19 @@ namespace Atlas.Api.Controllers
             var calendarEnd = calendarStart.AddDays(42);
 
             var bookings = await _context.Bookings
+                .Include(b => b.Guest)
                 .Where(b => b.ListingId == listingId &&
                             b.CheckinDate < calendarEnd &&
                             b.CheckoutDate > calendarStart)
-                .Select(b => new { b.CheckinDate, b.CheckoutDate, b.AmountReceived, b.BookingSource })
+                .Select(b => new
+                {
+                    b.Id,
+                    b.CheckinDate,
+                    b.CheckoutDate,
+                    b.AmountReceived,
+                    b.BookingSource,
+                    GuestName = b.Guest != null ? b.Guest.Name : null
+                })
                 .ToListAsync();
 
             var result = new Dictionary<DateTime, List<BookingEarningDetail>>();
@@ -59,7 +68,13 @@ namespace Atlas.Api.Controllers
                             list = new List<BookingEarningDetail>();
                             result[day] = list;
                         }
-                        list.Add(new BookingEarningDetail { Source = b.BookingSource, Amount = Math.Round(b.AmountReceived, 2) });
+                        list.Add(new BookingEarningDetail
+                        {
+                            BookingId = b.Id,
+                            GuestName = b.GuestName ?? "Unknown Guest",
+                            Source = b.BookingSource,
+                            Amount = Math.Round(b.AmountReceived, 2)
+                        });
                     }
                     continue;
                 }
@@ -74,7 +89,13 @@ namespace Atlas.Api.Controllers
                             list = new List<BookingEarningDetail>();
                             result[day] = list;
                         }
-                        list.Add(new BookingEarningDetail { Source = b.BookingSource, Amount = dailyAmount });
+                        list.Add(new BookingEarningDetail
+                        {
+                            BookingId = b.Id,
+                            GuestName = b.GuestName ?? "Unknown Guest",
+                            Source = b.BookingSource,
+                            Amount = dailyAmount
+                        });
                     }
                 }
             }

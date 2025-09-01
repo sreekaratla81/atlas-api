@@ -23,9 +23,10 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BookingDto>>> GetAll(
+        public async Task<ActionResult<IEnumerable<BookingListDto>>> GetAll(
             [FromQuery] DateTime? checkinStart,
-            [FromQuery] DateTime? checkinEnd)
+            [FromQuery] DateTime? checkinEnd,
+            [FromQuery] string? include)
         {
             try
             {
@@ -39,8 +40,12 @@ namespace Atlas.Api.Controllers
                 if (checkinEnd.HasValue)
                     query = query.Where(b => b.CheckinDate <= checkinEnd.Value);
 
+                var includes = (include ?? string.Empty)
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var includeGuest = includes.Contains("guest", StringComparer.OrdinalIgnoreCase);
+
                 var bookings = await query
-                    .Select(b => new BookingDto
+                    .Select(b => new BookingListDto
                     {
                         Id = b.Id,
                         ListingId = b.ListingId,
@@ -49,14 +54,26 @@ namespace Atlas.Api.Controllers
                         CheckoutDate = b.CheckoutDate,
                         BookingSource = b.BookingSource,
                         AmountReceived = b.AmountReceived,
-                        BankAccountId = b.BankAccountId,
                         GuestsPlanned = b.GuestsPlanned ?? 0,
                         GuestsActual = b.GuestsActual ?? 0,
                         ExtraGuestCharge = b.ExtraGuestCharge ?? 0,
                         CommissionAmount = b.CommissionAmount ?? 0,
                         Notes = b.Notes,
                         CreatedAt = b.CreatedAt,
-                        PaymentStatus = b.PaymentStatus
+                        PaymentStatus = b.PaymentStatus,
+                        GuestName = b.Guest != null ? b.Guest.Name : null,
+                        GuestPhone = b.Guest != null ? b.Guest.Phone : null,
+                        GuestEmail = b.Guest != null ? b.Guest.Email : null,
+                        Guest = includeGuest && b.Guest != null
+                            ? new GuestDto
+                            {
+                                Id = b.Guest.Id,
+                                Name = b.Guest.Name,
+                                Phone = b.Guest.Phone,
+                                Email = b.Guest.Email,
+                                IdProofUrl = b.Guest.IdProofUrl
+                            }
+                            : null
                     })
                     .ToListAsync();
 

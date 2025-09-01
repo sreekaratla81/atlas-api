@@ -78,6 +78,19 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetAll_ProjectsGuestName()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await SeedBookingAsync(db);
+
+        var response = await Client.GetAsync("/api/bookings");
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"guestName\":\"Guest\"", json);
+    }
+
+    [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
         var response = await Client.GetAsync("/api/bookings/1");

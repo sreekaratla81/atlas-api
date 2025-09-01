@@ -55,6 +55,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetCalendarEarnings_SpansMultipleDays))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         context.Bookings.Add(new Booking
         {
             ListingId = 1,
@@ -89,6 +90,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetCalendarEarnings_MultipleEntriesSameSource))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         context.Bookings.AddRange(
             new Booking
             {
@@ -137,6 +139,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetCalendarEarnings_ExcludesOutsideCalendarRange))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         context.Bookings.AddRange(
             new Booking
             {
@@ -192,6 +195,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetCalendarEarnings_PreservesCheckinAcrossMonths))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         context.Bookings.Add(new Booking
         {
             ListingId = 1,
@@ -222,6 +226,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetBankAccountEarnings_IncludesValidBookings))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         var account = new BankAccount { Id = 1, BankName = "Bank", AccountNumber = "0000861", IFSC = "IFSC", AccountType = "Savings" };
         context.BankAccounts.Add(account);
         context.Bookings.Add(new Booking
@@ -254,6 +259,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetBankAccountEarnings_ExcludesOutsideRange))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         context.BankAccounts.Add(new BankAccount { Id = 1, BankName = "Bank", AccountNumber = "123456", IFSC = "I", AccountType = "S" });
         context.Bookings.Add(new Booking
         {
@@ -284,6 +290,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetBankAccountEarnings_ReturnsZero_WhenAccountHasNoBookings))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         context.BankAccounts.Add(new BankAccount { Id = 1, BankName = "Bank", AccountNumber = "123456", IFSC = "I", AccountType = "S" });
         await context.SaveChangesAsync();
 
@@ -302,6 +309,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetBankAccountEarnings_ReturnsEmpty_WhenNoBookings))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
         var result = await controller.GetBankAccountEarnings();
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -316,6 +324,7 @@ public class ReportsControllerTests
             .UseInMemoryDatabase(nameof(GetBankAccountEarnings_AggregatesByAccount))
             .Options;
         using var context = new AppDbContext(options);
+        context.Guests.Add(new Guest { Id = 1, Name = "Unknown", Phone = "1", Email = "u@e.com" });
         context.BankAccounts.Add(new BankAccount { Id = 1, BankName = "Bank", AccountNumber = "99993290", IFSC = "I", AccountType = "S" });
         context.Bookings.AddRange(
             new Booking

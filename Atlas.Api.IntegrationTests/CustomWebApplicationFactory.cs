@@ -23,6 +23,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             Environment.GetEnvironmentVariable("Atlas_TestDb") ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
+        Environment.SetEnvironmentVariable("JWT_KEY", "testkey123");
         Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", connectionString);
 
         builder.ConfigureServices(services =>

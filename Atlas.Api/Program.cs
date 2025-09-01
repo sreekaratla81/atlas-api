@@ -14,7 +14,6 @@ namespace Atlas.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Fix: Correctly assign the environment variable to the `env` object
             var env = builder.Environment;
 
             builder.Configuration
@@ -22,15 +21,33 @@ namespace Atlas.Api
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
 
-            // Add services
+            const string CorsPolicy = "AtlasCors";
+
             builder.Services.AddCors(options =>
             {
-                // TODO: Restrict CORS to specific domains after 1 month (e.g., by July 26, 2025)
-                options.AddPolicy("AllowAllOriginsTemp", policy =>
+                options.AddPolicy(name: CorsPolicy, policy =>
                 {
-                    policy.AllowAnyOrigin()
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
+                    policy
+                        .SetIsOriginAllowed(origin =>
+                        {
+                            try
+                            {
+                                var uri = new Uri(origin);
+                                var host = uri.Host.ToLowerInvariant();
+                                return
+                                    // Local dev
+                                    (origin == "http://localhost:5173") ||
+                                    (origin == "http://127.0.0.1:5173") ||
+                                    // Production
+                                    (origin == "https://admin.atlashomestays.com") ||
+                                    // Cloudflare Pages previews (optional)
+                                    host.EndsWith(".pages.dev");
+                            }
+                            catch { return false; }
+                        })
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
                 });
             });
 
@@ -104,13 +121,7 @@ namespace Atlas.Api
 
             app.UseRouting();
 
-            app.UseCors(policy => policy
-                .WithOrigins("https://admin.atlashomestays.com")
-                .WithOrigins("http://localhost:5173/") // Local development origin
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials()
-            );
+            app.UseCors(CorsPolicy);
 
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();

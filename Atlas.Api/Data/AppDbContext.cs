@@ -13,6 +13,7 @@ namespace Atlas.Api.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
             // All environments use DeleteBehavior.Restrict to avoid accidental
             // cascading deletes. Integration tests explicitly clean up related

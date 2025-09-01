@@ -1,26 +1,31 @@
+using Application.Guests.Queries.SearchGuests;
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
 using Atlas.Api.Models;
+using Infrastructure.Phone;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Tests;
 
 public class GuestsControllerTests
 {
-    private static AppDbContext GetContext(string name)
+    private static (GuestsController controller, AppDbContext ctx) GetController(string name)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name)
             .Options;
-        return new AppDbContext(options);
+        var ctx = new AppDbContext(options);
+        var handler = new SearchGuestsQueryHandler(ctx, new PhoneNormalizer(), new LoggerFactory().CreateLogger<SearchGuestsQueryHandler>());
+        var controller = new GuestsController(ctx, handler, new PhoneNormalizer());
+        return (controller, ctx);
     }
 
     [Fact]
     public async Task Create_SetsDefaultIdProofUrl_WhenMissing()
     {
-        using var context = GetContext(nameof(Create_SetsDefaultIdProofUrl_WhenMissing));
-        var controller = new GuestsController(context);
+        var (controller, _) = GetController(nameof(Create_SetsDefaultIdProofUrl_WhenMissing));
         var guest = new Guest { Name = "g", Phone = "1", Email = "e" };
 
         var result = await controller.Create(guest);
@@ -32,8 +37,7 @@ public class GuestsControllerTests
     [Fact]
     public async Task Update_ReturnsBadRequest_WhenIdMismatch()
     {
-        using var context = GetContext(nameof(Update_ReturnsBadRequest_WhenIdMismatch));
-        var controller = new GuestsController(context);
+        var (controller, _) = GetController(nameof(Update_ReturnsBadRequest_WhenIdMismatch));
         var guest = new Guest { Id = 1, Name = "g", Phone = "1", Email = "e" };
 
         var result = await controller.Update(2, guest);
@@ -44,8 +48,7 @@ public class GuestsControllerTests
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        using var context = GetContext(nameof(Delete_ReturnsNotFound_WhenMissing));
-        var controller = new GuestsController(context);
+        var (controller, _) = GetController(nameof(Delete_ReturnsNotFound_WhenMissing));
 
         var result = await controller.Delete(1);
 

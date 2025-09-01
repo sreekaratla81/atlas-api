@@ -1,5 +1,6 @@
 using Atlas.Api.Data;
 using Atlas.Api.Models;
+using Infrastructure.Phone;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -43,7 +44,10 @@ public static class DataSeeder
 
     public static async Task<Guest> SeedGuestAsync(AppDbContext db)
     {
+        var phoneNorm = new PhoneNormalizer();
         var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" };
+        guest.NameSearch = guest.Name.ToLowerInvariant();
+        guest.PhoneE164 = phoneNorm.Normalize(guest.Phone);
         db.Guests.Add(guest);
         await db.SaveChangesAsync();
         return guest;

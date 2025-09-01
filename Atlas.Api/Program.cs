@@ -1,4 +1,8 @@
 using Atlas.Api.Data;
+using Microsoft.AspNetCore.RateLimiting;
+using Application.Guests.Queries.SearchGuests;
+using Infrastructure.Phone;
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
@@ -34,6 +38,18 @@ namespace Atlas.Api
                 });
             });
 
+            builder.Services.AddRateLimiter(o =>
+            {
+                o.AddFixedWindowLimiter("SearchGuestsLimit", options =>
+                {
+                    options.PermitLimit = 10;
+                    options.Window = TimeSpan.FromSeconds(1);
+                    options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    options.QueueLimit = 0;
+                });
+            });
+            builder.Services.AddSingleton<PhoneNormalizer>();
+            builder.Services.AddScoped<SearchGuestsQueryHandler>();
             builder.Services
                 .AddControllers(options =>
                 {
@@ -74,19 +90,18 @@ namespace Atlas.Api
                 jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
             }
 
-            // TODO: Re-enable authentication before going to production
-            // builder.Services.AddAuthentication("Bearer")
-            //     .AddJwtBearer("Bearer", options =>
-            //     {
-            //         options.TokenValidationParameters = new TokenValidationParameters
-            //         {
-            //             ValidateIssuer = false,
-            //             ValidateAudience = false,
-            //             ValidateLifetime = true,
-            //             ValidateIssuerSigningKey = true,
-            //             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? string.Empty))
-            //         };
-            //     });
+            builder.Services.AddAuthentication("Bearer")
+                .AddJwtBearer("Bearer", options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? string.Empty))
+                    };
+                });
 
             var app = builder.Build();
 
@@ -103,7 +118,6 @@ namespace Atlas.Api
             }
 
             app.UseRouting();
-
             app.UseCors(policy => policy
                 .WithOrigins("https://admin.atlashomestays.com")
                 .WithOrigins("http://localhost:5173/") // Local development origin
@@ -115,8 +129,9 @@ namespace Atlas.Api
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();
 
-            // app.UseAuthentication();
-            // app.UseAuthorization();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.UseRateLimiter();
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
 

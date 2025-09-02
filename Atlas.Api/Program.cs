@@ -72,6 +72,8 @@ namespace Atlas.Api
             var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
                 ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
+            Console.WriteLine($"[DEBUG] Using connection string: {connectionString}");
+
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException("Database connection string is not configured.");

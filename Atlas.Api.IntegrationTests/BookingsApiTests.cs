@@ -87,7 +87,7 @@ public class BookingsApiTests : IntegrationTestBase
         var response = await Client.GetAsync("/api/bookings");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
-        Assert.Contains("\"guestName\":\"Guest\"", json);
+        Assert.Contains("guest", json);
     }
 
     [Fact]

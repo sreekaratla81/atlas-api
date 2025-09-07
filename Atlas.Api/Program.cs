@@ -1,4 +1,6 @@
 using Atlas.Api.Data;
+using Atlas.Api.Storage;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
@@ -23,33 +25,29 @@ namespace Atlas.Api
 
             const string CorsPolicy = "AtlasCors";
 
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy(name: CorsPolicy, policy =>
                 {
-                    policy
-                        .SetIsOriginAllowed(origin =>
-                        {
-                            try
-                            {
-                                var uri = new Uri(origin);
-                                var host = uri.Host.ToLowerInvariant();
-                                return
-                                    // Local dev
-                                    (origin == "http://localhost:5173") ||
-                                    (origin == "http://127.0.0.1:5173") ||
-                                    // Production
-                                    (origin == "https://admin.atlashomestays.com") ||
-                                    // Cloudflare Pages previews (optional)
-                                    host.EndsWith(".pages.dev");
-                            }
-                            catch { return false; }
-                        })
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
                 });
             });
+
+            builder.Services.AddApiVersioning(options =>
+            {
+                options.DefaultApiVersion = new ApiVersion(1, 0);
+                options.AssumeDefaultVersionWhenUnspecified = true;
+                options.ReportApiVersions = true;
+            });
+
+            builder.Services.AddResponseCaching();
+
+            builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
+            builder.Services.AddSingleton<IStorageUrlBuilder, StorageUrlBuilder>();
 
             builder.Services
                 .AddControllers(options =>
@@ -124,6 +122,8 @@ namespace Atlas.Api
             app.UseRouting();
 
             app.UseCors(CorsPolicy);
+
+            app.UseResponseCaching();
 
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();

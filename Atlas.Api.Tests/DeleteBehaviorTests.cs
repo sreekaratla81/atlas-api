@@ -2,6 +2,7 @@ using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using System.Linq;
 
 namespace Atlas.Api.Tests;
 
@@ -18,7 +19,8 @@ public class DeleteBehaviorTests
         using var context = new AppDbContext(options);
         var entity = context.Model.FindEntityType(typeof(Booking))!;
         var fks = entity.GetForeignKeys();
-
-        Assert.All(fks, fk => Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior));
+        var guestFk = fks.Single(fk => fk.PrincipalEntityType.ClrType == typeof(Guest));
+        Assert.Equal(DeleteBehavior.Cascade, guestFk.DeleteBehavior);
+        Assert.All(fks.Where(fk => fk != guestFk), fk => Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior));
     }
 }

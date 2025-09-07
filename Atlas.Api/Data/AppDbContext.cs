@@ -14,10 +14,6 @@ namespace Atlas.Api.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // All environments use DeleteBehavior.Restrict to avoid accidental
-            // cascading deletes. Integration tests explicitly clean up related
-            // entities when necessary.
-
             modelBuilder.Entity<Booking>()
                 .Property(b => b.AmountReceived)
                 .HasPrecision(18, 2);
@@ -36,12 +32,40 @@ namespace Atlas.Api.Data
                 .Property(p => p.CommissionPercent)
                 .HasPrecision(5, 2);
 
+            modelBuilder.Entity<Listing>(e =>
+            {
+                e.Property(p => p.Slug).HasMaxLength(128).IsRequired();
+                e.HasIndex(p => p.Slug).IsUnique();
+                e.Property(p => p.BlobContainer).HasMaxLength(63).IsRequired();
+                e.Property(p => p.BlobPrefix).HasMaxLength(256).IsRequired();
+                e.Property(p => p.CoverImage).HasMaxLength(256);
+                e.Property(p => p.ShortDescription).HasMaxLength(400);
+                e.Property(p => p.NightlyPrice).HasColumnType("decimal(10,2)");
+            });
+
+            modelBuilder.Entity<ListingMedia>(e =>
+            {
+                e.Property(p => p.BlobName).HasMaxLength(256).IsRequired();
+                e.Property(p => p.Caption).HasMaxLength(200);
+                e.HasIndex(p => new { p.ListingId, p.BlobName }).IsUnique();
+                e.HasIndex(p => p.ListingId);
+                e.HasIndex(p => new { p.ListingId, p.IsCover })
+                    .IsUnique()
+                    .HasFilter("[IsCover] = 1");
+                e.HasOne(p => p.Listing)
+                    .WithMany(l => l.Media)
+                    .HasForeignKey(p => p.ListingId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Booking>()
+                .HasIndex(x => new { x.ListingId, x.CheckinDate, x.CheckoutDate });
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
-                .WithMany()
+                .WithMany(g => g.Bookings)
                 .HasForeignKey(b => b.GuestId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Listing)
@@ -64,5 +88,6 @@ namespace Atlas.Api.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<BankAccount> BankAccounts { get; set; }
+        public DbSet<ListingMedia> ListingMedia { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 using Atlas.Api.Data;
 using Atlas.Api.Models;
+using System;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -34,7 +35,9 @@ public static class DataSeeder
             Status = "Available",
             WifiName = "wifi",
             WifiPassword = "pass",
-            MaxGuests = 2
+            MaxGuests = 2,
+            Slug = $"listing-{Guid.NewGuid():N}",
+            BlobPrefix = $"{Guid.NewGuid():N}/"
         };
         db.Listings.Add(listing);
         await db.SaveChangesAsync();

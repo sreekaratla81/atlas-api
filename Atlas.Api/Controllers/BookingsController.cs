@@ -45,37 +45,36 @@ namespace Atlas.Api.Controllers
                 var includeGuest = includes.Contains("guest", StringComparer.OrdinalIgnoreCase);
 
                 var bookings = await query
-                    .Select(b => new BookingListDto
-                    {
-                        Id = b.Id,
-                        ListingId = b.ListingId,
-                        GuestId = b.GuestId,
-                        CheckinDate = b.CheckinDate,
-                        CheckoutDate = b.CheckoutDate,
-                        BookingSource = b.BookingSource,
-                        AmountReceived = b.AmountReceived,
-                        GuestsPlanned = b.GuestsPlanned ?? 0,
-                        GuestsActual = b.GuestsActual ?? 0,
-                        ExtraGuestCharge = b.ExtraGuestCharge ?? 0,
-                        CommissionAmount = b.CommissionAmount ?? 0,
-                        Notes = b.Notes,
-                        CreatedAt = b.CreatedAt,
-                        PaymentStatus = b.PaymentStatus,
-                        GuestName = b.Guest != null ? b.Guest.Name : null,
-                        GuestPhone = b.Guest != null ? b.Guest.Phone : null,
-                        GuestEmail = b.Guest != null ? b.Guest.Email : null,
-                        Guest = includeGuest && b.Guest != null
-                            ? new GuestDto
-                            {
-                                Id = b.Guest.Id,
-                                Name = b.Guest.Name,
-                                Phone = b.Guest.Phone,
-                                Email = b.Guest.Email,
-                                IdProofUrl = b.Guest.IdProofUrl
-                            }
-                            : null
-                    })
-                    .ToListAsync();
+                  .Select(b => new BookingListDto
+                  {
+                      Id = b.Id,
+                      GuestId = b.GuestId,
+                      BankAccountId = b.BankAccountId,
+                      Listing = _context.Listings
+                                    .Where(l => l.Id == b.ListingId)
+                                    .Select(l => l.Name)
+                                    .FirstOrDefault(),
+                      Guest = _context.Guests
+                                    .Where(g => g.Id == b.GuestId)
+                                    .Select(g => g.Name + " " + g.Phone)
+                                    .FirstOrDefault(),
+                      CheckinDate = b.CheckinDate,
+                      CheckoutDate = b.CheckoutDate,
+                      BookingSource = b.BookingSource,
+                      AmountReceived = b.AmountReceived,
+                      GuestsPlanned = b.GuestsPlanned ?? 0,
+                      GuestsActual = b.GuestsActual ?? 0,
+                      ExtraGuestCharge = b.ExtraGuestCharge ?? 0,
+                      CommissionAmount = b.CommissionAmount ?? 0,
+                      Notes = b.Notes,
+                      CreatedAt = b.CreatedAt,
+                      PaymentStatus = b.PaymentStatus,
+                      BankAccount = _context.BankAccounts
+                                    .Where(ba => ba.Id == b.BankAccountId)
+                                    .Select(ba => ba.BankName + " - " + (ba.AccountNumber.Length >= 4 ? ba.AccountNumber.Substring(ba.AccountNumber.Length - 4) : ba.AccountNumber))
+                                    .FirstOrDefault(),
+                  })
+                  .ToListAsync();
 
                 return Ok(bookings);
             }

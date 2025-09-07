@@ -257,7 +257,7 @@ public class BookingsControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var items = Assert.IsType<List<BookingListDto>>(ok.Value);
         Assert.Single(items);
-        Assert.Equal("Tester", items[0].GuestName);
+        Assert.Equal("Tester 1", items[0].Guest);
     }
 
     [Fact]

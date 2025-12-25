@@ -1,0 +1,105 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|c:\\users\\uday8\\onedrive\\desktop\\new folder\\atlas-api\\atlas.api\\controllers\\availabilitycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|solutionrelative:atlas.api\\controllers\\availabilitycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|c:\\users\\uday8\\onedrive\\desktop\\new folder\\atlas-api\\atlas.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|solutionrelative:atlas.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|c:\\users\\uday8\\onedrive\\desktop\\new folder\\atlas-api\\atlas.api\\controllers\\listingscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|solutionrelative:atlas.api\\controllers\\listingscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|c:\\users\\uday8\\onedrive\\desktop\\new folder\\atlas-api\\atlas.api\\controllers\\bookingscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|solutionrelative:atlas.api\\controllers\\bookingscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|c:\\users\\uday8\\onedrive\\desktop\\new folder\\atlas-api\\atlas.api\\atlas.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{42F31B02-E4BA-4033-9961-8A4B30B806DD}|Atlas.Api\\Atlas.Api.csproj|solutionrelative:atlas.api\\atlas.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AvailabilityController.cs",
+              "DocumentMoniker": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Controllers\\AvailabilityController.cs",
+              "RelativeDocumentMoniker": "Atlas.Api\\Controllers\\AvailabilityController.cs",
+              "ToolTip": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Controllers\\AvailabilityController.cs",
+              "RelativeToolTip": "Atlas.Api\\Controllers\\AvailabilityController.cs",
+              "ViewState": "AgIAADIAAAAAAAAAAAAcwEQAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-24T14:17:45.089Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ListingsController.cs",
+              "DocumentMoniker": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Controllers\\ListingsController.cs",
+              "RelativeDocumentMoniker": "Atlas.Api\\Controllers\\ListingsController.cs",
+              "ToolTip": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Controllers\\ListingsController.cs",
+              "RelativeToolTip": "Atlas.Api\\Controllers\\ListingsController.cs",
+              "ViewState": "AgIAAEYAAAAAAAAAAAAkwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-24T13:56:43.663Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "BookingsController.cs",
+              "DocumentMoniker": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Controllers\\BookingsController.cs",
+              "RelativeDocumentMoniker": "Atlas.Api\\Controllers\\BookingsController.cs",
+              "ToolTip": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Controllers\\BookingsController.cs",
+              "RelativeToolTip": "Atlas.Api\\Controllers\\BookingsController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-24T13:56:38.765Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Program.cs",
+              "RelativeDocumentMoniker": "Atlas.Api\\Program.cs",
+              "ToolTip": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Program.cs",
+              "RelativeToolTip": "Atlas.Api\\Program.cs",
+              "ViewState": "AgIAADkAAAAAAAAAAAAMwEUAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-24T14:07:06.589Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Atlas.Api",
+              "DocumentMoniker": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Atlas.Api.csproj",
+              "RelativeDocumentMoniker": "Atlas.Api\\Atlas.Api.csproj",
+              "ToolTip": "C:\\Users\\uday8\\OneDrive\\Desktop\\New folder\\atlas-api\\Atlas.Api\\Atlas.Api.csproj",
+              "RelativeToolTip": "Atlas.Api\\Atlas.Api.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-12-24T11:55:43.894Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

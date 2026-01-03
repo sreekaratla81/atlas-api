@@ -46,6 +46,21 @@ namespace Atlas.Api.Data
                 .HasColumnType("varchar(100)")
                 .HasMaxLength(100);
             modelBuilder.Entity<Booking>()
+                .Property(b => b.ConfirmationSentAtUtc)
+                .HasColumnType("datetime");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.RefundFreeUntilUtc)
+                .HasColumnType("datetime");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.CheckedInAtUtc)
+                .HasColumnType("datetime");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.CheckedOutAtUtc)
+                .HasColumnType("datetime");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.CancelledAtUtc)
+                .HasColumnType("datetime");
+            modelBuilder.Entity<Booking>()
                 .Property(b => b.BookingSource)
                 .HasColumnType("varchar(50)")
                 .HasMaxLength(50)

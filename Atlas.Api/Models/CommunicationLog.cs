@@ -3,7 +3,7 @@ namespace Atlas.Api.Models
 {
     public class CommunicationLog
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         public int? BookingId { get; set; }
 

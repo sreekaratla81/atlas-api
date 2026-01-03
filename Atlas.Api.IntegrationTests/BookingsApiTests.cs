@@ -2,6 +2,7 @@ using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -111,6 +112,11 @@ public class BookingsApiTests : IntegrationTestBase
             checkinDate = DateTime.UtcNow.Date,
             checkoutDate = DateTime.UtcNow.Date.AddDays(2),
             bookingSource = "airbnb",
+            bookingStatus = "Confirmed",
+            totalAmount = 350m,
+            currency = "USD",
+            externalReservationId = "EXT-BOOK-1",
+            confirmationSentAtUtc = DateTime.UtcNow,
             paymentStatus = "Pending",
             amountReceived = 200m,
             bankAccountId = (int?)null,
@@ -127,6 +133,11 @@ public class BookingsApiTests : IntegrationTestBase
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var count = await db2.Bookings.CountAsync();
         Assert.Equal(2, count);
+        var created = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
+        Assert.Equal("Confirmed", created.BookingStatus);
+        Assert.Equal(350m, created.TotalAmount);
+        Assert.Equal("USD", created.Currency);
+        Assert.Equal("EXT-BOOK-1", created.ExternalReservationId);
     }
 
     [Fact]

@@ -215,6 +215,50 @@ namespace Atlas.Api.Data
                 .WithMany()
                 .HasForeignKey(cl => cl.MessageTemplateId)
                 .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.EventType)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .IsRequired();
+
+            modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.Channel)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired();
+
+            modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.ScopeType)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired();
+
+            modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.Language)
+                .HasMaxLength(10)
+                .HasColumnType("varchar(10)")
+                .IsRequired();
+
+            modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.Subject)
+                .HasMaxLength(200)
+                .HasColumnType("varchar(200)");
+
+            modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.Body)
+                .HasColumnType("text")
+                .IsRequired();
+
+            modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.CreatedAtUtc)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.UpdatedAtUtc)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("GETUTCDATE()");
         }
 
         private static DeleteBehavior ResolveDeleteBehavior()

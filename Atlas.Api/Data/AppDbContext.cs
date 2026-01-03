@@ -74,6 +74,9 @@ namespace Atlas.Api.Data
                 .HasPrecision(5, 2);
 
             modelBuilder.Entity<ListingPricing>()
+                .ToTable("ListingPricing");
+
+            modelBuilder.Entity<ListingPricing>()
                 .HasKey(p => p.ListingId);
 
             modelBuilder.Entity<ListingPricing>()
@@ -98,6 +101,9 @@ namespace Atlas.Api.Data
                 .Property(p => p.UpdatedAtUtc)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<ListingDailyRate>()
+                .ToTable("ListingDailyRate");
 
             modelBuilder.Entity<ListingDailyRate>()
                 .Property(r => r.NightlyRate)
@@ -219,6 +225,9 @@ namespace Atlas.Api.Data
                 .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<CommunicationLog>()
+                .ToTable("CommunicationLog");
+
+            modelBuilder.Entity<CommunicationLog>()
                 .Property(cl => cl.Channel)
                 .HasMaxLength(20)
                 .HasColumnType("varchar(20)")
@@ -300,6 +309,9 @@ namespace Atlas.Api.Data
                 .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<MessageTemplate>()
+                .ToTable("MessageTemplate");
+
+            modelBuilder.Entity<MessageTemplate>()
                 .Property(mt => mt.EventType)
                 .HasMaxLength(50)
                 .HasColumnType("varchar(50)")
@@ -344,6 +356,9 @@ namespace Atlas.Api.Data
                 .HasDefaultValueSql("GETUTCDATE()");
 
             modelBuilder.Entity<OutboxMessage>()
+                .ToTable("OutboxMessage");
+
+            modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.AggregateType)
                 .HasMaxLength(50)
                 .HasColumnType("varchar(50)")
@@ -381,6 +396,9 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.LastError)
                 .HasColumnType("text");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .ToTable("AutomationSchedule");
 
             modelBuilder.Entity<AutomationSchedule>()
                 .Property(a => a.Id)

@@ -193,6 +193,54 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Post_ReturnsBadRequest_WhenOverlappingConfirmedBookingExists()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+        var checkin = DateTime.UtcNow.Date.AddDays(10);
+        var checkout = checkin.AddDays(2);
+
+        var firstBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = checkin,
+            checkoutDate = checkout,
+            bookingSource = "airbnb",
+            bookingStatus = "Confirmed",
+            paymentStatus = "Paid",
+            amountReceived = 100m,
+            guestsPlanned = 1,
+            guestsActual = 1,
+            extraGuestCharge = 0m,
+            notes = "first"
+        };
+
+        var firstResponse = await Client.PostAsJsonAsync("/api/bookings", firstBooking);
+        Assert.Equal(System.Net.HttpStatusCode.Created, firstResponse.StatusCode);
+
+        var overlappingBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = checkin.AddDays(1),
+            checkoutDate = checkout.AddDays(1),
+            bookingSource = "airbnb",
+            bookingStatus = "Confirmed",
+            paymentStatus = "Paid",
+            amountReceived = 100m,
+            guestsPlanned = 1,
+            guestsActual = 1,
+            extraGuestCharge = 0m,
+            notes = "overlap"
+        };
+
+        var overlapResponse = await Client.PostAsJsonAsync("/api/bookings", overlappingBooking);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, overlapResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task Put_UpdatesBooking()
     {
         using var scope = Factory.Services.CreateScope();
@@ -227,6 +275,76 @@ public class BookingsApiTests : IntegrationTestBase
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var updated = await db2.Bookings.FindAsync(id);
         Assert.Equal("updated", updated!.Notes);
+    }
+
+    [Fact]
+    public async Task Put_CancelsAvailabilityBlock_WhenBookingCancelled()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+        var checkin = DateTime.UtcNow.Date.AddDays(15);
+        var checkout = checkin.AddDays(2);
+
+        var confirmedBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = checkin,
+            checkoutDate = checkout,
+            bookingSource = "airbnb",
+            bookingStatus = "Confirmed",
+            paymentStatus = "Paid",
+            amountReceived = 120m,
+            guestsPlanned = 1,
+            guestsActual = 1,
+            extraGuestCharge = 0m,
+            notes = "confirm"
+        };
+
+        var createResponse = await Client.PostAsJsonAsync("/api/bookings", confirmedBooking);
+        Assert.Equal(System.Net.HttpStatusCode.Created, createResponse.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
+        var block = await db2.AvailabilityBlocks.SingleAsync(b => b.BookingId == booking.Id);
+        Assert.Equal("Active", block.Status);
+
+        var updatePayload = new
+        {
+            id = booking.Id,
+            listingId = booking.ListingId,
+            guestId = booking.GuestId,
+            checkinDate = booking.CheckinDate,
+            checkoutDate = booking.CheckoutDate,
+            bookingSource = booking.BookingSource,
+            bookingStatus = "Cancelled",
+            totalAmount = booking.TotalAmount,
+            currency = booking.Currency,
+            externalReservationId = booking.ExternalReservationId,
+            confirmationSentAtUtc = booking.ConfirmationSentAtUtc,
+            refundFreeUntilUtc = booking.RefundFreeUntilUtc,
+            checkedInAtUtc = booking.CheckedInAtUtc,
+            checkedOutAtUtc = booking.CheckedOutAtUtc,
+            cancelledAtUtc = DateTime.UtcNow,
+            paymentStatus = booking.PaymentStatus,
+            amountReceived = booking.AmountReceived,
+            bankAccountId = booking.BankAccountId,
+            guestsPlanned = booking.GuestsPlanned,
+            guestsActual = booking.GuestsActual,
+            extraGuestCharge = booking.ExtraGuestCharge,
+            commissionAmount = booking.CommissionAmount,
+            notes = booking.Notes
+        };
+
+        var updateResponse = await Client.PutAsJsonAsync($"/api/bookings/{booking.Id}", updatePayload);
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        using var scope3 = Factory.Services.CreateScope();
+        var db3 = scope3.ServiceProvider.GetRequiredService<AppDbContext>();
+        var cancelledBlock = await db3.AvailabilityBlocks.SingleAsync(b => b.BookingId == booking.Id);
+        Assert.Equal("Cancelled", cancelledBlock.Status);
     }
 
     [Fact]

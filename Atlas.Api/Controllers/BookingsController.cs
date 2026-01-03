@@ -15,6 +15,8 @@ namespace Atlas.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<BookingsController> _logger;
+        private const string ActiveAvailabilityStatus = "Active";
+        private const string CancelledAvailabilityStatus = "Cancelled";
 
         public BookingsController(AppDbContext context, ILogger<BookingsController> logger)
         {
@@ -141,6 +143,17 @@ namespace Atlas.Api.Controllers
 
                 var commissionAmount = (request.AmountReceived + request.ExtraGuestCharge) * commissionRate;
 
+                var bookingStatus = string.IsNullOrWhiteSpace(request.BookingStatus) ? "Lead" : request.BookingStatus;
+                if (IsConfirmedStatus(bookingStatus))
+                {
+                    var hasOverlap = await HasActiveOverlapAsync(listing.Id, request.CheckinDate, request.CheckoutDate, null);
+                    if (hasOverlap)
+                    {
+                        ModelState.AddModelError(nameof(request.CheckinDate), "Booking dates overlap an existing confirmed booking.");
+                        return ValidationProblem(ModelState);
+                    }
+                }
+
                 var booking = new Booking
                 {
                     ListingId = listing.Id,
@@ -148,7 +161,7 @@ namespace Atlas.Api.Controllers
                     GuestId = guest.Id,
                     Guest = guest,
                     BookingSource = request.BookingSource,
-                    BookingStatus = string.IsNullOrWhiteSpace(request.BookingStatus) ? "Lead" : request.BookingStatus,
+                    BookingStatus = bookingStatus,
                     TotalAmount = request.TotalAmount ?? 0m,
                     Currency = string.IsNullOrWhiteSpace(request.Currency) ? "INR" : request.Currency,
                     ExternalReservationId = request.ExternalReservationId,
@@ -172,6 +185,20 @@ namespace Atlas.Api.Controllers
 
                 _context.Bookings.Add(booking);
                 await _context.SaveChangesAsync();
+
+                if (IsConfirmedStatus(booking.BookingStatus))
+                {
+                    _context.AvailabilityBlocks.Add(new AvailabilityBlock
+                    {
+                        ListingId = booking.ListingId,
+                        BookingId = booking.Id,
+                        StartDate = booking.CheckinDate,
+                        EndDate = booking.CheckoutDate,
+                        Status = ActiveAvailabilityStatus,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await _context.SaveChangesAsync();
+                }
 
                 var dto = MapToDto(booking);
                 return CreatedAtAction(nameof(Get), new { id = booking.Id }, dto);
@@ -267,6 +294,18 @@ namespace Atlas.Api.Controllers
                 existingBooking.Notes = booking.Notes;
                 existingBooking.BankAccountId = booking.BankAccountId;
 
+                if (IsConfirmedStatus(existingBooking.BookingStatus))
+                {
+                    var hasOverlap = await HasActiveOverlapAsync(existingBooking.ListingId, existingBooking.CheckinDate, existingBooking.CheckoutDate, existingBooking.Id);
+                    if (hasOverlap)
+                    {
+                        ModelState.AddModelError(nameof(booking.CheckinDate), "Booking dates overlap an existing confirmed booking.");
+                        return ValidationProblem(ModelState);
+                    }
+                }
+
+                await SyncAvailabilityBlockAsync(existingBooking);
+
                 try
                 {
                     await _context.SaveChangesAsync();
@@ -332,6 +371,68 @@ namespace Atlas.Api.Controllers
                 CreatedAt = booking.CreatedAt,
                 PaymentStatus = booking.PaymentStatus
             };
+        }
+
+        private static bool IsConfirmedStatus(string? status)
+        {
+            return string.Equals(status, "Confirmed", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsCancelledStatus(string? status)
+        {
+            return string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<bool> HasActiveOverlapAsync(int listingId, DateTime startDate, DateTime endDate, int? bookingId)
+        {
+            return await _context.AvailabilityBlocks
+                .AsNoTracking()
+                .AnyAsync(block => block.ListingId == listingId
+                    && block.Status == ActiveAvailabilityStatus
+                    && block.StartDate < endDate
+                    && block.EndDate > startDate
+                    && (bookingId == null || block.BookingId != bookingId));
+        }
+
+        private async Task SyncAvailabilityBlockAsync(Booking booking)
+        {
+            if (!IsConfirmedStatus(booking.BookingStatus) && !IsCancelledStatus(booking.BookingStatus))
+            {
+                return;
+            }
+
+            var existingBlock = await _context.AvailabilityBlocks
+                .FirstOrDefaultAsync(block => block.BookingId == booking.Id);
+
+            if (IsConfirmedStatus(booking.BookingStatus))
+            {
+                if (existingBlock == null)
+                {
+                    _context.AvailabilityBlocks.Add(new AvailabilityBlock
+                    {
+                        ListingId = booking.ListingId,
+                        BookingId = booking.Id,
+                        StartDate = booking.CheckinDate,
+                        EndDate = booking.CheckoutDate,
+                        Status = ActiveAvailabilityStatus,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    return;
+                }
+
+                existingBlock.ListingId = booking.ListingId;
+                existingBlock.StartDate = booking.CheckinDate;
+                existingBlock.EndDate = booking.CheckoutDate;
+                existingBlock.Status = ActiveAvailabilityStatus;
+                existingBlock.CancelledAtUtc = null;
+                return;
+            }
+
+            if (IsCancelledStatus(booking.BookingStatus) && existingBlock != null)
+            {
+                existingBlock.Status = CancelledAvailabilityStatus;
+                existingBlock.CancelledAtUtc = DateTime.UtcNow;
+            }
         }
     }
 }

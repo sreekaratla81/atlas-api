@@ -48,9 +48,8 @@ public class PricingServiceTests
         {
             ListingId = listing.Id,
             Listing = listing,
-            BaseRate = 100m,
-            WeekdayRate = 110m,
-            WeekendRate = 150m,
+            BaseNightlyRate = 110m,
+            WeekendNightlyRate = 150m,
             Currency = "USD"
         });
         context.ListingDailyRates.Add(new ListingDailyRate
@@ -58,7 +57,9 @@ public class PricingServiceTests
             ListingId = listing.Id,
             Listing = listing,
             Date = new DateTime(2025, 1, 4),
-            Rate = 200m
+            NightlyRate = 200m,
+            Currency = "USD",
+            Source = "Manual"
         });
         await context.SaveChangesAsync();
 
@@ -112,9 +113,8 @@ public class PricingServiceTests
         {
             ListingId = listing.Id,
             Listing = listing,
-            BaseRate = 90m,
-            WeekdayRate = 100m,
-            WeekendRate = 120m,
+            BaseNightlyRate = 100m,
+            WeekendNightlyRate = 120m,
             Currency = "USD"
         });
         await context.SaveChangesAsync();

@@ -45,14 +45,14 @@ namespace Atlas.Api.Services
                 };
             }
 
-            var basePrices = await _context.ListingBasePrices
+            var pricingList = await _context.ListingPricings
                 .AsNoTracking()
-                .Where(bp => listingIds.Contains(bp.ListingId))
+                .Where(p => listingIds.Contains(p.ListingId))
                 .ToListAsync();
 
-            var basePriceLookup = basePrices.ToDictionary(bp => bp.ListingId);
+            var pricingLookup = pricingList.ToDictionary(p => p.ListingId);
 
-            var overrideRates = await _context.ListingDailyOverrides
+            var overrideRates = await _context.ListingDailyRates
                 .AsNoTracking()
                 .Where(o => listingIds.Contains(o.ListingId) && o.Date >= startDate && o.Date < endDate)
                 .ToListAsync();
@@ -61,7 +61,7 @@ namespace Atlas.Api.Services
                 .GroupBy(o => o.ListingId)
                 .ToDictionary(
                     group => group.Key,
-                    group => group.ToDictionary(o => o.Date.Date, o => o.Price)
+                    group => group.ToDictionary(o => o.Date.Date, o => o.NightlyRate)
                 );
 
             var blockedListingIds = await _context.AvailabilityBlocks
@@ -84,7 +84,7 @@ namespace Atlas.Api.Services
                     continue;
                 }
 
-                if (!basePriceLookup.TryGetValue(listing.Id, out var basePrice))
+                if (!pricingLookup.TryGetValue(listing.Id, out var pricing))
                 {
                     continue;
                 }
@@ -96,7 +96,7 @@ namespace Atlas.Api.Services
                 for (var i = 0; i < totalNights; i++)
                 {
                     var date = startDate.AddDays(i);
-                    var price = basePrice.BasePrice;
+                    var price = ResolveBaseRate(pricing, date);
 
                     if (listingOverrides != null && listingOverrides.TryGetValue(date, out var overridePrice))
                     {
@@ -116,7 +116,7 @@ namespace Atlas.Api.Services
                     ListingId = listing.Id,
                     ListingName = listing.Name,
                     MaxGuests = listing.MaxGuests,
-                    Currency = basePrice.Currency,
+                    Currency = pricing.Currency,
                     TotalPrice = totalPrice,
                     NightlyRates = nightlyRates
                 });
@@ -131,6 +131,18 @@ namespace Atlas.Api.Services
                 IsGenericAvailable = availabilityListings.Count > 0,
                 Listings = availabilityListings
             };
+        }
+
+        private static decimal ResolveBaseRate(ListingPricing pricing, DateTime date)
+        {
+            var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+
+            if (isWeekend)
+            {
+                return pricing.WeekendNightlyRate ?? pricing.BaseNightlyRate;
+            }
+
+            return pricing.BaseNightlyRate;
         }
     }
 }

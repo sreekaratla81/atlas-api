@@ -59,73 +59,65 @@ namespace Atlas.Api.Data
                 .Property(p => p.CommissionPercent)
                 .HasPrecision(5, 2);
 
-            modelBuilder.Entity<ListingBasePrice>()
-                .Property(bp => bp.BasePrice)
-                .HasPrecision(18, 2);
-
-            modelBuilder.Entity<ListingBasePrice>()
-                .Property(bp => bp.Currency)
-                .HasDefaultValue("INR");
-
-            modelBuilder.Entity<ListingBasePrice>()
-                .HasIndex(bp => bp.ListingId)
-                .IsUnique();
-
-            modelBuilder.Entity<ListingDailyOverride>()
-                .Property(o => o.Price)
-                .HasPrecision(18, 2);
-
-            modelBuilder.Entity<ListingDailyOverride>()
-                .HasIndex(o => new { o.ListingId, o.Date })
-                .IsUnique();
+            modelBuilder.Entity<ListingPricing>()
+                .HasKey(p => p.ListingId);
 
             modelBuilder.Entity<ListingPricing>()
-                .Property(p => p.BaseRate)
+                .Property(p => p.BaseNightlyRate)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<ListingPricing>()
-                .Property(p => p.WeekdayRate)
+                .Property(p => p.WeekendNightlyRate)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<ListingPricing>()
-                .Property(p => p.WeekendRate)
+                .Property(p => p.ExtraGuestRate)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<ListingPricing>()
                 .Property(p => p.Currency)
+                .HasMaxLength(10)
+                .HasColumnType("varchar(10)")
                 .HasDefaultValue("INR");
 
             modelBuilder.Entity<ListingPricing>()
-                .Property(p => p.CreatedAt)
+                .Property(p => p.UpdatedAtUtc)
+                .HasColumnType("datetime")
                 .HasDefaultValueSql("GETUTCDATE()");
 
-            modelBuilder.Entity<ListingPricing>()
-                .HasIndex(p => p.ListingId)
-                .IsUnique();
-
             modelBuilder.Entity<ListingDailyRate>()
-                .Property(r => r.Rate)
+                .Property(r => r.NightlyRate)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<ListingDailyRate>()
-                .Property(r => r.CreatedAt)
+                .Property(r => r.Currency)
+                .HasMaxLength(10)
+                .HasColumnType("varchar(10)")
+                .HasDefaultValue("INR");
+
+            modelBuilder.Entity<ListingDailyRate>()
+                .Property(r => r.Source)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired();
+
+            modelBuilder.Entity<ListingDailyRate>()
+                .Property(r => r.Reason)
+                .HasMaxLength(200)
+                .HasColumnType("varchar(200)");
+
+            modelBuilder.Entity<ListingDailyRate>()
+                .Property(r => r.UpdatedAtUtc)
+                .HasColumnType("datetime")
                 .HasDefaultValueSql("GETUTCDATE()");
 
             modelBuilder.Entity<ListingDailyRate>()
                 .HasIndex(r => new { r.ListingId, r.Date })
                 .IsUnique();
 
-            modelBuilder.Entity<ListingBasePrice>()
-                .HasOne(bp => bp.Listing)
-                .WithOne(l => l.BasePrice)
-                .HasForeignKey<ListingBasePrice>(bp => bp.ListingId)
-                .OnDelete(deleteBehavior);
-
-            modelBuilder.Entity<ListingDailyOverride>()
-                .HasOne(o => o.Listing)
-                .WithMany(l => l.DailyOverrides)
-                .HasForeignKey(o => o.ListingId)
-                .OnDelete(deleteBehavior);
+            modelBuilder.Entity<ListingDailyRate>()
+                .Property(r => r.Date)
+                .HasColumnType("date");
 
             modelBuilder.Entity<ListingPricing>()
                 .HasOne(p => p.Listing)
@@ -243,8 +235,6 @@ namespace Atlas.Api.Data
         public DbSet<Payment> Payments { get; set; }
         public DbSet<BankAccount> BankAccounts { get; set; }
         public DbSet<AvailabilityBlock> AvailabilityBlocks { get; set; }
-        public DbSet<ListingBasePrice> ListingBasePrices { get; set; }
-        public DbSet<ListingDailyOverride> ListingDailyOverrides { get; set; }
         public DbSet<ListingPricing> ListingPricings { get; set; }
         public DbSet<ListingDailyRate> ListingDailyRates { get; set; }
         public DbSet<MessageTemplate> MessageTemplates { get; set; }

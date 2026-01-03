@@ -95,6 +95,23 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
         var outbox = await db.OutboxMessages.SingleAsync();
         Assert.Equal("Failed", outbox.Status);
         Assert.Contains("Simulated publish failure", outbox.ErrorMessage);
+
+        var logs = await db.CommunicationLogs.OrderBy(l => l.Id).ToListAsync();
+        Assert.NotEmpty(logs);
+        Assert.All(logs, log =>
+        {
+            Assert.Equal("Failed", log.Status);
+            Assert.Equal("booking-confirmed", log.EventType);
+            Assert.Equal("System", log.Provider);
+            Assert.Equal(created.Id, log.BookingId);
+            Assert.Equal(guest.Id, log.GuestId);
+            Assert.False(string.IsNullOrWhiteSpace(log.ToAddress));
+            Assert.False(string.IsNullOrWhiteSpace(log.CorrelationId));
+            Assert.False(string.IsNullOrWhiteSpace(log.IdempotencyKey));
+            Assert.Equal(1, log.AttemptCount);
+            Assert.Contains("Simulated publish failure", log.LastError);
+            Assert.Equal(0, log.TemplateVersion);
+        });
     }
 
     private async Task ResetDatabaseAsync()

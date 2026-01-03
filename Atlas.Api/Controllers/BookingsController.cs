@@ -233,7 +233,8 @@ namespace Atlas.Api.Controllers
                         foreach (var log in communicationLogs)
                         {
                             log.Status = "Failed";
-                            log.ErrorMessage = ex.Message;
+                            log.AttemptCount += 1;
+                            log.LastError = ex.Message;
                         }
 
                         await _context.SaveChangesAsync();
@@ -597,16 +598,28 @@ namespace Atlas.Api.Controllers
 
             var logs = new List<CommunicationLog>();
 
+            var correlationId = Guid.NewGuid().ToString();
+            const string provider = "System";
+            const string eventType = "booking-confirmed";
+
             void AddLog(string channel, string recipient, int? templateId)
             {
+                var idempotencyKey = $"{booking.Id}:{channel}:{recipient}:{Guid.NewGuid()}";
                 var log = new CommunicationLog
                 {
                     Booking = booking,
                     BookingId = booking.Id,
+                    GuestId = guest.Id,
                     Channel = channel,
-                    Recipient = recipient,
+                    EventType = eventType,
+                    ToAddress = recipient,
+                    TemplateId = templateId,
+                    TemplateVersion = templateId.HasValue ? 1 : 0,
+                    CorrelationId = correlationId,
+                    IdempotencyKey = idempotencyKey,
+                    Provider = provider,
                     Status = "Pending",
-                    MessageTemplateId = templateId,
+                    AttemptCount = 0,
                     CreatedAtUtc = DateTime.UtcNow
                 };
                 logs.Add(log);

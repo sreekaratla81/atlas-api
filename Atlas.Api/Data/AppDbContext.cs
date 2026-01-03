@@ -205,15 +205,84 @@ namespace Atlas.Api.Data
                 .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.Channel)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired();
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.EventType)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .IsRequired();
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.ToAddress)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)")
+                .IsRequired();
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.CorrelationId)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)")
+                .IsRequired();
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.IdempotencyKey)
+                .HasMaxLength(150)
+                .HasColumnType("varchar(150)")
+                .IsRequired();
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.Provider)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .IsRequired();
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.ProviderMessageId)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)");
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.Status)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired();
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.LastError)
+                .HasColumnType("text");
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.CreatedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<CommunicationLog>()
+                .Property(cl => cl.SentAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<CommunicationLog>()
+                .HasIndex(cl => cl.IdempotencyKey)
+                .IsUnique();
+
+            modelBuilder.Entity<CommunicationLog>()
                 .HasOne(cl => cl.Booking)
                 .WithMany()
                 .HasForeignKey(cl => cl.BookingId)
                 .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<CommunicationLog>()
+                .HasOne(cl => cl.Guest)
+                .WithMany()
+                .HasForeignKey(cl => cl.GuestId)
+                .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<CommunicationLog>()
                 .HasOne(cl => cl.MessageTemplate)
                 .WithMany()
-                .HasForeignKey(cl => cl.MessageTemplateId)
+                .HasForeignKey(cl => cl.TemplateId)
                 .OnDelete(deleteBehavior);
         }
 

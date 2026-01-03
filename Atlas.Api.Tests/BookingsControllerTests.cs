@@ -163,10 +163,24 @@ public class BookingsControllerTests
         var dto = Assert.IsType<BookingDto>(createdResult.Value);
         Assert.Equal(listing.Id, dto.ListingId);
 
+        var createdBooking = await context.Bookings.SingleAsync();
         var outbox = await context.OutboxMessages.SingleAsync();
         Assert.Equal("Failed", outbox.Status);
         Assert.Contains("Kafka down", outbox.ErrorMessage);
-        Assert.All(context.CommunicationLogs, log => Assert.Equal("Failed", log.Status));
+        Assert.All(context.CommunicationLogs, log =>
+        {
+            Assert.Equal("Failed", log.Status);
+            Assert.Equal("booking-confirmed", log.EventType);
+            Assert.Equal("System", log.Provider);
+            Assert.Equal(createdBooking.Id, log.BookingId);
+            Assert.Equal(guest.Id, log.GuestId);
+            Assert.False(string.IsNullOrWhiteSpace(log.ToAddress));
+            Assert.False(string.IsNullOrWhiteSpace(log.CorrelationId));
+            Assert.False(string.IsNullOrWhiteSpace(log.IdempotencyKey));
+            Assert.Equal(1, log.AttemptCount);
+            Assert.Contains("Kafka down", log.LastError);
+            Assert.Equal(0, log.TemplateVersion);
+        });
     }
 
     [Fact]

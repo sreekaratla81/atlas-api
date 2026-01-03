@@ -17,6 +17,8 @@ public class BookingModelTests
         };
 
         Assert.Equal("Paid", booking.PaymentStatus);
+        Assert.Equal("Lead", booking.BookingStatus);
+        Assert.Equal("INR", booking.Currency);
         Assert.True((DateTime.UtcNow - booking.CreatedAt).TotalSeconds < 5);
     }
 }

@@ -60,6 +60,10 @@ public class BookingsControllerTests
             ListingId = listing.Id,
             GuestId = guest.Id,
             BookingSource = "airbnb",
+            BookingStatus = "Confirmed",
+            TotalAmount = 250,
+            Currency = "USD",
+            ExternalReservationId = "EXT-1",
             AmountReceived = 100,
             GuestsPlanned = 2,
             GuestsActual = 2,
@@ -76,6 +80,10 @@ public class BookingsControllerTests
         var dto = Assert.IsType<BookingDto>(createdResult.Value);
         Assert.Equal(1, dto.ListingId);
         Assert.Equal(100, dto.AmountReceived);
+        Assert.Equal("Confirmed", dto.BookingStatus);
+        Assert.Equal(250, dto.TotalAmount);
+        Assert.Equal("USD", dto.Currency);
+        Assert.Equal("EXT-1", dto.ExternalReservationId);
     }
 
     [Fact]

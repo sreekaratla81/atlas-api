@@ -61,6 +61,15 @@ namespace Atlas.Api.Controllers
                       CheckinDate = b.CheckinDate,
                       CheckoutDate = b.CheckoutDate,
                       BookingSource = b.BookingSource,
+                      BookingStatus = b.BookingStatus,
+                      TotalAmount = b.TotalAmount,
+                      Currency = b.Currency,
+                      ExternalReservationId = b.ExternalReservationId,
+                      ConfirmationSentAtUtc = b.ConfirmationSentAtUtc,
+                      RefundFreeUntilUtc = b.RefundFreeUntilUtc,
+                      CheckedInAtUtc = b.CheckedInAtUtc,
+                      CheckedOutAtUtc = b.CheckedOutAtUtc,
+                      CancelledAtUtc = b.CancelledAtUtc,
                       AmountReceived = b.AmountReceived,
                       GuestsPlanned = b.GuestsPlanned ?? 0,
                       GuestsActual = b.GuestsActual ?? 0,
@@ -139,6 +148,15 @@ namespace Atlas.Api.Controllers
                     GuestId = guest.Id,
                     Guest = guest,
                     BookingSource = request.BookingSource,
+                    BookingStatus = string.IsNullOrWhiteSpace(request.BookingStatus) ? "Lead" : request.BookingStatus,
+                    TotalAmount = request.TotalAmount ?? 0m,
+                    Currency = string.IsNullOrWhiteSpace(request.Currency) ? "INR" : request.Currency,
+                    ExternalReservationId = request.ExternalReservationId,
+                    ConfirmationSentAtUtc = request.ConfirmationSentAtUtc,
+                    RefundFreeUntilUtc = request.RefundFreeUntilUtc,
+                    CheckedInAtUtc = request.CheckedInAtUtc,
+                    CheckedOutAtUtc = request.CheckedOutAtUtc,
+                    CancelledAtUtc = request.CancelledAtUtc,
                     PaymentStatus = string.IsNullOrWhiteSpace(request.PaymentStatus) ? "Paid" : request.PaymentStatus,
                     CheckinDate = request.CheckinDate,
                     CheckoutDate = request.CheckoutDate,
@@ -201,6 +219,42 @@ namespace Atlas.Api.Controllers
                 existingBooking.CheckinDate = booking.CheckinDate;
                 existingBooking.CheckoutDate = booking.CheckoutDate;
                 existingBooking.BookingSource = booking.BookingSource;
+                if (!string.IsNullOrWhiteSpace(booking.BookingStatus))
+                {
+                    existingBooking.BookingStatus = booking.BookingStatus;
+                }
+                if (booking.TotalAmount.HasValue)
+                {
+                    existingBooking.TotalAmount = booking.TotalAmount.Value;
+                }
+                if (!string.IsNullOrWhiteSpace(booking.Currency))
+                {
+                    existingBooking.Currency = booking.Currency;
+                }
+                if (booking.ExternalReservationId != null)
+                {
+                    existingBooking.ExternalReservationId = booking.ExternalReservationId;
+                }
+                if (booking.ConfirmationSentAtUtc.HasValue)
+                {
+                    existingBooking.ConfirmationSentAtUtc = booking.ConfirmationSentAtUtc;
+                }
+                if (booking.RefundFreeUntilUtc.HasValue)
+                {
+                    existingBooking.RefundFreeUntilUtc = booking.RefundFreeUntilUtc;
+                }
+                if (booking.CheckedInAtUtc.HasValue)
+                {
+                    existingBooking.CheckedInAtUtc = booking.CheckedInAtUtc;
+                }
+                if (booking.CheckedOutAtUtc.HasValue)
+                {
+                    existingBooking.CheckedOutAtUtc = booking.CheckedOutAtUtc;
+                }
+                if (booking.CancelledAtUtc.HasValue)
+                {
+                    existingBooking.CancelledAtUtc = booking.CancelledAtUtc;
+                }
                 if (!string.IsNullOrWhiteSpace(booking.PaymentStatus))
                 {
                     existingBooking.PaymentStatus = booking.PaymentStatus;
@@ -259,6 +313,15 @@ namespace Atlas.Api.Controllers
                 CheckinDate = booking.CheckinDate,
                 CheckoutDate = booking.CheckoutDate,
                 BookingSource = booking.BookingSource,
+                BookingStatus = booking.BookingStatus,
+                TotalAmount = booking.TotalAmount,
+                Currency = booking.Currency,
+                ExternalReservationId = booking.ExternalReservationId,
+                ConfirmationSentAtUtc = booking.ConfirmationSentAtUtc,
+                RefundFreeUntilUtc = booking.RefundFreeUntilUtc,
+                CheckedInAtUtc = booking.CheckedInAtUtc,
+                CheckedOutAtUtc = booking.CheckedOutAtUtc,
+                CancelledAtUtc = booking.CancelledAtUtc,
                 AmountReceived = booking.AmountReceived,
                 BankAccountId = booking.BankAccountId,
                 GuestsPlanned = booking.GuestsPlanned ?? 0,

@@ -29,7 +29,11 @@ public class AvailabilityApiTests : IntegrationTestBase
             ListingId = blockedListing.Id,
             StartDate = new DateTime(2025, 1, 1),
             EndDate = new DateTime(2025, 1, 3),
-            Status = "Active"
+            BlockType = "Booking",
+            Source = "System",
+            Status = "Active",
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
 

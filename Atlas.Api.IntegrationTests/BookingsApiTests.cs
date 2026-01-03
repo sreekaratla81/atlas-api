@@ -310,6 +310,10 @@ public class BookingsApiTests : IntegrationTestBase
         var booking = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
         var block = await db2.AvailabilityBlocks.SingleAsync(b => b.BookingId == booking.Id);
         Assert.Equal("Active", block.Status);
+        Assert.Equal("Booking", block.BlockType);
+        Assert.Equal("System", block.Source);
+        Assert.True(block.CreatedAtUtc > DateTime.MinValue);
+        Assert.True(block.UpdatedAtUtc > DateTime.MinValue);
 
         var updatePayload = new
         {

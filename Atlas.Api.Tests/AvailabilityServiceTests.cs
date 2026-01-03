@@ -140,6 +140,8 @@ public class AvailabilityServiceTests
             ListingId = listing.Id,
             StartDate = new DateTime(2025, 2, 1),
             EndDate = new DateTime(2025, 2, 5),
+            BlockType = "Booking",
+            Source = "System",
             Status = "Active"
         });
         await context.SaveChangesAsync();

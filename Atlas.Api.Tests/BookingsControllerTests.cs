@@ -276,7 +276,11 @@ public class BookingsControllerTests
             ListingId = listing.Id,
             StartDate = new DateTime(2025, 8, 1),
             EndDate = new DateTime(2025, 8, 3),
-            Status = "Active"
+            BlockType = "Booking",
+            Source = "System",
+            Status = "Active",
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
         });
         await context.SaveChangesAsync();
 
@@ -575,13 +579,18 @@ public class BookingsControllerTests
         context.Bookings.Add(booking);
         await context.SaveChangesAsync();
 
+        var initialUpdatedAt = DateTime.UtcNow.AddDays(-1);
         context.AvailabilityBlocks.Add(new AvailabilityBlock
         {
             ListingId = listing.Id,
             BookingId = booking.Id,
             StartDate = booking.CheckinDate,
             EndDate = booking.CheckoutDate,
-            Status = "Active"
+            BlockType = "Booking",
+            Source = "System",
+            Status = "Active",
+            CreatedAtUtc = initialUpdatedAt,
+            UpdatedAtUtc = initialUpdatedAt
         });
         await context.SaveChangesAsync();
 
@@ -608,6 +617,7 @@ public class BookingsControllerTests
         Assert.IsType<NoContentResult>(result);
         var cancelledBlock = await context.AvailabilityBlocks.SingleAsync(b => b.BookingId == booking.Id);
         Assert.Equal("Cancelled", cancelledBlock.Status);
+        Assert.True(cancelledBlock.UpdatedAtUtc > initialUpdatedAt);
     }
 
     [Fact]
@@ -669,7 +679,11 @@ public class BookingsControllerTests
             BookingId = booking.Id,
             StartDate = booking.CheckinDate,
             EndDate = booking.CheckoutDate,
-            Status = "Active"
+            BlockType = "Booking",
+            Source = "System",
+            Status = "Active",
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
         });
         await context.SaveChangesAsync();
 

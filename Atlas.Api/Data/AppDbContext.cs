@@ -63,8 +63,7 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<Booking>()
                 .Property(b => b.BookingSource)
                 .HasColumnType("varchar(50)")
-                .HasMaxLength(50)
-                .IsRequired();
+                .HasMaxLength(50);
 
             modelBuilder.Entity<Payment>()
                 .Property(p => p.Amount)

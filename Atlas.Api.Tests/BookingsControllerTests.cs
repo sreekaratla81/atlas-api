@@ -2,9 +2,11 @@ using Atlas.Api.Controllers;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
+using Atlas.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Moq;
 using Xunit;
@@ -54,7 +56,10 @@ public class BookingsControllerTests
         context.Guests.Add(guest);
         await context.SaveChangesAsync();
 
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -84,6 +89,84 @@ public class BookingsControllerTests
         Assert.Equal(250, dto.TotalAmount);
         Assert.Equal("USD", dto.Currency);
         Assert.Equal("EXT-1", dto.ExternalReservationId);
+    }
+
+    [Fact]
+    public async Task Create_PersistsBooking_WhenWorkflowPublisherFails()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(Create_PersistsBooking_WhenWorkflowPublisherFails))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var property = new Property
+        {
+            Name = "Property",
+            Address = "Addr",
+            Type = "House",
+            OwnerName = "Owner",
+            ContactPhone = "000",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        context.Properties.Add(property);
+        await context.SaveChangesAsync();
+
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "wifi",
+            WifiPassword = "pass",
+            MaxGuests = 2
+        };
+        context.Listings.Add(listing);
+
+        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com" };
+        context.Guests.Add(guest);
+        await context.SaveChangesAsync();
+
+        var publisher = new Mock<IBookingWorkflowPublisher>();
+        publisher
+            .Setup(p => p.PublishBookingConfirmedAsync(
+                It.IsAny<Booking>(),
+                It.IsAny<Guest>(),
+                It.IsAny<IReadOnlyCollection<CommunicationLog>>(),
+                It.IsAny<OutboxMessage>()))
+            .ThrowsAsync(new InvalidOperationException("Kafka down"));
+
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            publisher.Object);
+
+        var request = new CreateBookingRequest
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BookingSource = "airbnb",
+            BookingStatus = "Confirmed",
+            AmountReceived = 100,
+            GuestsPlanned = 2,
+            GuestsActual = 2,
+            ExtraGuestCharge = 0,
+            Notes = "test"
+        };
+
+        var result = await controller.Create(request);
+
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var dto = Assert.IsType<BookingDto>(createdResult.Value);
+        Assert.Equal(listing.Id, dto.ListingId);
+
+        var outbox = await context.OutboxMessages.SingleAsync();
+        Assert.Equal("Failed", outbox.Status);
+        Assert.Contains("Kafka down", outbox.ErrorMessage);
+        Assert.All(context.CommunicationLogs, log => Assert.Equal("Failed", log.Status));
     }
 
     [Fact]
@@ -126,7 +209,10 @@ public class BookingsControllerTests
         context.Guests.Add(guest);
         await context.SaveChangesAsync();
 
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -194,7 +280,10 @@ public class BookingsControllerTests
         });
         await context.SaveChangesAsync();
 
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -223,7 +312,10 @@ public class BookingsControllerTests
             .UseInMemoryDatabase(databaseName: nameof(Get_ReturnsNotFound_WhenMissing))
             .Options;
         using var context = new AppDbContext(options);
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
 
         var result = await controller.Get(1);
 
@@ -237,7 +329,10 @@ public class BookingsControllerTests
             .UseInMemoryDatabase(databaseName: nameof(Update_ReturnsBadRequest_WhenIdMismatch))
             .Options;
         using var context = new AppDbContext(options);
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
         var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" };
 
         var result = await controller.Update(2, booking);
@@ -253,7 +348,10 @@ public class BookingsControllerTests
             .UseInMemoryDatabase(databaseName: nameof(Delete_ReturnsNotFound_WhenMissing))
             .Options;
         using var context = new AppDbContext(options);
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
 
         var result = await controller.Delete(1);
 
@@ -275,7 +373,10 @@ public class BookingsControllerTests
             new Booking { ListingId = 1, GuestId = guest.Id, BookingSource = "a", Notes = "n", PaymentStatus = "Pending", CheckinDate = new DateTime(2025, 8, 1), CheckoutDate = new DateTime(2025, 8, 3) }
         );
         await context.SaveChangesAsync();
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
 
         var result = await controller.GetAll(null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -298,7 +399,10 @@ public class BookingsControllerTests
             new Booking { ListingId = 1, GuestId = guest.Id, BookingSource = "a", Notes = "n", PaymentStatus = "Pending", CheckinDate = new DateTime(2025, 8, 1), CheckoutDate = new DateTime(2025, 8, 3) }
         );
         await context.SaveChangesAsync();
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
 
         var result = await controller.GetAll(new DateTime(2025, 7, 1), new DateTime(2025, 7, 31), null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -329,7 +433,10 @@ public class BookingsControllerTests
         });
         await context.SaveChangesAsync();
 
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
 
         var result = await controller.GetAll(null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -396,7 +503,10 @@ public class BookingsControllerTests
                    .ThrowsAsync(new DbUpdateConcurrencyException());
 
         var logger = new Moq.Mock<Microsoft.Extensions.Logging.ILogger<BookingsController>>();
-        var controller = new BookingsController(mockContext.Object, logger.Object);
+        var controller = new BookingsController(
+            mockContext.Object,
+            logger.Object,
+            new NoOpBookingWorkflowPublisher());
         var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" };
 
         var result = await controller.Update(1, booking);
@@ -475,7 +585,10 @@ public class BookingsControllerTests
         });
         await context.SaveChangesAsync();
 
-        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
         var request = new UpdateBookingRequest
         {
             Id = booking.Id,

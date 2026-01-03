@@ -5,6 +5,7 @@ using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Atlas.Api.DTOs;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Atlas.Api.Controllers
 {
@@ -15,13 +16,18 @@ namespace Atlas.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<BookingsController> _logger;
+        private readonly Atlas.Api.Services.IBookingWorkflowPublisher _bookingWorkflowPublisher;
         private const string ActiveAvailabilityStatus = "Active";
         private const string CancelledAvailabilityStatus = "Cancelled";
 
-        public BookingsController(AppDbContext context, ILogger<BookingsController> logger)
+        public BookingsController(
+            AppDbContext context,
+            ILogger<BookingsController> logger,
+            Atlas.Api.Services.IBookingWorkflowPublisher bookingWorkflowPublisher)
         {
             _context = context;
             _logger = logger;
+            _bookingWorkflowPublisher = bookingWorkflowPublisher;
         }
 
         [HttpGet]
@@ -184,20 +190,49 @@ namespace Atlas.Api.Controllers
                 };
 
                 _context.Bookings.Add(booking);
-                await _context.SaveChangesAsync();
+
+                List<CommunicationLog> communicationLogs = new();
+                OutboxMessage? outboxMessage = null;
 
                 if (IsConfirmedStatus(booking.BookingStatus))
                 {
                     _context.AvailabilityBlocks.Add(new AvailabilityBlock
                     {
                         ListingId = booking.ListingId,
+                        Booking = booking,
                         BookingId = booking.Id,
                         StartDate = booking.CheckinDate,
                         EndDate = booking.CheckoutDate,
                         Status = ActiveAvailabilityStatus,
                         CreatedAt = DateTime.UtcNow
                     });
-                    await _context.SaveChangesAsync();
+
+                    (outboxMessage, communicationLogs) = await EnqueueBookingConfirmedWorkflowAsync(booking, guest);
+                }
+
+                await _context.SaveChangesAsync();
+
+                if (outboxMessage != null)
+                {
+                    try
+                    {
+                        await _bookingWorkflowPublisher.PublishBookingConfirmedAsync(booking, guest, communicationLogs, outboxMessage);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Booking confirmed workflow failed for booking {BookingId}", booking.Id);
+                        outboxMessage.Status = "Failed";
+                        outboxMessage.ErrorMessage = ex.Message;
+                        outboxMessage.ProcessedAtUtc = DateTime.UtcNow;
+
+                        foreach (var log in communicationLogs)
+                        {
+                            log.Status = "Failed";
+                            log.ErrorMessage = ex.Message;
+                        }
+
+                        await _context.SaveChangesAsync();
+                    }
                 }
 
                 var dto = MapToDto(booking);
@@ -433,6 +468,78 @@ namespace Atlas.Api.Controllers
                 existingBlock.Status = CancelledAvailabilityStatus;
                 existingBlock.CancelledAtUtc = DateTime.UtcNow;
             }
+        }
+
+        private async Task<(OutboxMessage? OutboxMessage, List<CommunicationLog> CommunicationLogs)> EnqueueBookingConfirmedWorkflowAsync(Booking booking, Guest guest)
+        {
+            var templates = await _context.MessageTemplates
+                .AsNoTracking()
+                .Where(t => t.TemplateKey == "booking-confirmed" && t.IsActive)
+                .ToListAsync();
+
+            var (smsTemplate, smsTemplateId) = SelectTemplate("SMS");
+            var (whatsAppTemplate, whatsAppTemplateId) = SelectTemplate("WhatsApp");
+            var (emailTemplate, emailTemplateId) = SelectTemplate("Email");
+
+            var logs = new List<CommunicationLog>();
+
+            void AddLog(string channel, string recipient, int? templateId)
+            {
+                var log = new CommunicationLog
+                {
+                    Booking = booking,
+                    BookingId = booking.Id,
+                    Channel = channel,
+                    Recipient = recipient,
+                    Status = "Pending",
+                    MessageTemplateId = templateId,
+                    CreatedAtUtc = DateTime.UtcNow
+                };
+                logs.Add(log);
+                _context.CommunicationLogs.Add(log);
+            }
+
+            if (!string.IsNullOrWhiteSpace(guest.Phone))
+            {
+                AddLog("SMS", guest.Phone, smsTemplateId);
+                AddLog("WhatsApp", guest.Phone, whatsAppTemplateId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(guest.Email))
+            {
+                AddLog("Email", guest.Email, emailTemplateId);
+            }
+
+            var payload = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                bookingId = booking.Id,
+                guestId = booking.GuestId,
+                bookingStatus = booking.BookingStatus,
+                occurredAtUtc = DateTime.UtcNow,
+                templates = new
+                {
+                    sms = smsTemplate,
+                    whatsApp = whatsAppTemplate,
+                    email = emailTemplate
+                }
+            });
+
+            var outboxMessage = new OutboxMessage
+            {
+                EventType = "booking-confirmed",
+                Payload = payload,
+                OccurredAtUtc = DateTime.UtcNow,
+                Status = "Pending"
+            };
+            _context.OutboxMessages.Add(outboxMessage);
+
+            (MessageTemplate? template, int? templateId) SelectTemplate(string channel)
+            {
+                var template = templates.FirstOrDefault(t => t.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase));
+                return (template, template?.Id);
+            }
+
+            return (outboxMessage, logs);
         }
     }
 }

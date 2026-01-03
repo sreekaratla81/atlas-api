@@ -164,6 +164,18 @@ namespace Atlas.Api.Data
                 .WithMany()
                 .HasForeignKey(ab => ab.BookingId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CommunicationLog>()
+                .HasOne(cl => cl.Booking)
+                .WithMany()
+                .HasForeignKey(cl => cl.BookingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CommunicationLog>()
+                .HasOne(cl => cl.MessageTemplate)
+                .WithMany()
+                .HasForeignKey(cl => cl.MessageTemplateId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         public DbSet<Property> Properties { get; set; }
@@ -179,5 +191,9 @@ namespace Atlas.Api.Data
         public DbSet<ListingDailyOverride> ListingDailyOverrides { get; set; }
         public DbSet<ListingPricing> ListingPricings { get; set; }
         public DbSet<ListingDailyRate> ListingDailyRates { get; set; }
+        public DbSet<MessageTemplate> MessageTemplates { get; set; }
+        public DbSet<CommunicationLog> CommunicationLogs { get; set; }
+        public DbSet<OutboxMessage> OutboxMessages { get; set; }
+        public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
     }
 }

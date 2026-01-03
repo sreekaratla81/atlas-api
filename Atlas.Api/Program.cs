@@ -71,6 +71,7 @@ namespace Atlas.Api
 
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
+            builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
 
             var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
                 ?? builder.Configuration.GetConnectionString("DefaultConnection");

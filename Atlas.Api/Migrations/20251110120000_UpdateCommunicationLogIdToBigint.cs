@@ -12,7 +12,7 @@ namespace Atlas.Api.Migrations
         {
             migrationBuilder.AlterColumn<long>(
                 name: "Id",
-                table: "CommunicationLogs",
+                table: "CommunicationLog",
                 type: "bigint",
                 nullable: false,
                 oldClrType: typeof(int),
@@ -26,7 +26,7 @@ namespace Atlas.Api.Migrations
         {
             migrationBuilder.AlterColumn<int>(
                 name: "Id",
-                table: "CommunicationLogs",
+                table: "CommunicationLog",
                 type: "int",
                 nullable: false,
                 oldClrType: typeof(long),

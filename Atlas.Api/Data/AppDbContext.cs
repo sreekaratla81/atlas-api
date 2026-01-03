@@ -328,6 +328,77 @@ namespace Atlas.Api.Data
                 .Property(mt => mt.UpdatedAtUtc)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.AggregateType)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.AggregateId)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.EventType)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.PayloadJson)
+                .HasColumnType("text")
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.HeadersJson)
+                .HasColumnType("text");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.CreatedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.PublishedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.LastError)
+                .HasColumnType("text");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(a => a.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(a => a.EventType)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .IsRequired();
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(a => a.DueAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(a => a.Status)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired();
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(a => a.PublishedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(a => a.CompletedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(a => a.LastError)
+                .HasColumnType("text");
         }
 
         private static DeleteBehavior ResolveDeleteBehavior()

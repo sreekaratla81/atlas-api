@@ -165,8 +165,8 @@ public class BookingsControllerTests
 
         var createdBooking = await context.Bookings.SingleAsync();
         var outbox = await context.OutboxMessages.SingleAsync();
-        Assert.Equal("Failed", outbox.Status);
-        Assert.Contains("Kafka down", outbox.ErrorMessage);
+        Assert.Equal(1, outbox.AttemptCount);
+        Assert.Contains("Kafka down", outbox.LastError);
         Assert.All(context.CommunicationLogs, log =>
         {
             Assert.Equal("Failed", log.Status);

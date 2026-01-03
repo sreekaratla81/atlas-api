@@ -609,4 +609,243 @@ public class BookingsControllerTests
         var cancelledBlock = await context.AvailabilityBlocks.SingleAsync(b => b.BookingId == booking.Id);
         Assert.Equal("Cancelled", cancelledBlock.Status);
     }
+
+    [Fact]
+    public async Task Cancel_SetsStatusAndTimestamp_AndCancelsAvailability()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(Cancel_SetsStatusAndTimestamp_AndCancelsAvailability))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var property = new Property
+        {
+            Name = "Property",
+            Address = "Addr",
+            Type = "House",
+            OwnerName = "Owner",
+            ContactPhone = "000",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        context.Properties.Add(property);
+        await context.SaveChangesAsync();
+
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "wifi",
+            WifiPassword = "pass",
+            MaxGuests = 2
+        };
+        context.Listings.Add(listing);
+
+        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com" };
+        context.Guests.Add(guest);
+        await context.SaveChangesAsync();
+
+        var booking = new Booking
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BookingSource = "airbnb",
+            BookingStatus = "Confirmed",
+            CheckinDate = new DateTime(2025, 9, 1),
+            CheckoutDate = new DateTime(2025, 9, 3),
+            PaymentStatus = "Paid",
+            Notes = "note"
+        };
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        context.AvailabilityBlocks.Add(new AvailabilityBlock
+        {
+            ListingId = listing.Id,
+            BookingId = booking.Id,
+            StartDate = booking.CheckinDate,
+            EndDate = booking.CheckoutDate,
+            Status = "Active"
+        });
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
+
+        var result = await controller.Cancel(booking.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BookingDto>(ok.Value);
+        Assert.Equal("Cancelled", dto.BookingStatus);
+        Assert.NotNull(dto.CancelledAtUtc);
+
+        var cancelledBlock = await context.AvailabilityBlocks.SingleAsync(b => b.BookingId == booking.Id);
+        Assert.Equal("Cancelled", cancelledBlock.Status);
+    }
+
+    [Fact]
+    public async Task Cancel_ReturnsBadRequest_WhenAlreadyCancelled()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(Cancel_ReturnsBadRequest_WhenAlreadyCancelled))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var booking = new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            BookingSource = "airbnb",
+            BookingStatus = "Cancelled",
+            PaymentStatus = "Paid",
+            Notes = "note"
+        };
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
+
+        var result = await controller.Cancel(booking.Id);
+
+        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    [Fact]
+    public async Task CheckIn_SetsStatusAndTimestamp_WhenConfirmed()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(CheckIn_SetsStatusAndTimestamp_WhenConfirmed))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var booking = new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            BookingSource = "airbnb",
+            BookingStatus = "Confirmed",
+            PaymentStatus = "Paid",
+            Notes = "note"
+        };
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
+
+        var result = await controller.CheckIn(booking.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BookingDto>(ok.Value);
+        Assert.Equal("CheckedIn", dto.BookingStatus);
+        Assert.NotNull(dto.CheckedInAtUtc);
+    }
+
+    [Fact]
+    public async Task CheckIn_ReturnsBadRequest_WhenNotConfirmed()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(CheckIn_ReturnsBadRequest_WhenNotConfirmed))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var booking = new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            BookingSource = "airbnb",
+            BookingStatus = "Lead",
+            PaymentStatus = "Paid",
+            Notes = "note"
+        };
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
+
+        var result = await controller.CheckIn(booking.Id);
+
+        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    [Fact]
+    public async Task CheckOut_SetsStatusAndTimestamp_WhenCheckedIn()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(CheckOut_SetsStatusAndTimestamp_WhenCheckedIn))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var booking = new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            BookingSource = "airbnb",
+            BookingStatus = "CheckedIn",
+            CheckedInAtUtc = DateTime.UtcNow.AddHours(-1),
+            PaymentStatus = "Paid",
+            Notes = "note"
+        };
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
+
+        var result = await controller.CheckOut(booking.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BookingDto>(ok.Value);
+        Assert.Equal("CheckedOut", dto.BookingStatus);
+        Assert.NotNull(dto.CheckedOutAtUtc);
+    }
+
+    [Fact]
+    public async Task CheckOut_ReturnsBadRequest_WhenNotCheckedIn()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(CheckOut_ReturnsBadRequest_WhenNotCheckedIn))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var booking = new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            BookingSource = "airbnb",
+            BookingStatus = "Confirmed",
+            PaymentStatus = "Paid",
+            Notes = "note"
+        };
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(
+            context,
+            NullLogger<BookingsController>.Instance,
+            new NoOpBookingWorkflowPublisher());
+
+        var result = await controller.CheckOut(booking.Id);
+
+        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(400, badRequest.StatusCode);
+    }
 }

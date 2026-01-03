@@ -65,6 +65,42 @@ namespace Atlas.Api.Data
                 .HasIndex(o => new { o.ListingId, o.Date })
                 .IsUnique();
 
+            modelBuilder.Entity<ListingPricing>()
+                .Property(p => p.BaseRate)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<ListingPricing>()
+                .Property(p => p.WeekdayRate)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<ListingPricing>()
+                .Property(p => p.WeekendRate)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<ListingPricing>()
+                .Property(p => p.Currency)
+                .HasDefaultValue("INR");
+
+            modelBuilder.Entity<ListingPricing>()
+                .Property(p => p.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<ListingPricing>()
+                .HasIndex(p => p.ListingId)
+                .IsUnique();
+
+            modelBuilder.Entity<ListingDailyRate>()
+                .Property(r => r.Rate)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<ListingDailyRate>()
+                .Property(r => r.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<ListingDailyRate>()
+                .HasIndex(r => new { r.ListingId, r.Date })
+                .IsUnique();
+
             modelBuilder.Entity<ListingBasePrice>()
                 .HasOne(bp => bp.Listing)
                 .WithOne(l => l.BasePrice)
@@ -75,6 +111,18 @@ namespace Atlas.Api.Data
                 .HasOne(o => o.Listing)
                 .WithMany(l => l.DailyOverrides)
                 .HasForeignKey(o => o.ListingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ListingPricing>()
+                .HasOne(p => p.Listing)
+                .WithOne(l => l.Pricing)
+                .HasForeignKey<ListingPricing>(p => p.ListingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ListingDailyRate>()
+                .HasOne(r => r.Listing)
+                .WithMany(l => l.DailyRates)
+                .HasForeignKey(r => r.ListingId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<AvailabilityBlock>()
@@ -129,5 +177,7 @@ namespace Atlas.Api.Data
         public DbSet<AvailabilityBlock> AvailabilityBlocks { get; set; }
         public DbSet<ListingBasePrice> ListingBasePrices { get; set; }
         public DbSet<ListingDailyOverride> ListingDailyOverrides { get; set; }
+        public DbSet<ListingPricing> ListingPricings { get; set; }
+        public DbSet<ListingDailyRate> ListingDailyRates { get; set; }
     }
 }

@@ -23,6 +23,8 @@ namespace Atlas.Api.Models
 
         public ListingBasePrice? BasePrice { get; set; }
         public ICollection<ListingDailyOverride> DailyOverrides { get; set; } = new List<ListingDailyOverride>();
+        public ListingPricing? Pricing { get; set; }
+        public ICollection<ListingDailyRate> DailyRates { get; set; } = new List<ListingDailyRate>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
 }

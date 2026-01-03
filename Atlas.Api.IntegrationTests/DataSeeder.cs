@@ -69,6 +69,42 @@ public static class DataSeeder
         return overridePrice;
     }
 
+    public static async Task<ListingPricing> SeedListingPricingAsync(
+        AppDbContext db,
+        Listing listing,
+        decimal baseRate,
+        decimal? weekdayRate = null,
+        decimal? weekendRate = null,
+        string currency = "INR")
+    {
+        var pricing = new ListingPricing
+        {
+            ListingId = listing.Id,
+            Listing = listing,
+            BaseRate = baseRate,
+            WeekdayRate = weekdayRate,
+            WeekendRate = weekendRate,
+            Currency = currency
+        };
+        db.ListingPricings.Add(pricing);
+        await db.SaveChangesAsync();
+        return pricing;
+    }
+
+    public static async Task<ListingDailyRate> SeedListingDailyRateAsync(AppDbContext db, Listing listing, DateTime date, decimal rate)
+    {
+        var dailyRate = new ListingDailyRate
+        {
+            ListingId = listing.Id,
+            Listing = listing,
+            Date = date,
+            Rate = rate
+        };
+        db.ListingDailyRates.Add(dailyRate);
+        await db.SaveChangesAsync();
+        return dailyRate;
+    }
+
     public static async Task<Guest> SeedGuestAsync(AppDbContext db)
     {
         var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" };

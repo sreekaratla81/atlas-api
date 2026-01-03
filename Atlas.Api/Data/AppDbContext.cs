@@ -45,6 +45,15 @@ namespace Atlas.Api.Data
                 .Property(p => p.CommissionPercent)
                 .HasPrecision(5, 2);
 
+            modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.Status)
+                .HasDefaultValue("Active");
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .HasIndex(ab => new { ab.ListingId, ab.StartDate, ab.EndDate });
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .HasIndex(ab => ab.BookingId);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
@@ -63,6 +72,18 @@ namespace Atlas.Api.Data
                 .WithMany()
                 .HasForeignKey(b => b.BankAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .HasOne(ab => ab.Listing)
+                .WithMany()
+                .HasForeignKey(ab => ab.ListingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .HasOne(ab => ab.Booking)
+                .WithMany()
+                .HasForeignKey(ab => ab.BookingId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         public DbSet<Property> Properties { get; set; }
@@ -73,5 +94,6 @@ namespace Atlas.Api.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<BankAccount> BankAccounts { get; set; }
+        public DbSet<AvailabilityBlock> AvailabilityBlocks { get; set; }
     }
 }

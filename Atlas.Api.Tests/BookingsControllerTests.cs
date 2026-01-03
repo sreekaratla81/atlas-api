@@ -147,6 +147,76 @@ public class BookingsControllerTests
     }
 
     [Fact]
+    public async Task Create_ReturnsBadRequest_WhenOverlappingConfirmedBookingExists()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(Create_ReturnsBadRequest_WhenOverlappingConfirmedBookingExists))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var property = new Property
+        {
+            Name = "Property",
+            Address = "Addr",
+            Type = "House",
+            OwnerName = "Owner",
+            ContactPhone = "000",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        context.Properties.Add(property);
+        await context.SaveChangesAsync();
+
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "wifi",
+            WifiPassword = "pass",
+            MaxGuests = 2
+        };
+        context.Listings.Add(listing);
+
+        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com" };
+        context.Guests.Add(guest);
+        await context.SaveChangesAsync();
+
+        context.AvailabilityBlocks.Add(new AvailabilityBlock
+        {
+            ListingId = listing.Id,
+            StartDate = new DateTime(2025, 8, 1),
+            EndDate = new DateTime(2025, 8, 3),
+            Status = "Active"
+        });
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var request = new CreateBookingRequest
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BookingSource = "airbnb",
+            BookingStatus = "Confirmed",
+            CheckinDate = new DateTime(2025, 8, 2),
+            CheckoutDate = new DateTime(2025, 8, 4),
+            AmountReceived = 100,
+            GuestsPlanned = 1,
+            GuestsActual = 1,
+            ExtraGuestCharge = 0,
+            Notes = "test"
+        };
+
+        var result = await controller.Create(request);
+
+        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -342,4 +412,88 @@ public class BookingsControllerTests
             Moq.Times.Once);
     }
 
+    [Fact]
+    public async Task Update_CancelsAvailabilityBlock_WhenBookingCancelled()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(Update_CancelsAvailabilityBlock_WhenBookingCancelled))
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var property = new Property
+        {
+            Name = "Property",
+            Address = "Addr",
+            Type = "House",
+            OwnerName = "Owner",
+            ContactPhone = "000",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        context.Properties.Add(property);
+        await context.SaveChangesAsync();
+
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "wifi",
+            WifiPassword = "pass",
+            MaxGuests = 2
+        };
+        context.Listings.Add(listing);
+
+        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com" };
+        context.Guests.Add(guest);
+        await context.SaveChangesAsync();
+
+        var booking = new Booking
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BookingSource = "airbnb",
+            BookingStatus = "Confirmed",
+            CheckinDate = new DateTime(2025, 9, 1),
+            CheckoutDate = new DateTime(2025, 9, 3),
+            PaymentStatus = "Paid",
+            Notes = "note"
+        };
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        context.AvailabilityBlocks.Add(new AvailabilityBlock
+        {
+            ListingId = listing.Id,
+            BookingId = booking.Id,
+            StartDate = booking.CheckinDate,
+            EndDate = booking.CheckoutDate,
+            Status = "Active"
+        });
+        await context.SaveChangesAsync();
+
+        var controller = new BookingsController(context, NullLogger<BookingsController>.Instance);
+        var request = new UpdateBookingRequest
+        {
+            Id = booking.Id,
+            ListingId = booking.ListingId,
+            GuestId = booking.GuestId,
+            BookingSource = booking.BookingSource,
+            BookingStatus = "Cancelled",
+            CheckinDate = booking.CheckinDate,
+            CheckoutDate = booking.CheckoutDate,
+            PaymentStatus = booking.PaymentStatus,
+            AmountReceived = booking.AmountReceived,
+            Notes = booking.Notes
+        };
+
+        var result = await controller.Update(booking.Id, request);
+
+        Assert.IsType<NoContentResult>(result);
+        var cancelledBlock = await context.AvailabilityBlocks.SingleAsync(b => b.BookingId == booking.Id);
+        Assert.Equal("Cancelled", cancelledBlock.Status);
+    }
 }

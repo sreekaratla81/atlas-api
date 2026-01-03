@@ -19,6 +19,8 @@ namespace Atlas.Api.Controllers
         private readonly Atlas.Api.Services.IBookingWorkflowPublisher _bookingWorkflowPublisher;
         private const string ActiveAvailabilityStatus = "Active";
         private const string CancelledAvailabilityStatus = "Cancelled";
+        private const string BookingBlockType = "Booking";
+        private const string SystemSource = "System";
 
         public BookingsController(
             AppDbContext context,
@@ -203,8 +205,11 @@ namespace Atlas.Api.Controllers
                         BookingId = booking.Id,
                         StartDate = booking.CheckinDate,
                         EndDate = booking.CheckoutDate,
+                        BlockType = BookingBlockType,
+                        Source = SystemSource,
                         Status = ActiveAvailabilityStatus,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAtUtc = DateTime.UtcNow,
+                        UpdatedAtUtc = DateTime.UtcNow
                     });
 
                     (outboxMessage, communicationLogs) = await EnqueueBookingConfirmedWorkflowAsync(booking, guest);
@@ -553,8 +558,11 @@ namespace Atlas.Api.Controllers
                         BookingId = booking.Id,
                         StartDate = booking.CheckinDate,
                         EndDate = booking.CheckoutDate,
+                        BlockType = BookingBlockType,
+                        Source = SystemSource,
                         Status = ActiveAvailabilityStatus,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAtUtc = DateTime.UtcNow,
+                        UpdatedAtUtc = DateTime.UtcNow
                     });
                     return;
                 }
@@ -562,15 +570,17 @@ namespace Atlas.Api.Controllers
                 existingBlock.ListingId = booking.ListingId;
                 existingBlock.StartDate = booking.CheckinDate;
                 existingBlock.EndDate = booking.CheckoutDate;
+                existingBlock.BlockType = BookingBlockType;
+                existingBlock.Source = SystemSource;
                 existingBlock.Status = ActiveAvailabilityStatus;
-                existingBlock.CancelledAtUtc = null;
+                existingBlock.UpdatedAtUtc = DateTime.UtcNow;
                 return;
             }
 
             if (IsCancelledStatus(booking.BookingStatus) && existingBlock != null)
             {
                 existingBlock.Status = CancelledAvailabilityStatus;
-                existingBlock.CancelledAtUtc = DateTime.UtcNow;
+                existingBlock.UpdatedAtUtc = DateTime.UtcNow;
             }
         }
 

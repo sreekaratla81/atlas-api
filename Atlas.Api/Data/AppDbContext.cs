@@ -140,8 +140,41 @@ namespace Atlas.Api.Data
                 .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<AvailabilityBlock>()
+                .ToTable("AvailabilityBlock");
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.StartDate)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.EndDate)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.BlockType)
+                .HasMaxLength(30)
+                .HasColumnType("varchar(30)")
+                .IsRequired();
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.Source)
+                .HasMaxLength(30)
+                .HasColumnType("varchar(30)")
+                .IsRequired();
+
+            modelBuilder.Entity<AvailabilityBlock>()
                 .Property(ab => ab.Status)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
                 .HasDefaultValue("Active");
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.CreatedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.UpdatedAtUtc)
+                .HasColumnType("datetime");
 
             modelBuilder.Entity<AvailabilityBlock>()
                 .HasIndex(ab => new { ab.ListingId, ab.StartDate, ab.EndDate });

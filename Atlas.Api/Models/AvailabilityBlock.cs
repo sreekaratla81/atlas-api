@@ -5,7 +5,7 @@ namespace Atlas.Api.Models
 {
     public class AvailabilityBlock
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Required]
         [ForeignKey(nameof(Listing))]
@@ -22,9 +22,21 @@ namespace Atlas.Api.Models
         public DateTime EndDate { get; set; }
 
         [Required]
+        [MaxLength(30)]
+        [Column(TypeName = "varchar(30)")]
+        public string BlockType { get; set; } = "Booking";
+
+        [Required]
+        [MaxLength(30)]
+        [Column(TypeName = "varchar(30)")]
+        public string Source { get; set; } = "System";
+
+        [Required]
+        [MaxLength(20)]
+        [Column(TypeName = "varchar(20)")]
         public string Status { get; set; } = "Active";
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? CancelledAtUtc { get; set; }
+        public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     }
 }

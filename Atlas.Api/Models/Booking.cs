@@ -25,12 +25,21 @@ namespace Atlas.Api.Models
         public DateTime CheckoutDate { get; set; }
 
         [Required]
+        [MaxLength(50)]
+        [Column(TypeName = "varchar(50)")]
         public string BookingSource { get; set; } = string.Empty;
         [Required]
+        [MaxLength(20)]
+        [Column(TypeName = "varchar(20)")]
         public string BookingStatus { get; set; } = "Lead";
+        [Column(TypeName = "decimal(18,2)")]
         public decimal? TotalAmount { get; set; }
         [Required]
+        [MaxLength(10)]
+        [Column(TypeName = "varchar(10)")]
         public string Currency { get; set; } = "INR";
+        [MaxLength(100)]
+        [Column(TypeName = "varchar(100)")]
         public string? ExternalReservationId { get; set; }
         public DateTime? ConfirmationSentAtUtc { get; set; }
         public DateTime? RefundFreeUntilUtc { get; set; }

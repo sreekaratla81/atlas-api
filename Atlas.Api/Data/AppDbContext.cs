@@ -215,6 +215,105 @@ namespace Atlas.Api.Data
                 .WithMany()
                 .HasForeignKey(cl => cl.MessageTemplateId)
                 .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<OutboxMessage>()
+                .ToTable("OutboxMessages")
+                .HasKey(om => om.Id);
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.Id)
+                .HasColumnType("uniqueidentifier");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.AggregateType)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.AggregateId)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.EventType)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.PayloadJson)
+                .HasColumnType("text")
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.HeadersJson)
+                .HasColumnType("text");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.CreatedAtUtc)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.PublishedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.AttemptCount)
+                .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(om => om.LastError)
+                .HasColumnType("text");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .ToTable("AutomationSchedules")
+                .HasKey(schedule => schedule.Id);
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.Id)
+                .HasColumnType("bigint")
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.BookingId)
+                .HasColumnType("int")
+                .IsRequired();
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.EventType)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.DueAtUtc)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.Status)
+                .HasColumnType("varchar(20)")
+                .HasMaxLength(20)
+                .IsRequired();
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.PublishedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.CompletedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.AttemptCount)
+                .IsRequired();
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .Property(schedule => schedule.LastError)
+                .HasColumnType("text");
         }
 
         private static DeleteBehavior ResolveDeleteBehavior()

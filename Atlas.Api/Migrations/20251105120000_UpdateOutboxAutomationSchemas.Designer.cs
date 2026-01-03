@@ -4,6 +4,7 @@ using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251105120000_UpdateOutboxAutomationSchemas")]
+    partial class UpdateOutboxAutomationSchemas : Migration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -108,7 +110,6 @@ namespace Atlas.Api.Migrations
 
                     b.ToTable("AvailabilityBlock");
                 });
-
             modelBuilder.Entity("Atlas.Api.Models.AutomationSchedule", b =>
                 {
                     b.Property<long>("Id")
@@ -395,7 +396,6 @@ namespace Atlas.Api.Migrations
 
                     b.ToTable("MessageTemplates");
                 });
-
             modelBuilder.Entity("Atlas.Api.Models.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")

@@ -226,9 +226,8 @@ namespace Atlas.Api.Controllers
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Booking confirmed workflow failed for booking {BookingId}", booking.Id);
-                        outboxMessage.Status = "Failed";
-                        outboxMessage.ErrorMessage = ex.Message;
-                        outboxMessage.ProcessedAtUtc = DateTime.UtcNow;
+                        outboxMessage.AttemptCount += 1;
+                        outboxMessage.LastError = ex.Message;
 
                         foreach (var log in communicationLogs)
                         {
@@ -640,10 +639,13 @@ namespace Atlas.Api.Controllers
 
             var outboxMessage = new OutboxMessage
             {
+                Id = Guid.NewGuid(),
+                AggregateType = "Booking",
+                AggregateId = booking.Id.ToString(),
                 EventType = "booking-confirmed",
-                Payload = payload,
-                OccurredAtUtc = DateTime.UtcNow,
-                Status = "Pending"
+                PayloadJson = payload,
+                CreatedAtUtc = DateTime.UtcNow,
+                AttemptCount = 0
             };
             _context.OutboxMessages.Add(outboxMessage);
 

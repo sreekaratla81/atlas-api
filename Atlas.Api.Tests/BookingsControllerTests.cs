@@ -164,8 +164,12 @@ public class BookingsControllerTests
         Assert.Equal(listing.Id, dto.ListingId);
 
         var outbox = await context.OutboxMessages.SingleAsync();
-        Assert.Equal("Failed", outbox.Status);
-        Assert.Contains("Kafka down", outbox.ErrorMessage);
+        Assert.Equal("Booking", outbox.AggregateType);
+        Assert.Equal(dto.Id.ToString(), outbox.AggregateId);
+        Assert.Equal("booking-confirmed", outbox.EventType);
+        Assert.Equal(1, outbox.AttemptCount);
+        Assert.Contains("Kafka down", outbox.LastError);
+        Assert.Null(outbox.PublishedAtUtc);
         Assert.All(context.CommunicationLogs, log => Assert.Equal("Failed", log.Status));
     }
 

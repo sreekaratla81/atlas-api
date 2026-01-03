@@ -93,8 +93,11 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
         Assert.Equal("Confirmed", created.BookingStatus);
 
         var outbox = await db.OutboxMessages.SingleAsync();
-        Assert.Equal("Failed", outbox.Status);
-        Assert.Contains("Simulated publish failure", outbox.ErrorMessage);
+        Assert.Equal("Booking", outbox.AggregateType);
+        Assert.Equal(created.Id.ToString(), outbox.AggregateId);
+        Assert.Equal("booking-confirmed", outbox.EventType);
+        Assert.Equal(1, outbox.AttemptCount);
+        Assert.Contains("Simulated publish failure", outbox.LastError);
     }
 
     private async Task ResetDatabaseAsync()

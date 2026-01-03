@@ -312,6 +312,11 @@ namespace Atlas.Api.Data
                 .ToTable("MessageTemplate");
 
             modelBuilder.Entity<MessageTemplate>()
+                .Property(mt => mt.TemplateKey)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)");
+
+            modelBuilder.Entity<MessageTemplate>()
                 .Property(mt => mt.EventType)
                 .HasMaxLength(50)
                 .HasColumnType("varchar(50)")

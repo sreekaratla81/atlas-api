@@ -5,15 +5,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251111120000_MakeMessageTemplateKeyNullable")]
+    partial class MakeMessageTemplateKeyNullable : Migration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -24,11 +26,11 @@ namespace Atlas.Api.Migrations
 
             modelBuilder.Entity("Atlas.Api.Models.BankAccount", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AccountNumber")
                         .IsRequired()
@@ -166,6 +168,7 @@ namespace Atlas.Api.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("BookingSource")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
@@ -176,16 +179,16 @@ namespace Atlas.Api.Migrations
                         .HasColumnType("varchar(20)");
 
                     b.Property<DateTime?>("CancelledAtUtc")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CheckinDate")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("CheckedInAtUtc")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("CheckedOutAtUtc")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CheckoutDate")
                         .HasColumnType("datetime2");
@@ -195,7 +198,7 @@ namespace Atlas.Api.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("ConfirmationSentAtUtc")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -235,7 +238,7 @@ namespace Atlas.Api.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("RefundFreeUntilUtc")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal?>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
@@ -448,9 +451,9 @@ namespace Atlas.Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                b.Property<string>("TemplateKey")
-                    .HasMaxLength(100)
-                    .HasColumnType("varchar(100)");
+                    b.Property<string>("TemplateKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("TemplateVersion")
                         .HasColumnType("int");

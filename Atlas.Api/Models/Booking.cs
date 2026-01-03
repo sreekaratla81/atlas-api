@@ -28,7 +28,7 @@ namespace Atlas.Api.Models
         public string BookingSource { get; set; } = string.Empty;
         [Required]
         public string BookingStatus { get; set; } = "Lead";
-        public decimal TotalAmount { get; set; }
+        public decimal? TotalAmount { get; set; }
         [Required]
         public string Currency { get; set; } = "INR";
         public string? ExternalReservationId { get; set; }

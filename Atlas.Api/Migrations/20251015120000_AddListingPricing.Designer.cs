@@ -316,61 +316,84 @@ namespace Atlas.Api.Migrations
                     b.ToTable("Listings");
                 });
 
-            modelBuilder.Entity("Atlas.Api.Models.ListingBasePrice", b =>
+            modelBuilder.Entity("Atlas.Api.Models.ListingDailyRate", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("bigint");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("BasePrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasDefaultValue("INR")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ListingId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListingId")
-                        .IsUnique();
-
-                    b.ToTable("ListingBasePrices");
-                });
-
-            modelBuilder.Entity("Atlas.Api.Models.ListingDailyOverride", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
 
                     b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("date");
 
                     b.Property<int>("ListingId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("Price")
+                    b.Property<decimal>("NightlyRate")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasDefaultValueSql("GETUTCDATE()")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ListingId", "Date")
                         .IsUnique();
 
-                    b.ToTable("ListingDailyOverrides");
+                    b.ToTable("ListingDailyRates");
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
+                {
+                    b.Property<int>("ListingId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BaseNightlyRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasDefaultValue("INR")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<decimal?>("ExtraGuestRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasDefaultValueSql("GETUTCDATE()")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal?>("WeekendNightlyRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("ListingId");
+
+                    b.ToTable("ListingPricings");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Payment", b =>
@@ -500,22 +523,22 @@ namespace Atlas.Api.Migrations
                     b.Navigation("Listing");
                 });
 
-            modelBuilder.Entity("Atlas.Api.Models.ListingBasePrice", b =>
+            modelBuilder.Entity("Atlas.Api.Models.ListingDailyRate", b =>
                 {
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
-                        .WithOne("BasePrice")
-                        .HasForeignKey("Atlas.Api.Models.ListingBasePrice", "ListingId")
+                        .WithMany("DailyRates")
+                        .HasForeignKey("ListingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Listing");
                 });
 
-            modelBuilder.Entity("Atlas.Api.Models.ListingDailyOverride", b =>
+            modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
                 {
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
-                        .WithMany("DailyOverrides")
-                        .HasForeignKey("ListingId")
+                        .WithOne("Pricing")
+                        .HasForeignKey("Atlas.Api.Models.ListingPricing", "ListingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -561,9 +584,9 @@ namespace Atlas.Api.Migrations
 
             modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
                 {
-                    b.Navigation("BasePrice");
+                    b.Navigation("Pricing");
 
-                    b.Navigation("DailyOverrides");
+                    b.Navigation("DailyRates");
 
                     b.Navigation("Bookings");
                 });

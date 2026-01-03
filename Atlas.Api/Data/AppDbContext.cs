@@ -28,23 +28,27 @@ namespace Atlas.Api.Data
                 .HasPrecision(18, 2);
             modelBuilder.Entity<Booking>()
                 .Property(b => b.TotalAmount)
-                .HasPrecision(18, 2);
+                .HasColumnType("decimal(18,2)");
             modelBuilder.Entity<Booking>()
                 .Property(b => b.BookingStatus)
                 .HasColumnType("varchar(20)")
+                .HasMaxLength(20)
                 .IsRequired()
                 .HasDefaultValue("Lead");
             modelBuilder.Entity<Booking>()
                 .Property(b => b.Currency)
                 .HasColumnType("varchar(10)")
+                .HasMaxLength(10)
                 .IsRequired()
                 .HasDefaultValue("INR");
             modelBuilder.Entity<Booking>()
                 .Property(b => b.ExternalReservationId)
-                .HasColumnType("varchar(100)");
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100);
             modelBuilder.Entity<Booking>()
                 .Property(b => b.BookingSource)
                 .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
                 .IsRequired();
 
             modelBuilder.Entity<Payment>()

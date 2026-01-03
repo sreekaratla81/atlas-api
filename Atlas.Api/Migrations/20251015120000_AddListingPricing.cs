@@ -12,20 +12,21 @@ namespace Atlas.Api.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "ListingBasePrices",
+                name: "ListingPricings",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
                     ListingId = table.Column<int>(type: "int", nullable: false),
-                    BasePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Currency = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "INR")
+                    BaseNightlyRate = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    WeekendNightlyRate = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    ExtraGuestRate = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Currency = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false, defaultValue: "INR"),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ListingBasePrices", x => x.Id);
+                    table.PrimaryKey("PK_ListingPricings", x => x.ListingId);
                     table.ForeignKey(
-                        name: "FK_ListingBasePrices_Listings_ListingId",
+                        name: "FK_ListingPricings_Listings_ListingId",
                         column: x => x.ListingId,
                         principalTable: "Listings",
                         principalColumn: "Id",
@@ -33,21 +34,25 @@ namespace Atlas.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ListingDailyOverrides",
+                name: "ListingDailyRates",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ListingId = table.Column<int>(type: "int", nullable: false),
-                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Date = table.Column<DateTime>(type: "date", nullable: false),
+                    NightlyRate = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Currency = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false, defaultValue: "INR"),
+                    Source = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false),
+                    Reason = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
+                    UpdatedByUserId = table.Column<int>(type: "int", nullable: true),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ListingDailyOverrides", x => x.Id);
+                    table.PrimaryKey("PK_ListingDailyRates", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ListingDailyOverrides_Listings_ListingId",
+                        name: "FK_ListingDailyRates_Listings_ListingId",
                         column: x => x.ListingId,
                         principalTable: "Listings",
                         principalColumn: "Id",
@@ -55,14 +60,8 @@ namespace Atlas.Api.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ListingBasePrices_ListingId",
-                table: "ListingBasePrices",
-                column: "ListingId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ListingDailyOverrides_ListingId_Date",
-                table: "ListingDailyOverrides",
+                name: "IX_ListingDailyRates_ListingId_Date",
+                table: "ListingDailyRates",
                 columns: new[] { "ListingId", "Date" },
                 unique: true);
         }
@@ -71,10 +70,10 @@ namespace Atlas.Api.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ListingBasePrices");
+                name: "ListingDailyRates");
 
             migrationBuilder.DropTable(
-                name: "ListingDailyOverrides");
+                name: "ListingPricings");
         }
     }
 }

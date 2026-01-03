@@ -6,8 +6,7 @@ namespace Atlas.Api.Models
     {
         public int Id { get; set; }
 
-        [Required]
-        public string TemplateKey { get; set; } = string.Empty;
+        public string? TemplateKey { get; set; }
 
         [Required]
         public string EventType { get; set; } = string.Empty;

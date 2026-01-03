@@ -1,5 +1,6 @@
 ﻿using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 
 namespace Atlas.Api.Data
@@ -14,9 +15,7 @@ namespace Atlas.Api.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // All environments use DeleteBehavior.Restrict to avoid accidental
-            // cascading deletes. Integration tests explicitly clean up related
-            // entities when necessary.
+            var deleteBehavior = ResolveDeleteBehavior();
 
             modelBuilder.Entity<Booking>()
                 .Property(b => b.AmountReceived)
@@ -105,25 +104,25 @@ namespace Atlas.Api.Data
                 .HasOne(bp => bp.Listing)
                 .WithOne(l => l.BasePrice)
                 .HasForeignKey<ListingBasePrice>(bp => bp.ListingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<ListingDailyOverride>()
                 .HasOne(o => o.Listing)
                 .WithMany(l => l.DailyOverrides)
                 .HasForeignKey(o => o.ListingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<ListingPricing>()
                 .HasOne(p => p.Listing)
                 .WithOne(l => l.Pricing)
                 .HasForeignKey<ListingPricing>(p => p.ListingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<ListingDailyRate>()
                 .HasOne(r => r.Listing)
                 .WithMany(l => l.DailyRates)
                 .HasForeignKey(r => r.ListingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<AvailabilityBlock>()
                 .Property(ab => ab.Status)
@@ -139,43 +138,52 @@ namespace Atlas.Api.Data
                 .HasOne(b => b.Guest)
                 .WithMany()
                 .HasForeignKey(b => b.GuestId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Listing)
                 .WithMany(l => l.Bookings)
                 .HasForeignKey(b => b.ListingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.BankAccount)
                 .WithMany()
                 .HasForeignKey(b => b.BankAccountId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<AvailabilityBlock>()
                 .HasOne(ab => ab.Listing)
                 .WithMany()
                 .HasForeignKey(ab => ab.ListingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<AvailabilityBlock>()
                 .HasOne(ab => ab.Booking)
                 .WithMany()
                 .HasForeignKey(ab => ab.BookingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<CommunicationLog>()
                 .HasOne(cl => cl.Booking)
                 .WithMany()
                 .HasForeignKey(cl => cl.BookingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<CommunicationLog>()
                 .HasOne(cl => cl.MessageTemplate)
                 .WithMany()
                 .HasForeignKey(cl => cl.MessageTemplateId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(deleteBehavior);
+        }
+
+        private static DeleteBehavior ResolveDeleteBehavior()
+        {
+            var value = Environment.GetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR");
+            return string.Equals(value, "Cascade", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
+                ? DeleteBehavior.Cascade
+                : DeleteBehavior.Restrict;
         }
 
         public DbSet<Property> Properties { get; set; }

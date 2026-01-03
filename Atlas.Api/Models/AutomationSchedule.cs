@@ -4,18 +4,26 @@ namespace Atlas.Api.Models
 {
     public class AutomationSchedule
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Required]
-        public string Name { get; set; } = string.Empty;
+        public int BookingId { get; set; }
 
         [Required]
-        public string CronExpression { get; set; } = string.Empty;
+        public string EventType { get; set; } = string.Empty;
 
-        public bool IsActive { get; set; } = true;
+        [Required]
+        public DateTime DueAtUtc { get; set; }
 
-        public DateTime? LastRunAtUtc { get; set; }
+        [Required]
+        public string Status { get; set; } = string.Empty;
 
-        public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+        public DateTime? PublishedAtUtc { get; set; }
+
+        public DateTime? CompletedAtUtc { get; set; }
+
+        public int AttemptCount { get; set; }
+
+        public string? LastError { get; set; }
     }
 }

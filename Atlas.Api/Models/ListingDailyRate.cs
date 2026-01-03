@@ -5,7 +5,7 @@ namespace Atlas.Api.Models
 {
     public class ListingDailyRate
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Required]
         [ForeignKey(nameof(Listing))]
@@ -15,8 +15,19 @@ namespace Atlas.Api.Models
 
         public DateTime Date { get; set; }
 
-        public decimal Rate { get; set; }
+        public decimal NightlyRate { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        [Required]
+        public string Currency { get; set; } = "INR";
+
+        [Required]
+        public string Source { get; set; } = "Manual";
+
+        [MaxLength(200)]
+        public string? Reason { get; set; }
+
+        public int? UpdatedByUserId { get; set; }
+
+        public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     }
 }

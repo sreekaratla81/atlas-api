@@ -5,24 +5,23 @@ namespace Atlas.Api.Models
 {
     public class ListingPricing
     {
-        public int Id { get; set; }
-
         [Required]
+        [Key]
         [ForeignKey(nameof(Listing))]
         public int ListingId { get; set; }
 
         public Listing Listing { get; set; } = null!;
 
-        public decimal BaseRate { get; set; }
+        public decimal BaseNightlyRate { get; set; }
 
-        public decimal? WeekdayRate { get; set; }
+        public decimal? WeekendNightlyRate { get; set; }
 
-        public decimal? WeekendRate { get; set; }
+        public decimal? ExtraGuestRate { get; set; }
 
         [Required]
         public string Currency { get; set; } = "INR";
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 
         public ICollection<ListingDailyRate> DailyRates { get; set; } = new List<ListingDailyRate>();
     }

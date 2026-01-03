@@ -63,11 +63,11 @@ public class AvailabilityControllerTests
         context.Listings.Add(listing);
         await context.SaveChangesAsync();
 
-        context.ListingBasePrices.Add(new ListingBasePrice
+        context.ListingPricings.Add(new ListingPricing
         {
             ListingId = listing.Id,
             Listing = listing,
-            BasePrice = 100m,
+            BaseNightlyRate = 100m,
             Currency = "USD"
         });
         await context.SaveChangesAsync();

@@ -41,49 +41,21 @@ public static class DataSeeder
         return listing;
     }
 
-    public static async Task<ListingBasePrice> SeedListingBasePriceAsync(AppDbContext db, Listing listing, decimal basePrice, string currency = "INR")
-    {
-        var price = new ListingBasePrice
-        {
-            ListingId = listing.Id,
-            Listing = listing,
-            BasePrice = basePrice,
-            Currency = currency
-        };
-        db.ListingBasePrices.Add(price);
-        await db.SaveChangesAsync();
-        return price;
-    }
-
-    public static async Task<ListingDailyOverride> SeedListingDailyOverrideAsync(AppDbContext db, Listing listing, DateTime date, decimal price)
-    {
-        var overridePrice = new ListingDailyOverride
-        {
-            ListingId = listing.Id,
-            Listing = listing,
-            Date = date,
-            Price = price
-        };
-        db.ListingDailyOverrides.Add(overridePrice);
-        await db.SaveChangesAsync();
-        return overridePrice;
-    }
-
     public static async Task<ListingPricing> SeedListingPricingAsync(
         AppDbContext db,
         Listing listing,
-        decimal baseRate,
-        decimal? weekdayRate = null,
-        decimal? weekendRate = null,
+        decimal baseNightlyRate,
+        decimal? weekendNightlyRate = null,
+        decimal? extraGuestRate = null,
         string currency = "INR")
     {
         var pricing = new ListingPricing
         {
             ListingId = listing.Id,
             Listing = listing,
-            BaseRate = baseRate,
-            WeekdayRate = weekdayRate,
-            WeekendRate = weekendRate,
+            BaseNightlyRate = baseNightlyRate,
+            WeekendNightlyRate = weekendNightlyRate,
+            ExtraGuestRate = extraGuestRate,
             Currency = currency
         };
         db.ListingPricings.Add(pricing);
@@ -91,14 +63,17 @@ public static class DataSeeder
         return pricing;
     }
 
-    public static async Task<ListingDailyRate> SeedListingDailyRateAsync(AppDbContext db, Listing listing, DateTime date, decimal rate)
+    public static async Task<ListingDailyRate> SeedListingDailyRateAsync(AppDbContext db, Listing listing, DateTime date, decimal rate, string currency = "INR")
     {
         var dailyRate = new ListingDailyRate
         {
             ListingId = listing.Id,
             Listing = listing,
             Date = date,
-            Rate = rate
+            NightlyRate = rate,
+            Currency = currency,
+            Source = "Manual",
+            UpdatedAtUtc = DateTime.UtcNow
         };
         db.ListingDailyRates.Add(dailyRate);
         await db.SaveChangesAsync();

@@ -41,7 +41,7 @@ namespace Atlas.Api.Services
 
             var overrideLookup = overrides
                 .GroupBy(r => r.Date.Date)
-                .ToDictionary(group => group.Key, group => group.First().Rate);
+                .ToDictionary(group => group.Key, group => group.First().NightlyRate);
 
             var nightlyRates = new List<PricingNightlyRateDto>();
             var totalPrice = 0m;
@@ -79,10 +79,10 @@ namespace Atlas.Api.Services
 
             if (isWeekend)
             {
-                return pricing.WeekendRate ?? pricing.BaseRate;
+                return pricing.WeekendNightlyRate ?? pricing.BaseNightlyRate;
             }
 
-            return pricing.WeekdayRate ?? pricing.BaseRate;
+            return pricing.BaseNightlyRate;
         }
     }
 }

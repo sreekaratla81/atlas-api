@@ -43,19 +43,21 @@ public class AvailabilityServiceTests
         context.Listings.Add(listing);
         await context.SaveChangesAsync();
 
-        context.ListingBasePrices.Add(new ListingBasePrice
+        context.ListingPricings.Add(new ListingPricing
         {
             ListingId = listing.Id,
             Listing = listing,
-            BasePrice = 100m,
+            BaseNightlyRate = 100m,
             Currency = "USD"
         });
-        context.ListingDailyOverrides.Add(new ListingDailyOverride
+        context.ListingDailyRates.Add(new ListingDailyRate
         {
             ListingId = listing.Id,
             Listing = listing,
             Date = new DateTime(2025, 1, 2),
-            Price = 150m
+            NightlyRate = 150m,
+            Currency = "USD",
+            Source = "Manual"
         });
         await context.SaveChangesAsync();
 
@@ -119,19 +121,19 @@ public class AvailabilityServiceTests
         context.Listings.AddRange(listing, availableListing);
         await context.SaveChangesAsync();
 
-        context.ListingBasePrices.AddRange(
-            new ListingBasePrice
+        context.ListingPricings.AddRange(
+            new ListingPricing
             {
                 ListingId = listing.Id,
                 Listing = listing,
-                BasePrice = 100m,
+                BaseNightlyRate = 100m,
                 Currency = "USD"
             },
-            new ListingBasePrice
+            new ListingPricing
             {
                 ListingId = availableListing.Id,
                 Listing = availableListing,
-                BasePrice = 120m,
+                BaseNightlyRate = 120m,
                 Currency = "USD"
             });
 

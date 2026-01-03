@@ -19,8 +19,8 @@ public class PricingServiceTests : IntegrationTestBase
 
         var property = await DataSeeder.SeedPropertyAsync(db);
         var listing = await DataSeeder.SeedListingAsync(db, property);
-        await DataSeeder.SeedListingPricingAsync(db, listing, 100m, 110m, 140m, "USD");
-        await DataSeeder.SeedListingDailyRateAsync(db, listing, new DateTime(2025, 2, 8), 200m);
+        await DataSeeder.SeedListingPricingAsync(db, listing, 110m, 140m, null, "USD");
+        await DataSeeder.SeedListingDailyRateAsync(db, listing, new DateTime(2025, 2, 8), 200m, "USD");
 
         var service = new PricingService(db);
 

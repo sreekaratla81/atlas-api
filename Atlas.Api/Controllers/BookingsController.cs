@@ -377,6 +377,100 @@ namespace Atlas.Api.Controllers
             }
         }
 
+        [HttpPost("{id}/cancel")]
+        public async Task<ActionResult<BookingDto>> Cancel(int id)
+        {
+            try
+            {
+                var booking = await _context.Bookings.FindAsync(id);
+                if (booking == null)
+                {
+                    return NotFound();
+                }
+
+                if (IsCancelledStatus(booking.BookingStatus) || IsCheckedInStatus(booking.BookingStatus) || IsCheckedOutStatus(booking.BookingStatus))
+                {
+                    ModelState.AddModelError(nameof(booking.BookingStatus), "Booking cannot be cancelled from its current status.");
+                    return ValidationProblem(ModelState);
+                }
+
+                booking.BookingStatus = "Cancelled";
+                booking.CancelledAtUtc = DateTime.UtcNow;
+
+                await SyncAvailabilityBlockAsync(booking);
+                await _context.SaveChangesAsync();
+
+                return Ok(MapToDto(booking));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling booking {BookingId}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("{id}/checkin")]
+        public async Task<ActionResult<BookingDto>> CheckIn(int id)
+        {
+            try
+            {
+                var booking = await _context.Bookings.FindAsync(id);
+                if (booking == null)
+                {
+                    return NotFound();
+                }
+
+                if (!IsConfirmedStatus(booking.BookingStatus))
+                {
+                    ModelState.AddModelError(nameof(booking.BookingStatus), "Booking must be confirmed before check-in.");
+                    return ValidationProblem(ModelState);
+                }
+
+                booking.BookingStatus = "CheckedIn";
+                booking.CheckedInAtUtc = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(MapToDto(booking));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking in booking {BookingId}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("{id}/checkout")]
+        public async Task<ActionResult<BookingDto>> CheckOut(int id)
+        {
+            try
+            {
+                var booking = await _context.Bookings.FindAsync(id);
+                if (booking == null)
+                {
+                    return NotFound();
+                }
+
+                if (!IsCheckedInStatus(booking.BookingStatus))
+                {
+                    ModelState.AddModelError(nameof(booking.BookingStatus), "Booking must be checked in before checkout.");
+                    return ValidationProblem(ModelState);
+                }
+
+                booking.BookingStatus = "CheckedOut";
+                booking.CheckedOutAtUtc = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(MapToDto(booking));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking out booking {BookingId}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         private static BookingDto MapToDto(Booking booking)
         {
             return new BookingDto
@@ -416,6 +510,16 @@ namespace Atlas.Api.Controllers
         private static bool IsCancelledStatus(string? status)
         {
             return string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsCheckedInStatus(string? status)
+        {
+            return string.Equals(status, "CheckedIn", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsCheckedOutStatus(string? status)
+        {
+            return string.Equals(status, "CheckedOut", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<bool> HasActiveOverlapAsync(int listingId, DateTime startDate, DateTime endDate, int? bookingId)

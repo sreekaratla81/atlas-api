@@ -507,4 +507,130 @@ public class BookingsApiTests : IntegrationTestBase
         var response = await Client.DeleteAsync("/api/bookings/1");
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Post_Cancel_UpdatesStatusAndAvailability()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var newBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = DateTime.UtcNow.Date.AddDays(10),
+            checkoutDate = DateTime.UtcNow.Date.AddDays(12),
+            bookingSource = "airbnb",
+            bookingStatus = "Confirmed",
+            paymentStatus = "Paid",
+            amountReceived = 100m,
+            guestsPlanned = 1,
+            guestsActual = 1,
+            extraGuestCharge = 0m,
+            notes = "confirm"
+        };
+
+        var createResponse = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        Assert.Equal(System.Net.HttpStatusCode.Created, createResponse.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
+
+        var cancelResponse = await Client.PostAsync($"/api/bookings/{booking.Id}/cancel", null);
+        Assert.Equal(System.Net.HttpStatusCode.OK, cancelResponse.StatusCode);
+
+        using var scope3 = Factory.Services.CreateScope();
+        var db3 = scope3.ServiceProvider.GetRequiredService<AppDbContext>();
+        var cancelled = await db3.Bookings.FindAsync(booking.Id);
+        Assert.Equal("Cancelled", cancelled!.BookingStatus);
+        Assert.NotNull(cancelled.CancelledAtUtc);
+
+        var cancelledBlock = await db3.AvailabilityBlocks.SingleAsync(b => b.BookingId == booking.Id);
+        Assert.Equal("Cancelled", cancelledBlock.Status);
+    }
+
+    [Fact]
+    public async Task Post_CheckIn_UpdatesStatusAndTimestamp()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var newBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = DateTime.UtcNow.Date.AddDays(5),
+            checkoutDate = DateTime.UtcNow.Date.AddDays(6),
+            bookingSource = "airbnb",
+            bookingStatus = "Confirmed",
+            paymentStatus = "Paid",
+            amountReceived = 100m,
+            guestsPlanned = 1,
+            guestsActual = 1,
+            extraGuestCharge = 0m,
+            notes = "confirm"
+        };
+
+        var createResponse = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        Assert.Equal(System.Net.HttpStatusCode.Created, createResponse.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
+
+        var checkInResponse = await Client.PostAsync($"/api/bookings/{booking.Id}/checkin", null);
+        Assert.Equal(System.Net.HttpStatusCode.OK, checkInResponse.StatusCode);
+
+        using var scope3 = Factory.Services.CreateScope();
+        var db3 = scope3.ServiceProvider.GetRequiredService<AppDbContext>();
+        var checkedIn = await db3.Bookings.FindAsync(booking.Id);
+        Assert.Equal("CheckedIn", checkedIn!.BookingStatus);
+        Assert.NotNull(checkedIn.CheckedInAtUtc);
+    }
+
+    [Fact]
+    public async Task Post_CheckOut_UpdatesStatusAndTimestamp()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        var newBooking = new
+        {
+            listingId = data.listing.Id,
+            guestId = data.guest.Id,
+            checkinDate = DateTime.UtcNow.Date.AddDays(7),
+            checkoutDate = DateTime.UtcNow.Date.AddDays(9),
+            bookingSource = "airbnb",
+            bookingStatus = "Confirmed",
+            paymentStatus = "Paid",
+            amountReceived = 100m,
+            guestsPlanned = 1,
+            guestsActual = 1,
+            extraGuestCharge = 0m,
+            notes = "confirm"
+        };
+
+        var createResponse = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        Assert.Equal(System.Net.HttpStatusCode.Created, createResponse.StatusCode);
+
+        using var scope2 = Factory.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
+
+        var checkInResponse = await Client.PostAsync($"/api/bookings/{booking.Id}/checkin", null);
+        Assert.Equal(System.Net.HttpStatusCode.OK, checkInResponse.StatusCode);
+
+        var checkOutResponse = await Client.PostAsync($"/api/bookings/{booking.Id}/checkout", null);
+        Assert.Equal(System.Net.HttpStatusCode.OK, checkOutResponse.StatusCode);
+
+        using var scope3 = Factory.Services.CreateScope();
+        var db3 = scope3.ServiceProvider.GetRequiredService<AppDbContext>();
+        var checkedOut = await db3.Bookings.FindAsync(booking.Id);
+        Assert.Equal("CheckedOut", checkedOut!.BookingStatus);
+        Assert.NotNull(checkedOut.CheckedOutAtUtc);
+    }
 }

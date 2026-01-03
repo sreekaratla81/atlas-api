@@ -24,10 +24,9 @@ namespace Atlas.Api.Models
         public DateTime CheckinDate { get; set; }
         public DateTime CheckoutDate { get; set; }
 
-        [Required]
         [MaxLength(50)]
         [Column(TypeName = "varchar(50)")]
-        public string BookingSource { get; set; } = string.Empty;
+        public string? BookingSource { get; set; }
         [Required]
         [MaxLength(20)]
         [Column(TypeName = "varchar(20)")]

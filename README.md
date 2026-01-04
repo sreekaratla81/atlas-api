@@ -8,6 +8,10 @@ Controllers should prefer the built-in helpers like `Ok()`, `BadRequest()`, and
 consistent and leverages ASP.NET Core defaults for status codes and content
 negotiation.
 
+When returning a 200 payload, call `Ok(...)` instead of constructing an
+`ObjectResult`/`StatusCode(200, ...)` manually so responses resolve to
+`OkObjectResult` in both runtime and tests.
+
 ## Unit test conventions
 
 - Use `Ok(...)` for 200 responses that return payloads so tests can assert

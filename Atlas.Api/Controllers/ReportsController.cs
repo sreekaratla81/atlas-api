@@ -37,48 +37,36 @@ namespace Atlas.Api.Controllers
             var calendarEnd = calendarStart.AddDays(42);
 
             var bookings = await _context.Bookings
-                .Include(b => b.Guest)
                 .Where(b => b.ListingId == listingId &&
                             b.CheckinDate < calendarEnd &&
                             b.CheckoutDate > calendarStart)
                 .ToListAsync();
+
+            var guestNames = new Dictionary<int, string>();
+            var guestIds = bookings.Select(b => b.GuestId).Distinct().ToList();
+            if (guestIds.Count > 0)
+            {
+                guestNames = await _context.Guests
+                    .Where(g => guestIds.Contains(g.Id))
+                    .ToDictionaryAsync(g => g.Id, g => g.Name);
+            }
 
             var result = new Dictionary<DateTime, List<BookingEarningDetail>>();
             foreach (var booking in bookings)
             {
                 var start = booking.CheckinDate.Date;
                 var end = booking.CheckoutDate.Date;
-                var nights = (end - start).TotalDays;
+                var nights = (int)(end - start).TotalDays;
+                var normalizedNights = Math.Max(1, nights);
+                var normalizedEnd = start.AddDays(normalizedNights);
 
-                var guestName = booking.Guest?.Name;
-                if (string.IsNullOrWhiteSpace(guestName))
+                if (!guestNames.TryGetValue(booking.GuestId, out var guestName) || string.IsNullOrWhiteSpace(guestName))
                 {
                     guestName = "Unknown";
                 }
 
-                if (nights <= 0)
-                {
-                    var day = start;
-                    if (day >= calendarStart && day < calendarEnd)
-                    {
-                        if (!result.TryGetValue(day, out var list))
-                        {
-                            list = new List<BookingEarningDetail>();
-                            result[day] = list;
-                        }
-                        list.Add(new BookingEarningDetail
-                        {
-                            Source = booking.BookingSource,
-                            Amount = Math.Round(booking.AmountReceived, 2),
-                            GuestName = guestName,
-                            CheckinDate = booking.CheckinDate
-                        });
-                    }
-                    continue;
-                }
-
-                var dailyAmount = Math.Round(booking.AmountReceived / (decimal)nights, 2);
-                for (var day = start; day < end; day = day.AddDays(1))
+                var dailyAmount = Math.Round(booking.AmountReceived / normalizedNights, 2);
+                for (var day = start; day < normalizedEnd; day = day.AddDays(1))
                 {
                     if (day >= calendarStart && day < calendarEnd)
                     {

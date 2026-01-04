@@ -131,14 +131,14 @@ namespace Atlas.Api.Controllers
                 if (listing == null)
                 {
                     ModelState.AddModelError(nameof(request.ListingId), "Listing not found");
-                    return ValidationProblem(ModelState);
+                    return BadRequest(ModelState);
                 }
 
                 var guest = await _context.Guests.FindAsync(request.GuestId);
                 if (guest == null)
                 {
                     ModelState.AddModelError(nameof(request.GuestId), "Guest not found");
-                    return ValidationProblem(ModelState);
+                    return BadRequest(ModelState);
                 }
 
                 var commissionRate = request.BookingSource.ToLower() switch
@@ -158,7 +158,7 @@ namespace Atlas.Api.Controllers
                     if (hasOverlap)
                     {
                         ModelState.AddModelError(nameof(request.CheckinDate), "Booking dates overlap an existing confirmed booking.");
-                        return ValidationProblem(ModelState);
+                        return BadRequest(ModelState);
                     }
                 }
 
@@ -396,7 +396,7 @@ namespace Atlas.Api.Controllers
                 if (IsCancelledStatus(booking.BookingStatus) || IsCheckedInStatus(booking.BookingStatus) || IsCheckedOutStatus(booking.BookingStatus))
                 {
                     ModelState.AddModelError(nameof(booking.BookingStatus), "Booking cannot be cancelled from its current status.");
-                    return ValidationProblem(ModelState);
+                    return BadRequest(ModelState);
                 }
 
                 booking.BookingStatus = "Cancelled";
@@ -428,7 +428,7 @@ namespace Atlas.Api.Controllers
                 if (!IsConfirmedStatus(booking.BookingStatus))
                 {
                     ModelState.AddModelError(nameof(booking.BookingStatus), "Booking must be confirmed before check-in.");
-                    return ValidationProblem(ModelState);
+                    return BadRequest(ModelState);
                 }
 
                 booking.BookingStatus = "CheckedIn";
@@ -459,7 +459,7 @@ namespace Atlas.Api.Controllers
                 if (!IsCheckedInStatus(booking.BookingStatus))
                 {
                     ModelState.AddModelError(nameof(booking.BookingStatus), "Booking must be checked in before checkout.");
-                    return ValidationProblem(ModelState);
+                    return BadRequest(ModelState);
                 }
 
                 booking.BookingStatus = "CheckedOut";

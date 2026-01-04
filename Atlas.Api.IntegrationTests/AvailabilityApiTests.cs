@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Api.IntegrationTests;
 
+[Trait("Suite", "Contract")]
 public class AvailabilityApiTests : IntegrationTestBase
 {
     public AvailabilityApiTests(CustomWebApplicationFactory factory) : base(factory) { }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Api.IntegrationTests;
 
+[Trait("Suite", "Contract")]
 public class IncidentsApiTests : IntegrationTestBase
 {
     public IncidentsApiTests(CustomWebApplicationFactory factory) : base(factory) {}

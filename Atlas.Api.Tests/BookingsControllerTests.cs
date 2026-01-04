@@ -319,7 +319,7 @@ public class BookingsControllerTests
 
         var result = await controller.Create(request);
 
-        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.Equal(400, badRequest.StatusCode);
     }
 
@@ -744,7 +744,7 @@ public class BookingsControllerTests
 
         var result = await controller.Cancel(booking.Id);
 
-        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.Equal(400, badRequest.StatusCode);
     }
 
@@ -808,7 +808,7 @@ public class BookingsControllerTests
 
         var result = await controller.CheckIn(booking.Id);
 
-        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.Equal(400, badRequest.StatusCode);
     }
 
@@ -873,7 +873,7 @@ public class BookingsControllerTests
 
         var result = await controller.CheckOut(booking.Id);
 
-        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.Equal(400, badRequest.StatusCode);
     }
 }

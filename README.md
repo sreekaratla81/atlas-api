@@ -1,6 +1,13 @@
 # atlas-api
 .NET Core backend that powers all frontend apps, integrates with Azure SQL
 
+## Controller conventions
+
+Controllers should prefer the built-in helpers like `Ok()`, `BadRequest()`, and
+`NotFound()` over returning raw `ObjectResult` instances. This keeps responses
+consistent and leverages ASP.NET Core defaults for status codes and content
+negotiation.
+
 # Go to the directory where you want to store all repos
 cd ~/Projects/AtlasHomestays  # or any preferred location
 
@@ -27,6 +34,12 @@ at runtime. You don't need to run `dotnet ef database update` before testing.
 
 Integration tests require SQL Server LocalDb. Ensure LocalDb is available or
 provide a connection string via the `Atlas_TestDb` environment variable.
+
+## CI validation
+
+CI runs expect `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release`
+to pass. Make sure this command succeeds locally before opening a pull
+request.
 
 ## Deployment
 

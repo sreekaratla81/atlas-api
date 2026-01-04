@@ -46,3 +46,12 @@ Production deploys are automated through the GitHub Actions workflow at
   workflow to be rejected by GitHub. Verify the workflow YAML structure matches
   the example in `.github/workflows/deploy.yml`. Ensure the publish profile
   secret is present and valid if deployment fails.
+
+### CI/CD troubleshooting
+
+- The deploy workflow lets `dotnet test` build the test project (no `--no-build`)
+  because disabling the build step can cause VSTest to treat the test DLL as an
+  invalid argument on GitHub-hosted runners.
+- The deploy pipeline runs unit tests only. Run integration tests (if present)
+  in a separate workflow such as PR validation or nightly runs so production
+  deployments are not blocked.

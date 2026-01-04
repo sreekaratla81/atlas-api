@@ -33,12 +33,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-
       # Keep this fast; unit tests only
       - name: Run unit tests
-        run: dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --configuration Release --no-build
+        run: dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --configuration Release
 
       # Optional: smoke integration tests (only if you want them blocking deploy)
       # - name: Run smoke integration tests

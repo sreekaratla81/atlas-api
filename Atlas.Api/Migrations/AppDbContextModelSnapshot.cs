@@ -22,93 +22,6 @@ namespace Atlas.Api.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Atlas.Api.Models.BankAccount", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("AccountNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("AccountType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("BankName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("IFSC")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("BankAccounts");
-                });
-
-            modelBuilder.Entity("Atlas.Api.Models.AvailabilityBlock", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("BlockType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
-
-                    b.Property<int?>("BookingId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("date");
-
-                    b.Property<int>("ListingId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasDefaultValue("Active")
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("datetime");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("ListingId", "StartDate", "EndDate");
-
-                    b.ToTable("AvailabilityBlock");
-                });
-
             modelBuilder.Entity("Atlas.Api.Models.AutomationSchedule", b =>
                 {
                     b.Property<long>("Id")
@@ -147,7 +60,95 @@ namespace Atlas.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AutomationSchedule");
+                    b.ToTable("AutomationSchedule", (string)null);
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.AvailabilityBlock", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BlockType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<int?>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ListingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("ListingId", "StartDate", "EndDate");
+
+                    b.ToTable("AvailabilityBlock", (string)null);
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.BankAccount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("AccountType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IFSC")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BankAccounts");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Booking", b =>
@@ -171,21 +172,22 @@ namespace Atlas.Api.Migrations
 
                     b.Property<string>("BookingStatus")
                         .IsRequired()
-                        .HasDefaultValue("Lead")
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("Lead");
 
                     b.Property<DateTime?>("CancelledAtUtc")
                         .HasColumnType("datetime");
-
-                    b.Property<DateTime>("CheckinDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("CheckedInAtUtc")
                         .HasColumnType("datetime");
 
                     b.Property<DateTime?>("CheckedOutAtUtc")
                         .HasColumnType("datetime");
+
+                    b.Property<DateTime>("CheckinDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CheckoutDate")
                         .HasColumnType("datetime2");
@@ -202,17 +204,18 @@ namespace Atlas.Api.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasDefaultValue("INR")
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
-
-                    b.Property<decimal?>("ExtraGuestCharge")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("varchar(10)")
+                        .HasDefaultValue("INR");
 
                     b.Property<string>("ExternalReservationId")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<decimal?>("ExtraGuestCharge")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("GuestId")
                         .HasColumnType("int");
@@ -333,7 +336,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasIndex("TemplateId");
 
-                    b.ToTable("CommunicationLog");
+                    b.ToTable("CommunicationLog", (string)null);
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Guest", b =>
@@ -402,112 +405,6 @@ namespace Atlas.Api.Migrations
                     b.ToTable("Incidents");
                 });
 
-            modelBuilder.Entity("Atlas.Api.Models.MessageTemplate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Channel")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
-
-                    b.Property<int?>("ScopeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ScopeType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<string>("Subject")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                b.Property<string>("TemplateKey")
-                    .HasMaxLength(100)
-                    .HasColumnType("varchar(100)");
-
-                    b.Property<int>("TemplateVersion")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MessageTemplate");
-                });
-
-            modelBuilder.Entity("Atlas.Api.Models.OutboxMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AggregateId")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("AggregateType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<int>("AttemptCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("HeadersJson")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LastError")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("PublishedAtUtc")
-                        .HasColumnType("datetime");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("OutboxMessage");
-                });
-
             modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
                 {
                     b.Property<int>("Id")
@@ -568,14 +465,18 @@ namespace Atlas.Api.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasDefaultValue("INR")
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("varchar(10)")
+                        .HasDefaultValue("INR");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("date");
 
                     b.Property<int>("ListingId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ListingPricingListingId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("NightlyRate")
@@ -592,18 +493,21 @@ namespace Atlas.Api.Migrations
                         .HasColumnType("varchar(20)");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasDefaultValueSql("GETUTCDATE()")
-                        .HasColumnType("datetime");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int?>("UpdatedByUserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ListingPricingListingId");
+
                     b.HasIndex("ListingId", "Date")
                         .IsUnique();
 
-                    b.ToTable("ListingDailyRate");
+                    b.ToTable("ListingDailyRate", (string)null);
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
@@ -617,17 +521,19 @@ namespace Atlas.Api.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasDefaultValue("INR")
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("varchar(10)")
+                        .HasDefaultValue("INR");
 
                     b.Property<decimal?>("ExtraGuestRate")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasDefaultValueSql("GETUTCDATE()")
-                        .HasColumnType("datetime");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<decimal?>("WeekendNightlyRate")
                         .HasPrecision(18, 2)
@@ -635,7 +541,116 @@ namespace Atlas.Api.Migrations
 
                     b.HasKey("ListingId");
 
-                    b.ToTable("ListingPricing");
+                    b.ToTable("ListingPricing", (string)null);
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.MessageTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<int?>("ScopeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ScopeType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("TemplateKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("TemplateVersion")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MessageTemplate", (string)null);
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AggregateId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("AggregateType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("HeadersJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OutboxMessage", (string)null);
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Payment", b =>
@@ -747,6 +762,24 @@ namespace Atlas.Api.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.AvailabilityBlock", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Atlas.Api.Models.Listing", "Listing")
+                        .WithMany()
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Listing");
+                });
+
             modelBuilder.Entity("Atlas.Api.Models.Booking", b =>
                 {
                     b.HasOne("Atlas.Api.Models.BankAccount", "BankAccount")
@@ -769,24 +802,6 @@ namespace Atlas.Api.Migrations
                     b.Navigation("BankAccount");
 
                     b.Navigation("Guest");
-
-                    b.Navigation("Listing");
-                });
-
-            modelBuilder.Entity("Atlas.Api.Models.AvailabilityBlock", b =>
-                {
-                    b.HasOne("Atlas.Api.Models.Booking", "Booking")
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Atlas.Api.Models.Listing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Booking");
 
                     b.Navigation("Listing");
                 });
@@ -815,6 +830,17 @@ namespace Atlas.Api.Migrations
                     b.Navigation("MessageTemplate");
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.Property", "Property")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+                });
+
             modelBuilder.Entity("Atlas.Api.Models.ListingDailyRate", b =>
                 {
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
@@ -822,6 +848,10 @@ namespace Atlas.Api.Migrations
                         .HasForeignKey("ListingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Atlas.Api.Models.ListingPricing", null)
+                        .WithMany("DailyRates")
+                        .HasForeignKey("ListingPricingListingId");
 
                     b.Navigation("Listing");
                 });
@@ -839,22 +869,16 @@ namespace Atlas.Api.Migrations
 
             modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
                 {
-                    b.HasOne("Atlas.Api.Models.Property", "Property")
-                        .WithMany()
-                        .HasForeignKey("PropertyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Property");
-                });
-
-            modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
-                {
-                    b.Navigation("Pricing");
+                    b.Navigation("Bookings");
 
                     b.Navigation("DailyRates");
 
-                    b.Navigation("Bookings");
+                    b.Navigation("Pricing");
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
+                {
+                    b.Navigation("DailyRates");
                 });
 #pragma warning restore 612, 618
         }

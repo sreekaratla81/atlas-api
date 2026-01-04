@@ -336,6 +336,8 @@
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<CalendarEarningEntry>>` (calendar entries with earnings)
 - **Status codes**: 200, 400 (invalid month), 500 (not explicitly annotated)
+- **Notes**: Earnings are counted per night with the check-in date included and
+  the check-out date excluded. This matches the booking calendar display.
 
 #### `GET /reports/bank-account-earnings`
 - **Purpose**: Get earnings by bank account for a fixed fiscal year.

@@ -27,14 +27,14 @@ public class IncidentsApiTests : IntegrationTestBase
         var data = await SeedIncidentDataAsync(db);
         await DataSeeder.SeedIncidentAsync(db, data.listing, data.booking);
 
-        var response = await Client.GetAsync(ApiRoute("api/incidents"));
+        var response = await Client.GetAsync(ApiControllerRoute("incidents"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync(ApiRoute("api/incidents/1"));
+        var response = await Client.GetAsync(ApiControllerRoute("incidents/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -54,7 +54,7 @@ public class IncidentsApiTests : IntegrationTestBase
             CreatedBy = "tester",
             CreatedOn = DateTime.UtcNow
         };
-        var response = await Client.PostAsJsonAsync(ApiRoute("api/incidents"), incident);
+        var response = await Client.PostAsJsonAsync(ApiControllerRoute("incidents"), incident);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -71,7 +71,7 @@ public class IncidentsApiTests : IntegrationTestBase
         var incident = await DataSeeder.SeedIncidentAsync(db, data.listing, data.booking);
         incident.Status = "closed";
 
-        var response = await Client.PutAsJsonAsync(ApiRoute($"api/incidents/{incident.Id}"), incident);
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"incidents/{incident.Id}"), incident);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -94,7 +94,7 @@ public class IncidentsApiTests : IntegrationTestBase
             CreatedOn = DateTime.UtcNow
         };
 
-        var response = await Client.PutAsJsonAsync(ApiRoute("api/incidents/2"), incident);
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute("incidents/2"), incident);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -107,7 +107,7 @@ public class IncidentsApiTests : IntegrationTestBase
         var incident = await DataSeeder.SeedIncidentAsync(db, data.listing, data.booking);
         var id = incident.Id;
 
-        var response = await Client.DeleteAsync(ApiRoute($"api/incidents/{id}"));
+        var response = await Client.DeleteAsync(ApiControllerRoute($"incidents/{id}"));
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -118,7 +118,7 @@ public class IncidentsApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync(ApiRoute("api/incidents/1"));
+        var response = await Client.DeleteAsync(ApiControllerRoute("incidents/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

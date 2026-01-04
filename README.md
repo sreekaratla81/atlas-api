@@ -8,6 +8,15 @@ Controllers should prefer the built-in helpers like `Ok()`, `BadRequest()`, and
 consistent and leverages ASP.NET Core defaults for status codes and content
 negotiation.
 
+## Unit test conventions
+
+- Use `Ok(...)` for 200 responses that return payloads so tests can assert
+  `OkObjectResult`.
+- Use `BadRequest(...)` for 400 responses to keep contract expectations aligned
+  with `BadRequestObjectResult`.
+- Avoid returning raw `ObjectResult` unless you explicitly set `StatusCode` for
+  non-standard responses.
+
 # Go to the directory where you want to store all repos
 cd ~/Projects/AtlasHomestays  # or any preferred location
 

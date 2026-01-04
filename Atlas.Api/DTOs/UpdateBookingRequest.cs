@@ -18,6 +18,16 @@ namespace Atlas.Api.DTOs
         [Required]
         public string BookingSource { get; set; } = string.Empty;
 
+        public string? BookingStatus { get; set; }
+        public decimal? TotalAmount { get; set; }
+        public string? Currency { get; set; }
+        public string? ExternalReservationId { get; set; }
+        public DateTime? ConfirmationSentAtUtc { get; set; }
+        public DateTime? RefundFreeUntilUtc { get; set; }
+        public DateTime? CheckedInAtUtc { get; set; }
+        public DateTime? CheckedOutAtUtc { get; set; }
+        public DateTime? CancelledAtUtc { get; set; }
+
         [Required]
         public string PaymentStatus { get; set; } = "Paid";
 

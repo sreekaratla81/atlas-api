@@ -4,7 +4,7 @@
 - **Production**: `https://atlas-homes-api-gxdqfjc2btc0atbv.centralus-01.azurewebsites.net`
 - **Local (placeholder)**: `https://localhost:<port>`
 
-**Non-production path base:** In non-production environments, the application uses `UsePathBase("/api")` (see `Atlas.Api/Program.cs`). This means local base URLs should include `/api` (for example: `https://localhost:<port>/api`). Endpoints that already include an `api/` route prefix will therefore be reachable at `/api/api/...` locally.
+**Non-production path base:** In non-production environments, the application uses `UsePathBase("/api")` (see `Atlas.Api/Program.cs`). This means local base URLs should include `/api` (for example: `https://localhost:<port>/api`). Endpoints that already include an `api/` route prefix will therefore be reachable at `/api/api/...` locally. Use the `ApiRoute` helper when constructing URLs (for example in integration tests or API clients) so the path base is applied only once regardless of environment. Avoid adding new `api/` prefixes to controller routes; prefer bare resource names unless there is a strong compatibility reason otherwise.
 
 ## Authentication / Authorization
 - JWT authentication middleware is present in `Atlas.Api/Program.cs` but **commented out**, and `UseAuthentication()`/`UseAuthorization()` are not enabled. As coded, endpoints do **not** require authentication.

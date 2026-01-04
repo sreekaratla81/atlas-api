@@ -19,7 +19,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "IntegrationTest");
         Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", "Cascade");
 
-        var dbName = $"AtlasHomestays_TestDb_{TestRunId.Value}";
+        var dbName = "AtlasHomestays_TestDb";
         var connectionString =
             Environment.GetEnvironmentVariable("Atlas_TestDb") ??
             Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ??

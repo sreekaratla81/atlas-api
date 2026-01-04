@@ -14,7 +14,7 @@ namespace Atlas.Api.IntegrationTests;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
-    public PathString PathBase { get; } = new("/api");
+    public PathString PathBase { get; } = new("/");
 
     public string ApiRoute(string relativePath)
     {

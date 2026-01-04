@@ -1,0 +1,191 @@
+@baseUrl = https://localhost:5001/api
+@token = <paste-jwt-here-if-needed>
+
+### Create Property
+POST {{baseUrl}}/properties
+Content-Type: application/json
+
+{
+  "name": "Sunset Villas",
+  "address": "123 Ocean Drive, Example City",
+  "type": "Villa",
+  "ownerName": "Alex Morgan",
+  "contactPhone": "+1-555-0100",
+  "commissionPercent": 12.5,
+  "status": "Active"
+}
+
+### Get Property
+GET {{baseUrl}}/properties/1
+
+### Update Property
+PUT {{baseUrl}}/properties/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Sunset Villas",
+  "address": "123 Ocean Drive, Example City",
+  "type": "Villa",
+  "ownerName": "Alex Morgan",
+  "contactPhone": "+1-555-0100",
+  "commissionPercent": 12.5,
+  "status": "Active"
+}
+
+### Delete Property
+DELETE {{baseUrl}}/properties/1
+
+### Create Listing
+POST {{baseUrl}}/listings
+Content-Type: application/json
+
+{
+  "propertyId": 1,
+  "property": {
+    "id": 1,
+    "name": "Sunset Villas",
+    "address": "123 Ocean Drive, Example City",
+    "type": "Villa",
+    "ownerName": "Alex Morgan",
+    "contactPhone": "+1-555-0100",
+    "commissionPercent": 12.5,
+    "status": "Active"
+  },
+  "name": "Villa 1A",
+  "floor": 1,
+  "type": "Suite",
+  "checkInTime": "14:00",
+  "checkOutTime": "11:00",
+  "status": "Active",
+  "wifiName": "AtlasGuestWiFi",
+  "wifiPassword": "guest-pass-123",
+  "maxGuests": 4
+}
+
+### Get Listing
+GET {{baseUrl}}/listings/1
+
+### Update Listing
+PUT {{baseUrl}}/listings/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "propertyId": 1,
+  "property": {
+    "id": 1,
+    "name": "Sunset Villas",
+    "address": "123 Ocean Drive, Example City",
+    "type": "Villa",
+    "ownerName": "Alex Morgan",
+    "contactPhone": "+1-555-0100",
+    "commissionPercent": 12.5,
+    "status": "Active"
+  },
+  "name": "Villa 1A",
+  "floor": 1,
+  "type": "Suite",
+  "checkInTime": "14:00",
+  "checkOutTime": "11:00",
+  "status": "Active",
+  "wifiName": "AtlasGuestWiFi",
+  "wifiPassword": "guest-pass-123",
+  "maxGuests": 4
+}
+
+### Delete Listing
+DELETE {{baseUrl}}/listings/1
+
+### Create Guest
+POST {{baseUrl}}/guests
+Content-Type: application/json
+
+{
+  "name": "Jamie Lee",
+  "phone": "+1-555-0200",
+  "email": "jamie.lee@example.com",
+  "idProofUrl": "https://example.com/id-proof"
+}
+
+### Get Guest
+GET {{baseUrl}}/guests/1
+
+### Update Guest
+PUT {{baseUrl}}/guests/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Jamie Lee",
+  "phone": "+1-555-0200",
+  "email": "jamie.lee@example.com",
+  "idProofUrl": "https://example.com/id-proof"
+}
+
+### Delete Guest
+DELETE {{baseUrl}}/guests/1
+
+### Create Booking
+POST {{baseUrl}}/bookings
+Content-Type: application/json
+
+{
+  "listingId": 1,
+  "guestId": 1,
+  "checkinDate": "2025-05-10T12:00:00Z",
+  "checkoutDate": "2025-05-15T12:00:00Z",
+  "bookingSource": "Direct",
+  "bookingStatus": "Confirmed",
+  "totalAmount": 25000,
+  "currency": "INR",
+  "externalReservationId": "RES-12345",
+  "confirmationSentAtUtc": "2025-05-01T10:00:00Z",
+  "refundFreeUntilUtc": "2025-05-05T10:00:00Z",
+  "amountReceived": 25000,
+  "bankAccountId": 1,
+  "guestsPlanned": 2,
+  "guestsActual": 2,
+  "extraGuestCharge": 0,
+  "paymentStatus": "Paid",
+  "notes": "Late check-in requested."
+}
+
+### Get Booking
+GET {{baseUrl}}/bookings/1
+
+### Update Booking
+PUT {{baseUrl}}/bookings/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "listingId": 1,
+  "guestId": 1,
+  "checkinDate": "2025-05-10T12:00:00Z",
+  "checkoutDate": "2025-05-15T12:00:00Z",
+  "bookingSource": "Direct",
+  "bookingStatus": "Confirmed",
+  "totalAmount": 25000,
+  "currency": "INR",
+  "externalReservationId": "RES-12345",
+  "confirmationSentAtUtc": "2025-05-01T10:00:00Z",
+  "refundFreeUntilUtc": "2025-05-05T10:00:00Z",
+  "amountReceived": 25000,
+  "bankAccountId": 1,
+  "guestsPlanned": 2,
+  "guestsActual": 2,
+  "extraGuestCharge": 0,
+  "commissionAmount": 0,
+  "paymentStatus": "Paid",
+  "notes": "Late check-in requested."
+}
+
+### Cancel Booking
+POST {{baseUrl}}/bookings/1/cancel
+
+### Delete Booking
+DELETE {{baseUrl}}/bookings/1
+
+### Admin Report: Monthly Earnings
+GET {{baseUrl}}/admin/reports/earnings/monthly

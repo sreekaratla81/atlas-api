@@ -1,0 +1,197 @@
+﻿erDiagram
+  AutomationSchedule {
+    Id bigint PK
+    BookingId int 
+    EventType varchar(50) 
+    DueAtUtc datetime 
+    Status varchar(20) 
+    PublishedAtUtc datetime(NULL) 
+    CompletedAtUtc datetime(NULL) 
+    AttemptCount int 
+    LastError text(NULL) 
+  }
+  AvailabilityBlock {
+    Id bigint PK
+    ListingId int FK
+    BookingId int(NULL) FK
+    StartDate date 
+    EndDate date 
+    Status varchar(20) 
+    CreatedAtUtc datetime 
+    BlockType varchar(30) 
+    Source varchar(30) 
+    UpdatedAtUtc datetime 
+  }
+  AvailabilityBlock }o--|| Bookings : FK_AvailabilityBlocks_Bookings_BookingId
+  AvailabilityBlock }o--|| Listings : FK_AvailabilityBlocks_Listings_ListingId
+  BankAccounts {
+    Id int PK
+    BankName nvarchar(100) 
+    AccountNumber nvarchar(50) 
+    IFSC nvarchar(20) 
+    AccountType nvarchar(50) 
+    CreatedAt datetime2 
+  }
+  Bookings {
+    Id int PK
+    ListingId int FK
+    GuestId int FK
+    CheckinDate datetime2 
+    CheckoutDate datetime2 
+    PlannedCheckinTime time(NULL) 
+    ActualCheckinTime time(NULL) 
+    PlannedCheckoutTime time(NULL) 
+    ActualCheckoutTime time(NULL) 
+    BookingSource varchar(50)(NULL) 
+    PaymentStatus nvarchar(max) 
+    AmountReceived decimal(18-2) 
+    Notes nvarchar(max) 
+    CreatedAt datetime2 
+    PaymentDate datetime2(NULL) 
+    GuestsPlanned int(NULL) 
+    GuestsActual int(NULL) 
+    ExtraGuestCharge decimal(18-2)(NULL) 
+    AmountGuestPaid decimal(18-2)(NULL) 
+    CommissionAmount decimal(18-2)(NULL) 
+    BankAccountId int(NULL) FK
+    BookingStatus varchar(20) 
+    CancelledAtUtc datetime(NULL) 
+    CheckedInAtUtc datetime(NULL) 
+    CheckedOutAtUtc datetime(NULL) 
+    ConfirmationSentAtUtc datetime(NULL) 
+    Currency varchar(10) 
+    ExternalReservationId varchar(100)(NULL) 
+    RefundFreeUntilUtc datetime(NULL) 
+    TotalAmount decimal(18-2)(NULL) 
+  }
+  Bookings }o--|| BankAccounts : FK_Bookings_BankAccounts_BankAccountId
+  Bookings }o--|| Guests : FK_Bookings_Guests_GuestId
+  Bookings }o--|| Listings : FK_Bookings_Listings_ListingId
+  CommunicationLog {
+    Id bigint PK
+    Channel varchar(20) 
+    Status varchar(20) 
+    ProviderMessageId varchar(100)(NULL) 
+    BookingId int(NULL) FK
+    TemplateId int(NULL) FK
+    CreatedAtUtc datetime 
+    GuestId int(NULL) FK
+    EventType varchar(50) 
+    ToAddress varchar(100) 
+    TemplateVersion int 
+    CorrelationId varchar(100) 
+    IdempotencyKey varchar(150) 
+    Provider varchar(50) 
+    AttemptCount int 
+    LastError text(NULL) 
+    SentAtUtc datetime(NULL) 
+  }
+  CommunicationLog }o--|| Bookings : FK_CommunicationLog_Bookings_BookingId
+  CommunicationLog }o--|| Guests : FK_CommunicationLog_Guests_GuestId
+  CommunicationLog }o--|| MessageTemplate : FK_CommunicationLog_MessageTemplate_TemplateId
+  Guests {
+    Id int PK
+    Name nvarchar(max) 
+    Phone nvarchar(max) 
+    Email nvarchar(max) 
+    IdProofUrl nvarchar(max)(NULL) 
+  }
+  Incidents {
+    Id int PK
+    ListingId int 
+    BookingId int(NULL) 
+    Description nvarchar(max) 
+    ActionTaken nvarchar(max) 
+    Status nvarchar(max) 
+    CreatedBy nvarchar(max) 
+    CreatedOn datetime2 
+  }
+  ListingDailyRate {
+    Id bigint PK
+    ListingId int FK
+    Date date 
+    NightlyRate decimal(18-2) 
+    Currency varchar(10) 
+    Source varchar(20) 
+    Reason varchar(200)(NULL) 
+    UpdatedByUserId int(NULL) 
+    UpdatedAtUtc datetime 
+  }
+  ListingDailyRate }o--|| Listings : FK_ListingDailyRate_Listings_ListingId
+  ListingPricing {
+    ListingId int PK,FK
+    BaseNightlyRate decimal(18-2) 
+    WeekendNightlyRate decimal(18-2)(NULL) 
+    ExtraGuestRate decimal(18-2)(NULL) 
+    Currency varchar(10) 
+    UpdatedAtUtc datetime 
+  }
+  ListingPricing }o--|| Listings : FK_ListingPricing_Listings_ListingId
+  Listings {
+    Id int PK
+    PropertyId int FK
+    Name nvarchar(max) 
+    Floor int 
+    Type nvarchar(max) 
+    Status nvarchar(max) 
+    WifiName nvarchar(max) 
+    WifiPassword nvarchar(max) 
+    MaxGuests int 
+    CheckInTime nvarchar(max)(NULL) 
+    CheckOutTime nvarchar(max)(NULL) 
+  }
+  Listings }o--|| Properties : FK_Listings_Properties_PropertyId
+  MessageTemplate {
+    Id int PK
+    TemplateKey varchar(100)(NULL) 
+    Channel varchar(20) 
+    Subject varchar(200)(NULL) 
+    Body text 
+    IsActive bit 
+    CreatedAtUtc datetime 
+    EventType varchar(50) 
+    Language varchar(10) 
+    ScopeId int(NULL) 
+    ScopeType varchar(20) 
+    TemplateVersion int 
+    UpdatedAtUtc datetime 
+  }
+  OutboxMessage {
+    Id uniqueidentifier PK
+    AggregateType varchar(50) 
+    AggregateId varchar(50) 
+    EventType varchar(50) 
+    PayloadJson text 
+    HeadersJson text(NULL) 
+    CreatedAtUtc datetime 
+    PublishedAtUtc datetime(NULL) 
+    AttemptCount int 
+    LastError text(NULL) 
+  }
+  Payments {
+    Id int PK
+    BookingId int 
+    Amount decimal(18-2) 
+    Method nvarchar(max) 
+    Type nvarchar(max) 
+    ReceivedOn datetime2 
+    Note nvarchar(max) 
+  }
+  Properties {
+    Id int PK
+    Name nvarchar(max) 
+    Address nvarchar(max) 
+    Type nvarchar(max) 
+    OwnerName nvarchar(max) 
+    ContactPhone nvarchar(max) 
+    CommissionPercent decimal(5-2)(NULL) 
+    Status nvarchar(max) 
+  }
+  Users {
+    Id int PK
+    Name nvarchar(max) 
+    Phone nvarchar(max) 
+    Email nvarchar(max) 
+    PasswordHash nvarchar(max) 
+    Role nvarchar(max) 
+  }

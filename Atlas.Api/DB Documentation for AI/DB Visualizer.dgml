@@ -1,0 +1,419 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<DirectedGraph GraphDirection="LeftToRight" xmlns="http://schemas.microsoft.com/vs/2009/dgml">
+  <Nodes>
+    <Node Id="Database" Label="atlasdb" Category="Database" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="dbo" Label="dbo" Category="Schema" Group="Expanded" />
+    <Node Id="AutomationSchedule" Label="AutomationSchedule" Category="Table" Group="Collapsed" />
+    <Node Id="AutomationSchedule_Id" Label="Id bigint" Category="PK" Description="bigint" />
+    <Node Id="AutomationSchedule_BookingId" Label="BookingId int" Category="NOT NULL" Description="int" />
+    <Node Id="AutomationSchedule_EventType" Label="EventType varchar(50)" Category="NOT NULL" Description="varchar(50)" />
+    <Node Id="AutomationSchedule_DueAtUtc" Label="DueAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="AutomationSchedule_Status" Label="Status varchar(20)" Category="NOT NULL" Description="varchar(20)" />
+    <Node Id="AutomationSchedule_PublishedAtUtc" Label="PublishedAtUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="AutomationSchedule_CompletedAtUtc" Label="CompletedAtUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="AutomationSchedule_AttemptCount" Label="AttemptCount int" Category="NOT NULL" Description="int" />
+    <Node Id="AutomationSchedule_LastError" Label="LastError text" Category="NULL" Description="text" />
+    <Node Id="AvailabilityBlock" Label="AvailabilityBlock" Category="Table" Group="Collapsed" />
+    <Node Id="AvailabilityBlock_Id" Label="Id bigint" Category="PK" Description="bigint" />
+    <Node Id="AvailabilityBlock_ListingId" Label="ListingId int" Category="FK" Description="int" />
+    <Node Id="AvailabilityBlock_BookingId" Label="BookingId int" Category="FK" Description="int" />
+    <Node Id="AvailabilityBlock_StartDate" Label="StartDate date" Category="NOT NULL" Description="date" />
+    <Node Id="AvailabilityBlock_EndDate" Label="EndDate date" Category="NOT NULL" Description="date" />
+    <Node Id="AvailabilityBlock_Status" Label="Status varchar(20)" Category="NOT NULL" Description="varchar(20)" />
+    <Node Id="AvailabilityBlock_CreatedAtUtc" Label="CreatedAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="AvailabilityBlock_BlockType" Label="BlockType varchar(30)" Category="NOT NULL" Description="varchar(30)" />
+    <Node Id="AvailabilityBlock_Source" Label="Source varchar(30)" Category="NOT NULL" Description="varchar(30)" />
+    <Node Id="AvailabilityBlock_UpdatedAtUtc" Label="UpdatedAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="BankAccounts" Label="BankAccounts" Category="Table" Group="Collapsed" />
+    <Node Id="BankAccounts_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="BankAccounts_BankName" Label="BankName nvarchar(100)" Category="NOT NULL" Description="nvarchar(100)" />
+    <Node Id="BankAccounts_AccountNumber" Label="AccountNumber nvarchar(50)" Category="NOT NULL" Description="nvarchar(50)" />
+    <Node Id="BankAccounts_IFSC" Label="IFSC nvarchar(20)" Category="NOT NULL" Description="nvarchar(20)" />
+    <Node Id="BankAccounts_AccountType" Label="AccountType nvarchar(50)" Category="NOT NULL" Description="nvarchar(50)" />
+    <Node Id="BankAccounts_CreatedAt" Label="CreatedAt datetime2" Category="NOT NULL" Description="datetime2" />
+    <Node Id="Bookings" Label="Bookings" Category="Table" Group="Collapsed" />
+    <Node Id="Bookings_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="Bookings_ListingId" Label="ListingId int" Category="FK" Description="int" />
+    <Node Id="Bookings_GuestId" Label="GuestId int" Category="FK" Description="int" />
+    <Node Id="Bookings_CheckinDate" Label="CheckinDate datetime2" Category="NOT NULL" Description="datetime2" />
+    <Node Id="Bookings_CheckoutDate" Label="CheckoutDate datetime2" Category="NOT NULL" Description="datetime2" />
+    <Node Id="Bookings_PlannedCheckinTime" Label="PlannedCheckinTime time" Category="NULL" Description="time" />
+    <Node Id="Bookings_ActualCheckinTime" Label="ActualCheckinTime time" Category="NULL" Description="time" />
+    <Node Id="Bookings_PlannedCheckoutTime" Label="PlannedCheckoutTime time" Category="NULL" Description="time" />
+    <Node Id="Bookings_ActualCheckoutTime" Label="ActualCheckoutTime time" Category="NULL" Description="time" />
+    <Node Id="Bookings_BookingSource" Label="BookingSource varchar(50)" Category="NULL" Description="varchar(50)" />
+    <Node Id="Bookings_PaymentStatus" Label="PaymentStatus nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Bookings_AmountReceived" Label="AmountReceived decimal(18, 2)" Category="NOT NULL" Description="decimal(18, 2)" />
+    <Node Id="Bookings_Notes" Label="Notes nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Bookings_CreatedAt" Label="CreatedAt datetime2" Category="NOT NULL" Description="datetime2" />
+    <Node Id="Bookings_PaymentDate" Label="PaymentDate datetime2" Category="NULL" Description="datetime2" />
+    <Node Id="Bookings_GuestsPlanned" Label="GuestsPlanned int" Category="NULL" Description="int" />
+    <Node Id="Bookings_GuestsActual" Label="GuestsActual int" Category="NULL" Description="int" />
+    <Node Id="Bookings_ExtraGuestCharge" Label="ExtraGuestCharge decimal(18, 2)" Category="NULL" Description="decimal(18, 2)" />
+    <Node Id="Bookings_AmountGuestPaid" Label="AmountGuestPaid decimal(18, 2)" Category="NULL" Description="decimal(18, 2)" />
+    <Node Id="Bookings_CommissionAmount" Label="CommissionAmount decimal(18, 2)" Category="NULL" Description="decimal(18, 2)" />
+    <Node Id="Bookings_BankAccountId" Label="BankAccountId int" Category="FK" Description="int" />
+    <Node Id="Bookings_BookingStatus" Label="BookingStatus varchar(20)" Category="NOT NULL" Description="varchar(20)" />
+    <Node Id="Bookings_CancelledAtUtc" Label="CancelledAtUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="Bookings_CheckedInAtUtc" Label="CheckedInAtUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="Bookings_CheckedOutAtUtc" Label="CheckedOutAtUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="Bookings_ConfirmationSentAtUtc" Label="ConfirmationSentAtUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="Bookings_Currency" Label="Currency varchar(10)" Category="NOT NULL" Description="varchar(10)" />
+    <Node Id="Bookings_ExternalReservationId" Label="ExternalReservationId varchar(100)" Category="NULL" Description="varchar(100)" />
+    <Node Id="Bookings_RefundFreeUntilUtc" Label="RefundFreeUntilUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="Bookings_TotalAmount" Label="TotalAmount decimal(18, 2)" Category="NULL" Description="decimal(18, 2)" />
+    <Node Id="CommunicationLog" Label="CommunicationLog" Category="Table" Group="Collapsed" />
+    <Node Id="CommunicationLog_Id" Label="Id bigint" Category="PK" Description="bigint" />
+    <Node Id="CommunicationLog_Channel" Label="Channel varchar(20)" Category="NOT NULL" Description="varchar(20)" />
+    <Node Id="CommunicationLog_Status" Label="Status varchar(20)" Category="NOT NULL" Description="varchar(20)" />
+    <Node Id="CommunicationLog_ProviderMessageId" Label="ProviderMessageId varchar(100)" Category="NULL" Description="varchar(100)" />
+    <Node Id="CommunicationLog_BookingId" Label="BookingId int" Category="FK" Description="int" />
+    <Node Id="CommunicationLog_TemplateId" Label="TemplateId int" Category="FK" Description="int" />
+    <Node Id="CommunicationLog_CreatedAtUtc" Label="CreatedAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="CommunicationLog_GuestId" Label="GuestId int" Category="FK" Description="int" />
+    <Node Id="CommunicationLog_EventType" Label="EventType varchar(50)" Category="NOT NULL" Description="varchar(50)" />
+    <Node Id="CommunicationLog_ToAddress" Label="ToAddress varchar(100)" Category="NOT NULL" Description="varchar(100)" />
+    <Node Id="CommunicationLog_TemplateVersion" Label="TemplateVersion int" Category="NOT NULL" Description="int" />
+    <Node Id="CommunicationLog_CorrelationId" Label="CorrelationId varchar(100)" Category="NOT NULL" Description="varchar(100)" />
+    <Node Id="CommunicationLog_IdempotencyKey" Label="IdempotencyKey varchar(150)" Category="NOT NULL" Description="varchar(150)" />
+    <Node Id="CommunicationLog_Provider" Label="Provider varchar(50)" Category="NOT NULL" Description="varchar(50)" />
+    <Node Id="CommunicationLog_AttemptCount" Label="AttemptCount int" Category="NOT NULL" Description="int" />
+    <Node Id="CommunicationLog_LastError" Label="LastError text" Category="NULL" Description="text" />
+    <Node Id="CommunicationLog_SentAtUtc" Label="SentAtUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="Guests" Label="Guests" Category="Table" Group="Collapsed" />
+    <Node Id="Guests_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="Guests_Name" Label="Name nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Guests_Phone" Label="Phone nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Guests_Email" Label="Email nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Guests_IdProofUrl" Label="IdProofUrl nvarchar(max)" Category="NULL" Description="nvarchar(max)" />
+    <Node Id="Incidents" Label="Incidents" Category="Table" Group="Collapsed" />
+    <Node Id="Incidents_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="Incidents_ListingId" Label="ListingId int" Category="NOT NULL" Description="int" />
+    <Node Id="Incidents_BookingId" Label="BookingId int" Category="NULL" Description="int" />
+    <Node Id="Incidents_Description" Label="Description nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Incidents_ActionTaken" Label="ActionTaken nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Incidents_Status" Label="Status nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Incidents_CreatedBy" Label="CreatedBy nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Incidents_CreatedOn" Label="CreatedOn datetime2" Category="NOT NULL" Description="datetime2" />
+    <Node Id="ListingDailyRate" Label="ListingDailyRate" Category="Table" Group="Collapsed" />
+    <Node Id="ListingDailyRate_Id" Label="Id bigint" Category="PK" Description="bigint" />
+    <Node Id="ListingDailyRate_ListingId" Label="ListingId int" Category="FK" Description="int" />
+    <Node Id="ListingDailyRate_Date" Label="Date date" Category="NOT NULL" Description="date" />
+    <Node Id="ListingDailyRate_NightlyRate" Label="NightlyRate decimal(18, 2)" Category="NOT NULL" Description="decimal(18, 2)" />
+    <Node Id="ListingDailyRate_Currency" Label="Currency varchar(10)" Category="NOT NULL" Description="varchar(10)" />
+    <Node Id="ListingDailyRate_Source" Label="Source varchar(20)" Category="NOT NULL" Description="varchar(20)" />
+    <Node Id="ListingDailyRate_Reason" Label="Reason varchar(200)" Category="NULL" Description="varchar(200)" />
+    <Node Id="ListingDailyRate_UpdatedByUserId" Label="UpdatedByUserId int" Category="NULL" Description="int" />
+    <Node Id="ListingDailyRate_UpdatedAtUtc" Label="UpdatedAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="ListingPricing" Label="ListingPricing" Category="Table" Group="Collapsed" />
+    <Node Id="ListingPricing_ListingId" Label="ListingId int" Category="PK" Description="int" />
+    <Node Id="ListingPricing_BaseNightlyRate" Label="BaseNightlyRate decimal(18, 2)" Category="NOT NULL" Description="decimal(18, 2)" />
+    <Node Id="ListingPricing_WeekendNightlyRate" Label="WeekendNightlyRate decimal(18, 2)" Category="NULL" Description="decimal(18, 2)" />
+    <Node Id="ListingPricing_ExtraGuestRate" Label="ExtraGuestRate decimal(18, 2)" Category="NULL" Description="decimal(18, 2)" />
+    <Node Id="ListingPricing_Currency" Label="Currency varchar(10)" Category="NOT NULL" Description="varchar(10)" />
+    <Node Id="ListingPricing_UpdatedAtUtc" Label="UpdatedAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="Listings" Label="Listings" Category="Table" Group="Collapsed" />
+    <Node Id="Listings_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="Listings_PropertyId" Label="PropertyId int" Category="FK" Description="int" />
+    <Node Id="Listings_Name" Label="Name nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Listings_Floor" Label="Floor int" Category="NOT NULL" Description="int" />
+    <Node Id="Listings_Type" Label="Type nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Listings_Status" Label="Status nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Listings_WifiName" Label="WifiName nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Listings_WifiPassword" Label="WifiPassword nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Listings_MaxGuests" Label="MaxGuests int" Category="NOT NULL" Description="int" />
+    <Node Id="Listings_CheckInTime" Label="CheckInTime nvarchar(max)" Category="NULL" Description="nvarchar(max)" />
+    <Node Id="Listings_CheckOutTime" Label="CheckOutTime nvarchar(max)" Category="NULL" Description="nvarchar(max)" />
+    <Node Id="MessageTemplate" Label="MessageTemplate" Category="Table" Group="Collapsed" />
+    <Node Id="MessageTemplate_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="MessageTemplate_TemplateKey" Label="TemplateKey varchar(100)" Category="NULL" Description="varchar(100)" />
+    <Node Id="MessageTemplate_Channel" Label="Channel varchar(20)" Category="NOT NULL" Description="varchar(20)" />
+    <Node Id="MessageTemplate_Subject" Label="Subject varchar(200)" Category="NULL" Description="varchar(200)" />
+    <Node Id="MessageTemplate_Body" Label="Body text" Category="NOT NULL" Description="text" />
+    <Node Id="MessageTemplate_IsActive" Label="IsActive bit" Category="NOT NULL" Description="bit" />
+    <Node Id="MessageTemplate_CreatedAtUtc" Label="CreatedAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="MessageTemplate_EventType" Label="EventType varchar(50)" Category="NOT NULL" Description="varchar(50)" />
+    <Node Id="MessageTemplate_Language" Label="Language varchar(10)" Category="NOT NULL" Description="varchar(10)" />
+    <Node Id="MessageTemplate_ScopeId" Label="ScopeId int" Category="NULL" Description="int" />
+    <Node Id="MessageTemplate_ScopeType" Label="ScopeType varchar(20)" Category="NOT NULL" Description="varchar(20)" />
+    <Node Id="MessageTemplate_TemplateVersion" Label="TemplateVersion int" Category="NOT NULL" Description="int" />
+    <Node Id="MessageTemplate_UpdatedAtUtc" Label="UpdatedAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="OutboxMessage" Label="OutboxMessage" Category="Table" Group="Collapsed" />
+    <Node Id="OutboxMessage_Id" Label="Id uniqueidentifier" Category="PK" Description="uniqueidentifier" />
+    <Node Id="OutboxMessage_AggregateType" Label="AggregateType varchar(50)" Category="NOT NULL" Description="varchar(50)" />
+    <Node Id="OutboxMessage_AggregateId" Label="AggregateId varchar(50)" Category="NOT NULL" Description="varchar(50)" />
+    <Node Id="OutboxMessage_EventType" Label="EventType varchar(50)" Category="NOT NULL" Description="varchar(50)" />
+    <Node Id="OutboxMessage_PayloadJson" Label="PayloadJson text" Category="NOT NULL" Description="text" />
+    <Node Id="OutboxMessage_HeadersJson" Label="HeadersJson text" Category="NULL" Description="text" />
+    <Node Id="OutboxMessage_CreatedAtUtc" Label="CreatedAtUtc datetime" Category="NOT NULL" Description="datetime" />
+    <Node Id="OutboxMessage_PublishedAtUtc" Label="PublishedAtUtc datetime" Category="NULL" Description="datetime" />
+    <Node Id="OutboxMessage_AttemptCount" Label="AttemptCount int" Category="NOT NULL" Description="int" />
+    <Node Id="OutboxMessage_LastError" Label="LastError text" Category="NULL" Description="text" />
+    <Node Id="Payments" Label="Payments" Category="Table" Group="Collapsed" />
+    <Node Id="Payments_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="Payments_BookingId" Label="BookingId int" Category="NOT NULL" Description="int" />
+    <Node Id="Payments_Amount" Label="Amount decimal(18, 2)" Category="NOT NULL" Description="decimal(18, 2)" />
+    <Node Id="Payments_Method" Label="Method nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Payments_Type" Label="Type nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Payments_ReceivedOn" Label="ReceivedOn datetime2" Category="NOT NULL" Description="datetime2" />
+    <Node Id="Payments_Note" Label="Note nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Properties" Label="Properties" Category="Table" Group="Collapsed" />
+    <Node Id="Properties_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="Properties_Name" Label="Name nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Properties_Address" Label="Address nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Properties_Type" Label="Type nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Properties_OwnerName" Label="OwnerName nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Properties_ContactPhone" Label="ContactPhone nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Properties_CommissionPercent" Label="CommissionPercent decimal(5, 2)" Category="NULL" Description="decimal(5, 2)" />
+    <Node Id="Properties_Status" Label="Status nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Users" Label="Users" Category="Table" Group="Collapsed" />
+    <Node Id="Users_Id" Label="Id int" Category="PK" Description="int" />
+    <Node Id="Users_Name" Label="Name nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Users_Phone" Label="Phone nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Users_Email" Label="Email nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Users_PasswordHash" Label="PasswordHash nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+    <Node Id="Users_Role" Label="Role nvarchar(max)" Category="NOT NULL" Description="nvarchar(max)" />
+  </Nodes>
+  <Links>
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="Database" Target="dbo" Category="Contains" />
+    <Link Source="dbo" Target="AutomationSchedule" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_Id" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_BookingId" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_EventType" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_DueAtUtc" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_Status" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_PublishedAtUtc" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_CompletedAtUtc" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_AttemptCount" Category="Contains" />
+    <Link Source="AutomationSchedule" Target="AutomationSchedule_LastError" Category="Contains" />
+    <Link Source="dbo" Target="AvailabilityBlock" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_Id" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_ListingId" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_BookingId" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_StartDate" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_EndDate" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_Status" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_CreatedAtUtc" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_BlockType" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_Source" Category="Contains" />
+    <Link Source="AvailabilityBlock" Target="AvailabilityBlock_UpdatedAtUtc" Category="Contains" />
+    <Link Source="AvailabilityBlock_BookingId" Target="Bookings_Id" Label="FK_AvailabilityBlocks_Bookings_BookingId" Category="Foreign Key" />
+    <Link Source="AvailabilityBlock_ListingId" Target="Listings_Id" Label="FK_AvailabilityBlocks_Listings_ListingId" Category="Foreign Key" />
+    <Link Source="dbo" Target="BankAccounts" Category="Contains" />
+    <Link Source="BankAccounts" Target="BankAccounts_Id" Category="Contains" />
+    <Link Source="BankAccounts" Target="BankAccounts_BankName" Category="Contains" />
+    <Link Source="BankAccounts" Target="BankAccounts_AccountNumber" Category="Contains" />
+    <Link Source="BankAccounts" Target="BankAccounts_IFSC" Category="Contains" />
+    <Link Source="BankAccounts" Target="BankAccounts_AccountType" Category="Contains" />
+    <Link Source="BankAccounts" Target="BankAccounts_CreatedAt" Category="Contains" />
+    <Link Source="dbo" Target="Bookings" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_Id" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_ListingId" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_GuestId" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_CheckinDate" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_CheckoutDate" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_PlannedCheckinTime" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_ActualCheckinTime" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_PlannedCheckoutTime" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_ActualCheckoutTime" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_BookingSource" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_PaymentStatus" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_AmountReceived" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_Notes" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_CreatedAt" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_PaymentDate" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_GuestsPlanned" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_GuestsActual" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_ExtraGuestCharge" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_AmountGuestPaid" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_CommissionAmount" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_BankAccountId" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_BookingStatus" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_CancelledAtUtc" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_CheckedInAtUtc" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_CheckedOutAtUtc" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_ConfirmationSentAtUtc" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_Currency" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_ExternalReservationId" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_RefundFreeUntilUtc" Category="Contains" />
+    <Link Source="Bookings" Target="Bookings_TotalAmount" Category="Contains" />
+    <Link Source="Bookings_BankAccountId" Target="BankAccounts_Id" Label="FK_Bookings_BankAccounts_BankAccountId" Category="Foreign Key" />
+    <Link Source="Bookings_GuestId" Target="Guests_Id" Label="FK_Bookings_Guests_GuestId" Category="Foreign Key" />
+    <Link Source="Bookings_ListingId" Target="Listings_Id" Label="FK_Bookings_Listings_ListingId" Category="Foreign Key" />
+    <Link Source="dbo" Target="CommunicationLog" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_Id" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_Channel" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_Status" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_ProviderMessageId" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_BookingId" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_TemplateId" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_CreatedAtUtc" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_GuestId" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_EventType" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_ToAddress" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_TemplateVersion" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_CorrelationId" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_IdempotencyKey" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_Provider" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_AttemptCount" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_LastError" Category="Contains" />
+    <Link Source="CommunicationLog" Target="CommunicationLog_SentAtUtc" Category="Contains" />
+    <Link Source="CommunicationLog_BookingId" Target="Bookings_Id" Label="FK_CommunicationLog_Bookings_BookingId" Category="Foreign Key" />
+    <Link Source="CommunicationLog_GuestId" Target="Guests_Id" Label="FK_CommunicationLog_Guests_GuestId" Category="Foreign Key" />
+    <Link Source="CommunicationLog_TemplateId" Target="MessageTemplate_Id" Label="FK_CommunicationLog_MessageTemplate_TemplateId" Category="Foreign Key" />
+    <Link Source="dbo" Target="Guests" Category="Contains" />
+    <Link Source="Guests" Target="Guests_Id" Category="Contains" />
+    <Link Source="Guests" Target="Guests_Name" Category="Contains" />
+    <Link Source="Guests" Target="Guests_Phone" Category="Contains" />
+    <Link Source="Guests" Target="Guests_Email" Category="Contains" />
+    <Link Source="Guests" Target="Guests_IdProofUrl" Category="Contains" />
+    <Link Source="dbo" Target="Incidents" Category="Contains" />
+    <Link Source="Incidents" Target="Incidents_Id" Category="Contains" />
+    <Link Source="Incidents" Target="Incidents_ListingId" Category="Contains" />
+    <Link Source="Incidents" Target="Incidents_BookingId" Category="Contains" />
+    <Link Source="Incidents" Target="Incidents_Description" Category="Contains" />
+    <Link Source="Incidents" Target="Incidents_ActionTaken" Category="Contains" />
+    <Link Source="Incidents" Target="Incidents_Status" Category="Contains" />
+    <Link Source="Incidents" Target="Incidents_CreatedBy" Category="Contains" />
+    <Link Source="Incidents" Target="Incidents_CreatedOn" Category="Contains" />
+    <Link Source="dbo" Target="ListingDailyRate" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_Id" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_ListingId" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_Date" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_NightlyRate" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_Currency" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_Source" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_Reason" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_UpdatedByUserId" Category="Contains" />
+    <Link Source="ListingDailyRate" Target="ListingDailyRate_UpdatedAtUtc" Category="Contains" />
+    <Link Source="ListingDailyRate_ListingId" Target="Listings_Id" Label="FK_ListingDailyRate_Listings_ListingId" Category="Foreign Key" />
+    <Link Source="dbo" Target="ListingPricing" Category="Contains" />
+    <Link Source="ListingPricing" Target="ListingPricing_ListingId" Category="Contains" />
+    <Link Source="ListingPricing" Target="ListingPricing_BaseNightlyRate" Category="Contains" />
+    <Link Source="ListingPricing" Target="ListingPricing_WeekendNightlyRate" Category="Contains" />
+    <Link Source="ListingPricing" Target="ListingPricing_ExtraGuestRate" Category="Contains" />
+    <Link Source="ListingPricing" Target="ListingPricing_Currency" Category="Contains" />
+    <Link Source="ListingPricing" Target="ListingPricing_UpdatedAtUtc" Category="Contains" />
+    <Link Source="ListingPricing_ListingId" Target="Listings_Id" Label="FK_ListingPricing_Listings_ListingId" Category="Foreign Key" />
+    <Link Source="dbo" Target="Listings" Category="Contains" />
+    <Link Source="Listings" Target="Listings_Id" Category="Contains" />
+    <Link Source="Listings" Target="Listings_PropertyId" Category="Contains" />
+    <Link Source="Listings" Target="Listings_Name" Category="Contains" />
+    <Link Source="Listings" Target="Listings_Floor" Category="Contains" />
+    <Link Source="Listings" Target="Listings_Type" Category="Contains" />
+    <Link Source="Listings" Target="Listings_Status" Category="Contains" />
+    <Link Source="Listings" Target="Listings_WifiName" Category="Contains" />
+    <Link Source="Listings" Target="Listings_WifiPassword" Category="Contains" />
+    <Link Source="Listings" Target="Listings_MaxGuests" Category="Contains" />
+    <Link Source="Listings" Target="Listings_CheckInTime" Category="Contains" />
+    <Link Source="Listings" Target="Listings_CheckOutTime" Category="Contains" />
+    <Link Source="Listings_PropertyId" Target="Properties_Id" Label="FK_Listings_Properties_PropertyId" Category="Foreign Key" />
+    <Link Source="dbo" Target="MessageTemplate" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_Id" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_TemplateKey" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_Channel" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_Subject" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_Body" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_IsActive" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_CreatedAtUtc" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_EventType" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_Language" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_ScopeId" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_ScopeType" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_TemplateVersion" Category="Contains" />
+    <Link Source="MessageTemplate" Target="MessageTemplate_UpdatedAtUtc" Category="Contains" />
+    <Link Source="dbo" Target="OutboxMessage" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_Id" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_AggregateType" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_AggregateId" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_EventType" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_PayloadJson" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_HeadersJson" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_CreatedAtUtc" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_PublishedAtUtc" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_AttemptCount" Category="Contains" />
+    <Link Source="OutboxMessage" Target="OutboxMessage_LastError" Category="Contains" />
+    <Link Source="dbo" Target="Payments" Category="Contains" />
+    <Link Source="Payments" Target="Payments_Id" Category="Contains" />
+    <Link Source="Payments" Target="Payments_BookingId" Category="Contains" />
+    <Link Source="Payments" Target="Payments_Amount" Category="Contains" />
+    <Link Source="Payments" Target="Payments_Method" Category="Contains" />
+    <Link Source="Payments" Target="Payments_Type" Category="Contains" />
+    <Link Source="Payments" Target="Payments_ReceivedOn" Category="Contains" />
+    <Link Source="Payments" Target="Payments_Note" Category="Contains" />
+    <Link Source="dbo" Target="Properties" Category="Contains" />
+    <Link Source="Properties" Target="Properties_Id" Category="Contains" />
+    <Link Source="Properties" Target="Properties_Name" Category="Contains" />
+    <Link Source="Properties" Target="Properties_Address" Category="Contains" />
+    <Link Source="Properties" Target="Properties_Type" Category="Contains" />
+    <Link Source="Properties" Target="Properties_OwnerName" Category="Contains" />
+    <Link Source="Properties" Target="Properties_ContactPhone" Category="Contains" />
+    <Link Source="Properties" Target="Properties_CommissionPercent" Category="Contains" />
+    <Link Source="Properties" Target="Properties_Status" Category="Contains" />
+    <Link Source="dbo" Target="Users" Category="Contains" />
+    <Link Source="Users" Target="Users_Id" Category="Contains" />
+    <Link Source="Users" Target="Users_Name" Category="Contains" />
+    <Link Source="Users" Target="Users_Phone" Category="Contains" />
+    <Link Source="Users" Target="Users_Email" Category="Contains" />
+    <Link Source="Users" Target="Users_PasswordHash" Category="Contains" />
+    <Link Source="Users" Target="Users_Role" Category="Contains" />
+  </Links>
+  <Styles>
+    <Style TargetType="Node" GroupLabel="Table" ValueLabel="True">
+      <Condition Expression="HasCategory('Table')" />
+      <Setter Property="Background" Value="#FFC0C0C0" />
+    </Style>
+    <Style TargetType="Node" GroupLabel="Schema" ValueLabel="True">
+      <Condition Expression="HasCategory('Schema')" />
+      <Setter Property="Background" Value="#FF7F9169" />
+    </Style>
+    <Style TargetType="Node" GroupLabel="PK" ValueLabel="True">
+      <Condition Expression="HasCategory('PK')" />
+      <Setter Property="Background" Value="#FF008000" />
+    </Style>
+    <Style TargetType="Node" GroupLabel="NULL" ValueLabel="True">
+      <Condition Expression="HasCategory('NULL')" />
+      <Setter Property="Background" Value="#FF808040" />
+    </Style>
+    <Style TargetType="Node" GroupLabel="FK" ValueLabel="True">
+      <Condition Expression="HasCategory('FK')" />
+      <Setter Property="Background" Value="#FF8080FF" />
+    </Style>
+    <Style TargetType="Node" GroupLabel="NOT NULL" ValueLabel="True">
+      <Condition Expression="HasCategory('NOT NULL')" />
+      <Setter Property="Background" Value="#FFC0A000" />
+    </Style>
+    <Style TargetType="Node" GroupLabel="Database" ValueLabel="True">
+      <Condition Expression="HasCategory('Database')" />
+      <Setter Property="Background" Value="#FFFFFFFF" />
+    </Style>
+  </Styles>
+</DirectedGraph>

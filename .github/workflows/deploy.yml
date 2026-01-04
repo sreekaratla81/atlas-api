@@ -32,10 +32,10 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Run unit tests
-        run: dotnet test Atlas.Api.Tests --configuration Release --no-build
+        run: dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --configuration Release --no-build
 
       - name: Run smoke integration tests
-        run: dotnet test Atlas.Api.IntegrationTests --configuration Release --filter "Suite=Smoke" --no-build
+        run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release --filter "Suite=Smoke" --no-build
 
       - name: Publish .NET API
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish

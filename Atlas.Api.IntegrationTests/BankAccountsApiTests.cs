@@ -16,14 +16,14 @@ public class BankAccountsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await DataSeeder.SeedBankAccountAsync(db);
 
-        var response = await Client.GetAsync("/api/bankaccounts");
+        var response = await Client.GetAsync(ApiRoute("bankaccounts"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync("/api/bankaccounts/1");
+        var response = await Client.GetAsync(ApiRoute("bankaccounts/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -38,7 +38,7 @@ public class BankAccountsApiTests : IntegrationTestBase
             AccountType = "Savings"
         };
 
-        var response = await Client.PostAsJsonAsync("/api/bankaccounts", request);
+        var response = await Client.PostAsJsonAsync(ApiRoute("bankaccounts"), request);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope = Factory.Services.CreateScope();
@@ -54,7 +54,7 @@ public class BankAccountsApiTests : IntegrationTestBase
         var account = await DataSeeder.SeedBankAccountAsync(db);
         account.BankName = "Updated";
 
-        var response = await Client.PutAsJsonAsync($"/api/bankaccounts/{account.Id}", account);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"bankaccounts/{account.Id}"), account);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -74,7 +74,7 @@ public class BankAccountsApiTests : IntegrationTestBase
             AccountType = "S"
         };
 
-        var response = await Client.PutAsJsonAsync("/api/bankaccounts/1", account);
+        var response = await Client.PutAsJsonAsync(ApiRoute("bankaccounts/1"), account);
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -86,7 +86,7 @@ public class BankAccountsApiTests : IntegrationTestBase
         var account = await DataSeeder.SeedBankAccountAsync(db);
         var id = account.Id;
 
-        var response = await Client.DeleteAsync($"/api/bankaccounts/{id}");
+        var response = await Client.DeleteAsync(ApiRoute($"bankaccounts/{id}"));
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -97,7 +97,7 @@ public class BankAccountsApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync("/api/bankaccounts/1");
+        var response = await Client.DeleteAsync(ApiRoute("bankaccounts/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

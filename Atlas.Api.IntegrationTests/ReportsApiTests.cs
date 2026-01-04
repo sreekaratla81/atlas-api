@@ -75,7 +75,7 @@ public class ReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedDataAsync(db);
 
-        var response = await Client.GetAsync("/api/reports/calendar-earnings?listingId=1&month=2025-07");
+        var response = await Client.GetAsync(ApiRoute("reports/calendar-earnings?listingId=1&month=2025-07"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
@@ -92,7 +92,7 @@ public class ReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedSameDayBookingAsync(db);
 
-        var response = await Client.GetAsync("/api/reports/calendar-earnings?listingId=1&month=2025-06");
+        var response = await Client.GetAsync(ApiRoute("reports/calendar-earnings?listingId=1&month=2025-06"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
@@ -142,7 +142,7 @@ public class ReportsApiTests : IntegrationTestBase
             });
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync("/api/reports/calendar-earnings?listingId=1&month=2025-07");
+        var response = await Client.GetAsync(ApiRoute("reports/calendar-earnings?listingId=1&month=2025-07"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
@@ -162,7 +162,7 @@ public class ReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedBankAccountDataAsync(db);
 
-        var response = await Client.GetAsync("/api/reports/bank-account-earnings");
+        var response = await Client.GetAsync(ApiRoute("reports/bank-account-earnings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();
@@ -178,7 +178,7 @@ public class ReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await DataSeeder.SeedBankAccountAsync(db);
 
-        var response = await Client.GetAsync("/api/reports/bank-account-earnings");
+        var response = await Client.GetAsync(ApiRoute("reports/bank-account-earnings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();

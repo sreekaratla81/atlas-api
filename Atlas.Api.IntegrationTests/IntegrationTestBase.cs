@@ -24,6 +24,8 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
         Client = factory.CreateClient();
     }
 
+    protected string ApiRoute(string relativePath) => Factory.ApiRoute(relativePath);
+
     public async Task InitializeAsync()
     {
         await ResetDatabase();

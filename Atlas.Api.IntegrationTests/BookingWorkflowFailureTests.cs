@@ -87,7 +87,7 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
             notes = "create"
         };
 
-        var response = await _client.PostAsJsonAsync("/api/bookings", newBooking);
+        var response = await _client.PostAsJsonAsync(_factory.ApiRoute("bookings"), newBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         var created = await db.Bookings.OrderByDescending(b => b.Id).FirstAsync();

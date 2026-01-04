@@ -70,7 +70,7 @@ public class PropertiesApiTests : IntegrationTestBase
     [Fact]
     public async Task GetAll_ReturnsOk()
     {
-        var response = await Client.GetAsync("/api/properties");
+        var response = await Client.GetAsync(ApiRoute("properties"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var properties = await response.Content.ReadFromJsonAsync<List<Property>>();
@@ -82,7 +82,7 @@ public class PropertiesApiTests : IntegrationTestBase
     {
         // Id 1 is seeded in every test run. Use a high value that will not exist
         // to verify the NotFound response.
-        var response = await Client.GetAsync("/api/properties/999");
+        var response = await Client.GetAsync(ApiRoute("properties/999"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -99,7 +99,7 @@ public class PropertiesApiTests : IntegrationTestBase
             CommissionPercent = 10,
             Status = "Active"
         };
-        var response = await Client.PostAsJsonAsync("/api/properties", property);
+        var response = await Client.PostAsJsonAsync(ApiRoute("properties"), property);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope = Factory.Services.CreateScope();
@@ -127,7 +127,7 @@ public class PropertiesApiTests : IntegrationTestBase
         await db.SaveChangesAsync();
 
         property.Name = "Updated";
-        var response = await Client.PutAsJsonAsync($"/api/properties/{property.Id}", property);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"properties/{property.Id}"), property);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -140,7 +140,7 @@ public class PropertiesApiTests : IntegrationTestBase
     public async Task Put_ReturnsBadRequest_OnIdMismatch()
     {
         var property = new Property { Id = 1, Name = "P", Address = "A", Type = "T", OwnerName = "O", ContactPhone = "0", CommissionPercent = 10, Status = "A" };
-        var response = await Client.PutAsJsonAsync("/api/properties/2", property);
+        var response = await Client.PutAsJsonAsync(ApiRoute("properties/2"), property);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -163,7 +163,7 @@ public class PropertiesApiTests : IntegrationTestBase
         await db.SaveChangesAsync();
         var id = property.Id;
 
-        var response = await Client.DeleteAsync($"/api/properties/{id}");
+        var response = await Client.DeleteAsync(ApiRoute($"properties/{id}"));
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -177,7 +177,7 @@ public class PropertiesApiTests : IntegrationTestBase
     {
         // The database always contains a seed property with Id 1. Use a
         // non-existent id to ensure the API returns NotFound.
-        var response = await Client.DeleteAsync("/api/properties/999");
+        var response = await Client.DeleteAsync(ApiRoute("properties/999"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

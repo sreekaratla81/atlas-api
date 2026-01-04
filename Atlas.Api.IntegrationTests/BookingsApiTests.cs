@@ -75,7 +75,7 @@ public class BookingsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedBookingAsync(db);
 
-        var response = await Client.GetAsync("/api/bookings");
+        var response = await Client.GetAsync(ApiRoute("bookings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -86,7 +86,7 @@ public class BookingsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedBookingAsync(db);
 
-        var response = await Client.GetAsync("/api/bookings");
+        var response = await Client.GetAsync(ApiRoute("bookings"));
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
         Assert.Contains("guest", json);
@@ -95,7 +95,7 @@ public class BookingsApiTests : IntegrationTestBase
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync("/api/bookings/1");
+        var response = await Client.GetAsync(ApiRoute("bookings/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -127,7 +127,7 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "create"
         };
 
-        var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        var response = await Client.PostAsJsonAsync(ApiRoute("bookings"), newBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -163,7 +163,7 @@ public class BookingsApiTests : IntegrationTestBase
             extraGuestCharge = 0m
         };
 
-        var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        var response = await Client.PostAsJsonAsync(ApiRoute("bookings"), newBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
 
@@ -189,7 +189,7 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "create"
         };
 
-        var response = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        var response = await Client.PostAsJsonAsync(ApiRoute("bookings"), newBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
 
@@ -218,7 +218,7 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "first"
         };
 
-        var firstResponse = await Client.PostAsJsonAsync("/api/bookings", firstBooking);
+        var firstResponse = await Client.PostAsJsonAsync(ApiRoute("bookings"), firstBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, firstResponse.StatusCode);
 
         var overlappingBooking = new
@@ -237,7 +237,7 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "overlap"
         };
 
-        var overlapResponse = await Client.PostAsJsonAsync("/api/bookings", overlappingBooking);
+        var overlapResponse = await Client.PostAsJsonAsync(ApiRoute("bookings"), overlappingBooking);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, overlapResponse.StatusCode);
     }
 
@@ -269,7 +269,7 @@ public class BookingsApiTests : IntegrationTestBase
             paymentStatus = data.booking.PaymentStatus,
             notes = "updated"
         };
-        var response = await Client.PutAsJsonAsync($"/api/bookings/{id}", payload);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"bookings/{id}"), payload);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -303,7 +303,7 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "confirm"
         };
 
-        var createResponse = await Client.PostAsJsonAsync("/api/bookings", confirmedBooking);
+        var createResponse = await Client.PostAsJsonAsync(ApiRoute("bookings"), confirmedBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, createResponse.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -343,7 +343,7 @@ public class BookingsApiTests : IntegrationTestBase
             notes = booking.Notes
         };
 
-        var updateResponse = await Client.PutAsJsonAsync($"/api/bookings/{booking.Id}", updatePayload);
+        var updateResponse = await Client.PutAsJsonAsync(ApiRoute($"bookings/{booking.Id}"), updatePayload);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, updateResponse.StatusCode);
 
         using var scope3 = Factory.Services.CreateScope();
@@ -378,7 +378,7 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "bad"
         };
 
-        var response = await Client.PutAsJsonAsync($"/api/bookings/{id}", payload);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"bookings/{id}"), payload);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }
 
@@ -403,7 +403,7 @@ public class BookingsApiTests : IntegrationTestBase
             commissionAmount = 0m,
             notes = "n"
         };
-        var response = await Client.PutAsJsonAsync("/api/bookings/2", booking);
+        var response = await Client.PutAsJsonAsync(ApiRoute("bookings/2"), booking);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -428,7 +428,7 @@ public class BookingsApiTests : IntegrationTestBase
             Notes = "create"
         };
 
-        var response = await Client.PostAsJsonAsync("/api/bookings", request);
+        var response = await Client.PostAsJsonAsync(ApiRoute("bookings"), request);
 
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
@@ -457,7 +457,7 @@ public class BookingsApiTests : IntegrationTestBase
             BankAccountId = data.booking.BankAccountId
         };
 
-        var response = await Client.PutAsJsonAsync($"/api/bookings/{data.booking.Id}", request);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"bookings/{data.booking.Id}"), request);
 
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }
@@ -484,7 +484,7 @@ public class BookingsApiTests : IntegrationTestBase
             Notes = "full"
         };
 
-        var response = await Client.PostAsJsonAsync("/api/bookings", request);
+        var response = await Client.PostAsJsonAsync(ApiRoute("bookings"), request);
 
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
     }
@@ -497,7 +497,7 @@ public class BookingsApiTests : IntegrationTestBase
         var data = await SeedBookingAsync(db);
         var id = data.booking.Id;
 
-        var response = await Client.DeleteAsync($"/api/bookings/{id}");
+        var response = await Client.DeleteAsync(ApiRoute($"bookings/{id}"));
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -509,7 +509,7 @@ public class BookingsApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync("/api/bookings/1");
+        var response = await Client.DeleteAsync(ApiRoute("bookings/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -536,14 +536,14 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "confirm"
         };
 
-        var createResponse = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        var createResponse = await Client.PostAsJsonAsync(ApiRoute("bookings"), newBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, createResponse.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var booking = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
 
-        var cancelResponse = await Client.PostAsync($"/api/bookings/{booking.Id}/cancel", null);
+        var cancelResponse = await Client.PostAsync(ApiRoute($"bookings/{booking.Id}/cancel"), null);
         Assert.Equal(System.Net.HttpStatusCode.OK, cancelResponse.StatusCode);
 
         using var scope3 = Factory.Services.CreateScope();
@@ -580,14 +580,14 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "confirm"
         };
 
-        var createResponse = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        var createResponse = await Client.PostAsJsonAsync(ApiRoute("bookings"), newBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, createResponse.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var booking = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
 
-        var checkInResponse = await Client.PostAsync($"/api/bookings/{booking.Id}/checkin", null);
+        var checkInResponse = await Client.PostAsync(ApiRoute($"bookings/{booking.Id}/checkin"), null);
         Assert.Equal(System.Net.HttpStatusCode.OK, checkInResponse.StatusCode);
 
         using var scope3 = Factory.Services.CreateScope();
@@ -621,17 +621,17 @@ public class BookingsApiTests : IntegrationTestBase
             notes = "confirm"
         };
 
-        var createResponse = await Client.PostAsJsonAsync("/api/bookings", newBooking);
+        var createResponse = await Client.PostAsJsonAsync(ApiRoute("bookings"), newBooking);
         Assert.Equal(System.Net.HttpStatusCode.Created, createResponse.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var booking = await db2.Bookings.OrderByDescending(b => b.Id).FirstAsync();
 
-        var checkInResponse = await Client.PostAsync($"/api/bookings/{booking.Id}/checkin", null);
+        var checkInResponse = await Client.PostAsync(ApiRoute($"bookings/{booking.Id}/checkin"), null);
         Assert.Equal(System.Net.HttpStatusCode.OK, checkInResponse.StatusCode);
 
-        var checkOutResponse = await Client.PostAsync($"/api/bookings/{booking.Id}/checkout", null);
+        var checkOutResponse = await Client.PostAsync(ApiRoute($"bookings/{booking.Id}/checkout"), null);
         Assert.Equal(System.Net.HttpStatusCode.OK, checkOutResponse.StatusCode);
 
         using var scope3 = Factory.Services.CreateScope();

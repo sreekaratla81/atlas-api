@@ -24,14 +24,14 @@ public class ListingsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedListingAsync(db);
 
-        var response = await Client.GetAsync("/api/listings");
+        var response = await Client.GetAsync(ApiRoute("listings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync("/api/listings/1");
+        var response = await Client.GetAsync(ApiRoute("listings/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -54,7 +54,7 @@ public class ListingsApiTests : IntegrationTestBase
             MaxGuests = 2
         };
 
-        var response = await Client.PostAsJsonAsync("/api/listings", listing);
+        var response = await Client.PostAsJsonAsync(ApiRoute("listings"), listing);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -70,7 +70,7 @@ public class ListingsApiTests : IntegrationTestBase
         var (_, listing) = await SeedListingAsync(db);
         listing.Name = "Updated";
 
-        var response = await Client.PutAsJsonAsync($"/api/listings/{listing.Id}", listing);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"listings/{listing.Id}"), listing);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -82,7 +82,7 @@ public class ListingsApiTests : IntegrationTestBase
     public async Task Put_ReturnsBadRequest_OnIdMismatch()
     {
         var listing = new Listing { Id = 1, PropertyId = 1, Property = new Property { Id = 1, Name = "P", Address = "A", Type = "T", OwnerName = "O", ContactPhone = "0", CommissionPercent = 10, Status = "Active" }, Name = "N", Floor = 1, Type = "T", Status = "A", WifiName = "w", WifiPassword = "p", MaxGuests = 1 };
-        var response = await Client.PutAsJsonAsync("/api/listings/2", listing);
+        var response = await Client.PutAsJsonAsync(ApiRoute("listings/2"), listing);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -94,7 +94,7 @@ public class ListingsApiTests : IntegrationTestBase
         var (_, listing) = await SeedListingAsync(db);
         var id = listing.Id;
 
-        var response = await Client.DeleteAsync($"/api/listings/{id}");
+        var response = await Client.DeleteAsync(ApiRoute($"listings/{id}"));
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -105,7 +105,7 @@ public class ListingsApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync("/api/listings/1");
+        var response = await Client.DeleteAsync(ApiRoute("listings/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

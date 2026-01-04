@@ -17,14 +17,14 @@ public class GuestsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Guests.Add(new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" });
         await db.SaveChangesAsync();
-        var response = await Client.GetAsync("/api/guests");
+        var response = await Client.GetAsync(ApiRoute("guests"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync("/api/guests/1");
+        var response = await Client.GetAsync(ApiRoute("guests/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -32,7 +32,7 @@ public class GuestsApiTests : IntegrationTestBase
     public async Task Post_CreatesGuest()
     {
         var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" };
-        var response = await Client.PostAsJsonAsync("/api/guests", guest);
+        var response = await Client.PostAsJsonAsync(ApiRoute("guests"), guest);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -48,7 +48,7 @@ public class GuestsApiTests : IntegrationTestBase
         db.Guests.Add(guest);
         await db.SaveChangesAsync();
         guest.Name = "Updated";
-        var response = await Client.PutAsJsonAsync($"/api/guests/{guest.Id}", guest);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"guests/{guest.Id}"), guest);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -59,7 +59,7 @@ public class GuestsApiTests : IntegrationTestBase
     public async Task Put_ReturnsBadRequest_OnIdMismatch()
     {
         var guest = new Guest { Id = 1, Name = "G", Phone = "1", Email = "e", IdProofUrl = "N/A" };
-        var response = await Client.PutAsJsonAsync("/api/guests/2", guest);
+        var response = await Client.PutAsJsonAsync(ApiRoute("guests/2"), guest);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -72,7 +72,7 @@ public class GuestsApiTests : IntegrationTestBase
         db.Guests.Add(guest);
         await db.SaveChangesAsync();
         var id = guest.Id;
-        var response = await Client.DeleteAsync($"/api/guests/{id}");
+        var response = await Client.DeleteAsync(ApiRoute($"guests/{id}"));
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -82,7 +82,7 @@ public class GuestsApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync("/api/guests/1");
+        var response = await Client.DeleteAsync(ApiRoute("guests/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

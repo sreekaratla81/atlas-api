@@ -12,6 +12,14 @@ git clone https://github.com/sreekaratla81/atlas-staff-app.git
 git clone https://github.com/sreekaratla81/atlas-sql.git
 git clone https://github.com/sreekaratla81/atlas-shared-utils.git
 
+## NuGet packages
+
+The repo includes a `NuGet.config` that pins the global packages folder to
+`./.nuget/packages`. This keeps restore paths ASCII-only, which avoids Visual
+Studio errors about package paths containing unexpected characters (e.g. when
+your Windows username includes accents). If you see missing package errors,
+delete the `.nuget/packages` folder and restore again.
+
 ## Running Integration Tests
 
 Integration tests automatically detect and apply any pending EF Core migrations

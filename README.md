@@ -27,3 +27,22 @@ at runtime. You don't need to run `dotnet ef database update` before testing.
 
 Integration tests require SQL Server LocalDb. Ensure LocalDb is available or
 provide a connection string via the `Atlas_TestDb` environment variable.
+
+## Deployment
+
+Production deploys are automated through the GitHub Actions workflow at
+`.github/workflows/deploy.yml`.
+
+- **Triggers:** Pushes to `main` automatically build, test, publish, and deploy
+  to Azure App Service. You can also trigger a manual run from the GitHub UI
+  via **Actions → Deploy .NET API to Azure → Run workflow**.
+- **Required secret:** `AZURE_WEBAPP_PUBLISH_PROFILE` (App Service publish
+  profile XML from Azure Portal → App Service **atlas-homes-api** → Get publish
+  profile → paste into repository secret).
+- **What it does:** Checks out code, installs .NET 8 SDK, restores packages,
+  builds Release, runs unit tests, publishes to `./publish`, and deploys using
+  the publish profile.
+- **Troubleshooting:** YAML indentation errors or malformed keys will cause the
+  workflow to be rejected by GitHub. Verify the workflow YAML structure matches
+  the example in `.github/workflows/deploy.yml`. Ensure the publish profile
+  secret is present and valid if deployment fails.

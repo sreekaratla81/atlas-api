@@ -1,49 +1,46 @@
 name: Deploy .NET API to Azure
 
-on:
-  push:
-    branches:
-      - main
+on: push: branches: - main
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+jobs: build-and-deploy: runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+Code
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v3
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
+  - name: Setup .NET SDK
+    uses: actions/setup-dotnet@v4
+    with:
+      dotnet-version: 8.0.x
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
-          restore-keys: ${{ runner.os }}-nuget-
+  - name: Cache NuGet packages
+    uses: actions/cache@v4
+    with:
+      path: ~/.nuget/packages
+      key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
+      restore-keys: ${{ runner.os }}-nuget-
 
-      - name: Restore dependencies
-        run: dotnet restore
+  - name: Restore dependencies
+    run: dotnet restore
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
+  - name: Build
+    run: dotnet build --configuration Release --no-restore
 
-      - name: Run unit tests
-        run: dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --configuration Release --no-build
+  - name: Run unit tests
+    run: dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --configuration Release
 
-      - name: Run smoke integration tests
-        run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release --filter "Suite=Smoke" --no-build
+  - name: Run smoke integration tests
+    run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release --filter "Suite=Smoke"
 
-      - name: Publish .NET API
-        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish
+  - name: Publish .NET API
+    run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: atlas-homes-api
-          slot-name: production
-          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
-          package: ./publish
+  - name: Deploy to Azure Web App
+    uses: azure/webapps-deploy@v2
+    with:
+      app-name: atlas-homes-api
+      slot-name: production
+      publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+      package: ./publish
+End.

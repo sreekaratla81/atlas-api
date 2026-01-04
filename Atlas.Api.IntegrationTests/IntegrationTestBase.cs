@@ -8,6 +8,7 @@ using Respawn.Graph;
 
 namespace Atlas.Api.IntegrationTests;
 
+[Collection("IntegrationTests")]
 public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
 {
     protected readonly CustomWebApplicationFactory Factory;

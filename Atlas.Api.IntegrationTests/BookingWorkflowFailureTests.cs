@@ -9,6 +9,7 @@ using System;
 
 namespace Atlas.Api.IntegrationTests;
 
+[Collection("IntegrationTests")]
 public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowFactory>, IAsyncLifetime
 {
     private readonly FailingBookingWorkflowFactory _factory;

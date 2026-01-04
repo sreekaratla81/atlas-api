@@ -22,6 +22,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         var dbName = "AtlasHomestays_TestDb";
         var connectionString =
             Environment.GetEnvironmentVariable("Atlas_TestDb") ??
+            Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
         Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", connectionString);

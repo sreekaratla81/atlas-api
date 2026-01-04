@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Api.IntegrationTests;
 
+[Trait("Suite", "Contract")]
 public class AdminReportsApiTests : IntegrationTestBase
 {
     public AdminReportsApiTests(CustomWebApplicationFactory factory) : base(factory) { }
@@ -25,7 +26,7 @@ public class AdminReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedReportingDataAsync(db);
 
-        var response = await Client.GetAsync("/api/admin/reports/bookings");
+        var response = await Client.GetAsync(ApiRoute("admin/reports/bookings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var data = await response.Content.ReadFromJsonAsync<List<BookingInfo>>();
@@ -40,7 +41,7 @@ public class AdminReportsApiTests : IntegrationTestBase
         var property = await DataSeeder.SeedPropertyAsync(db);
         await DataSeeder.SeedListingAsync(db, property);
 
-        var response = await Client.GetAsync("/api/admin/reports/listings");
+        var response = await Client.GetAsync(ApiRoute("admin/reports/listings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -51,7 +52,7 @@ public class AdminReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedReportingDataAsync(db);
 
-        var response = await Client.GetAsync("/api/admin/reports/payouts");
+        var response = await Client.GetAsync(ApiRoute("admin/reports/payouts"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -62,7 +63,7 @@ public class AdminReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedReportingDataAsync(db);
 
-        var response = await Client.GetAsync("/api/admin/reports/earnings/monthly");
+        var response = await Client.GetAsync(ApiRoute("admin/reports/earnings/monthly"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var data = await response.Content.ReadFromJsonAsync<List<MonthlyEarningsSummary>>();
@@ -77,7 +78,7 @@ public class AdminReportsApiTests : IntegrationTestBase
         await SeedReportingDataAsync(db);
 
         var filter = new ReportFilter { StartDate = DateTime.UtcNow.AddMonths(-1), EndDate = DateTime.UtcNow };
-        var response = await Client.PostAsJsonAsync("/api/admin/reports/earnings/monthly", filter);
+        var response = await Client.PostAsJsonAsync(ApiRoute("admin/reports/earnings/monthly"), filter);
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -88,7 +89,7 @@ public class AdminReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedReportingDataAsync(db);
 
-        var response = await Client.GetAsync("/api/admin/reports/payouts/daily");
+        var response = await Client.GetAsync(ApiRoute("admin/reports/payouts/daily"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -99,7 +100,7 @@ public class AdminReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedReportingDataAsync(db);
 
-        var response = await Client.GetAsync("/api/admin/reports/bookings/source");
+        var response = await Client.GetAsync(ApiRoute("admin/reports/bookings/source"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -110,7 +111,7 @@ public class AdminReportsApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await SeedReportingDataAsync(db);
 
-        var response = await Client.GetAsync("/api/admin/reports/bookings/calendar");
+        var response = await Client.GetAsync(ApiRoute("admin/reports/bookings/calendar"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 }

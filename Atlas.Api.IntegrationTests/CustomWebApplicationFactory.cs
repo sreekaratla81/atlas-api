@@ -1,5 +1,6 @@
 using Atlas.Api;
 using Atlas.Api.Data;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -13,15 +14,31 @@ namespace Atlas.Api.IntegrationTests;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    public PathString PathBase { get; } = new("/api");
+
+    public string ApiRoute(string relativePath)
+    {
+        var trimmedPath = relativePath.TrimStart('/');
+        var basePath = PathBase.HasValue ? PathBase.Value!.TrimEnd('/') : string.Empty;
+
+        if (string.IsNullOrEmpty(basePath))
+        {
+            return $"/{trimmedPath}";
+        }
+
+        return $"{basePath}/{trimmedPath}";
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("IntegrationTest");
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "IntegrationTest");
         Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", "Cascade");
 
-        var dbName = $"AtlasHomestays_TestDb_{Guid.NewGuid()}";
+        var dbName = "AtlasHomestays_TestDb";
         var connectionString =
             Environment.GetEnvironmentVariable("Atlas_TestDb") ??
+            Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
         Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", connectionString);

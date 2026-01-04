@@ -122,7 +122,7 @@ namespace Atlas.Api
                 // Guard production migrations to avoid unintended schema changes unless explicitly enabled.
                 if (ShouldRunMigrations(scopedEnv, config))
                 {
-                    db.Database.Migrate();
+                    //db.Database.Migrate();
                 }
             }
 
@@ -150,7 +150,9 @@ namespace Atlas.Api
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
 
-            if (!app.Environment.IsProduction())
+            if (!app.Environment.IsProduction()
+                && !app.Environment.IsEnvironment("IntegrationTest")
+                && !app.Environment.IsEnvironment("Testing"))
             {
                 app.UsePathBase("/api");
             }

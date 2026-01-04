@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.Api.IntegrationTests;
 
+[Trait("Suite", "Contract")]
 public class AvailabilityApiTests : IntegrationTestBase
 {
     public AvailabilityApiTests(CustomWebApplicationFactory factory) : base(factory) { }
@@ -38,7 +39,7 @@ public class AvailabilityApiTests : IntegrationTestBase
         });
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync("/api/availability?propertyId=" + property.Id + "&checkIn=2025-01-01&checkOut=2025-01-03&guests=1");
+        var response = await Client.GetAsync(ApiRoute($"availability?propertyId={property.Id}&checkIn=2025-01-01&checkOut=2025-01-03&guests=1"));
         response.EnsureSuccessStatusCode();
 
         var payload = await response.Content.ReadFromJsonAsync<AvailabilityResponseDto>();

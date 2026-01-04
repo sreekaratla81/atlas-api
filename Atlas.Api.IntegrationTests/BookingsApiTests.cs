@@ -6,6 +6,7 @@ using System.Linq;
 
 namespace Atlas.Api.IntegrationTests;
 
+[Trait("Suite", "Contract")]
 public class BookingsApiTests : IntegrationTestBase
 {
     public BookingsApiTests(CustomWebApplicationFactory factory) : base(factory) {}
@@ -556,6 +557,7 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    [Trait("Suite", "Smoke")]
     public async Task Post_CheckIn_UpdatesStatusAndTimestamp()
     {
         using var scope = Factory.Services.CreateScope();
@@ -596,6 +598,7 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    [Trait("Suite", "Smoke")]
     public async Task Post_CheckOut_UpdatesStatusAndTimestamp()
     {
         using var scope = Factory.Services.CreateScope();

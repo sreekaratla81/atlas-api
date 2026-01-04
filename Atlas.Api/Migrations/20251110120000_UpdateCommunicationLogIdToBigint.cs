@@ -10,6 +10,10 @@ namespace Atlas.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropPrimaryKey(
+                name: "PK_CommunicationLog",
+                table: "CommunicationLog");
+
             migrationBuilder.AlterColumn<long>(
                 name: "Id",
                 table: "CommunicationLog",
@@ -19,11 +23,20 @@ namespace Atlas.Api.Migrations
                 oldType: "int")
                 .Annotation("SqlServer:Identity", "1, 1")
                 .OldAnnotation("SqlServer:Identity", "1, 1");
+
+            migrationBuilder.AddPrimaryKey(
+                name: "PK_CommunicationLog",
+                table: "CommunicationLog",
+                column: "Id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropPrimaryKey(
+                name: "PK_CommunicationLog",
+                table: "CommunicationLog");
+
             migrationBuilder.AlterColumn<int>(
                 name: "Id",
                 table: "CommunicationLog",
@@ -33,6 +46,11 @@ namespace Atlas.Api.Migrations
                 oldType: "bigint")
                 .Annotation("SqlServer:Identity", "1, 1")
                 .OldAnnotation("SqlServer:Identity", "1, 1");
+
+            migrationBuilder.AddPrimaryKey(
+                name: "PK_CommunicationLog",
+                table: "CommunicationLog",
+                column: "Id");
         }
     }
 }

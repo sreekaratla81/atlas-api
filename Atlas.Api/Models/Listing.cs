@@ -21,6 +21,8 @@ namespace Atlas.Api.Models
         public required string WifiPassword { get; set; }
         public int MaxGuests { get; set; }
 
+        public ListingPricing? Pricing { get; set; }
+        public ICollection<ListingDailyRate> DailyRates { get; set; } = new List<ListingDailyRate>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
 }

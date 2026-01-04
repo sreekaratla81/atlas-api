@@ -8,9 +8,9 @@ namespace Atlas.Api.Tests;
 public class DeleteBehaviorTests
 {
     [Fact]
-    public void OnModelCreating_RestrictsDeletes()
+    public void OnModelCreating_RestrictsDeletesByDefault()
     {
-        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
+        Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", null);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase("DeleteBehaviorTest")
             .Options;

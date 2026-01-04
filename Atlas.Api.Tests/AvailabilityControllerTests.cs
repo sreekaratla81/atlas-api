@@ -23,7 +23,7 @@ public class AvailabilityControllerTests
 
         var result = await controller.GetAvailability(1, new DateTime(2025, 1, 2), new DateTime(2025, 1, 2), 1);
 
-        var badRequest = Assert.IsType<ObjectResult>(result.Result);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.Equal(400, badRequest.StatusCode);
     }
 

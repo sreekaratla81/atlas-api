@@ -2,3 +2,4 @@
 **/bin/
 **/obj/
 .env.local
+/.vs/AtlasHomestays

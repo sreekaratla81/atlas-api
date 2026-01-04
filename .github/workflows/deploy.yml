@@ -18,11 +18,24 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
       - name: Restore dependencies
         run: dotnet restore
 
       - name: Build
         run: dotnet build --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test Atlas.Api.Tests --configuration Release --no-build
+
+      - name: Run smoke integration tests
+        run: dotnet test Atlas.Api.IntegrationTests --configuration Release --filter "Suite=Smoke" --no-build
 
       - name: Publish .NET API
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish

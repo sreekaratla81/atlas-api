@@ -5,6 +5,7 @@ using Atlas.Api.Models.Reports;
 
 namespace Atlas.Api.IntegrationTests;
 
+[Trait("Suite", "Contract")]
 public class ReportsApiTests : IntegrationTestBase
 {
     public ReportsApiTests(CustomWebApplicationFactory factory) : base(factory) { }

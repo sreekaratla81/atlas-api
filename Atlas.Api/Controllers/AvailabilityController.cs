@@ -33,19 +33,19 @@ namespace Atlas.Api.Controllers
             if (propertyId <= 0)
             {
                 ModelState.AddModelError(nameof(propertyId), "PropertyId is required.");
-                return ValidationProblem(ModelState);
+                return BadRequest(ModelState);
             }
 
             if (guests <= 0)
             {
                 ModelState.AddModelError(nameof(guests), "Guests must be at least 1.");
-                return ValidationProblem(ModelState);
+                return BadRequest(ModelState);
             }
 
             if (checkOut.Date <= checkIn.Date)
             {
                 ModelState.AddModelError(nameof(checkOut), "Checkout must be after check-in.");
-                return ValidationProblem(ModelState);
+                return BadRequest(ModelState);
             }
 
             try

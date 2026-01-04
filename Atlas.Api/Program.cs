@@ -113,6 +113,19 @@ namespace Atlas.Api
 
             var app = builder.Build();
 
+            using (var scope = app.Services.CreateScope())
+            {
+                var scopedEnv = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                // Guard production migrations to avoid unintended schema changes unless explicitly enabled.
+                if (ShouldRunMigrations(scopedEnv, config))
+                {
+                    db.Database.Migrate();
+                }
+            }
+
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -145,6 +158,16 @@ namespace Atlas.Api
             app.MapControllers();
 
             app.Run();
+        }
+
+        internal static bool ShouldRunMigrations(IWebHostEnvironment env, IConfiguration config)
+        {
+            if (env.IsDevelopment() || env.IsEnvironment("Test"))
+            {
+                return true;
+            }
+
+            return config.GetValue<bool>("RunMigrations");
         }
     }
 }

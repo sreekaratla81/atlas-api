@@ -26,6 +26,8 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
 
     protected string ApiRoute(string relativePath) => Factory.ApiRoute(relativePath);
 
+    protected string ApiControllerRoute(string relativePath) => ApiRoute($"api/{relativePath.TrimStart('/')}");
+
     public async Task InitializeAsync()
     {
         await ResetDatabase();

@@ -84,7 +84,7 @@ public class PaymentsApiTests : IntegrationTestBase
         });
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync(ApiRoute("payments"));
+        var response = await Client.GetAsync(ApiControllerRoute("payments"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -96,14 +96,14 @@ public class PaymentsApiTests : IntegrationTestBase
         var booking = await SeedBookingAsync(db);
         var payment = await DataSeeder.SeedPaymentAsync(db, booking);
 
-        var response = await Client.GetAsync(ApiRoute($"payments/{payment.Id}"));
+        var response = await Client.GetAsync(ApiControllerRoute($"payments/{payment.Id}"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync(ApiRoute("payments/1"));
+        var response = await Client.GetAsync(ApiControllerRoute("payments/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -122,7 +122,7 @@ public class PaymentsApiTests : IntegrationTestBase
             ReceivedOn = DateTime.UtcNow,
             Note = "first"
         };
-        var response = await Client.PostAsJsonAsync(ApiRoute("payments"), payment);
+        var response = await Client.PostAsJsonAsync(ApiControllerRoute("payments"), payment);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -148,7 +148,7 @@ public class PaymentsApiTests : IntegrationTestBase
         await db.SaveChangesAsync();
 
         payment.Note = "updated";
-        var response = await Client.PutAsJsonAsync(ApiRoute($"payments/{payment.Id}"), payment);
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"payments/{payment.Id}"), payment);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -161,7 +161,7 @@ public class PaymentsApiTests : IntegrationTestBase
     public async Task Put_ReturnsBadRequest_OnIdMismatch()
     {
         var payment = new Payment { Id = 1, BookingId = 1, Amount = 1, Method = "c", Type = "t", ReceivedOn = DateTime.UtcNow, Note = "n" };
-        var response = await Client.PutAsJsonAsync(ApiRoute("payments/2"), payment);
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute("payments/2"), payment);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -184,7 +184,7 @@ public class PaymentsApiTests : IntegrationTestBase
         await db.SaveChangesAsync();
         var id = payment.Id;
 
-        var response = await Client.DeleteAsync(ApiRoute($"payments/{id}"));
+        var response = await Client.DeleteAsync(ApiControllerRoute($"payments/{id}"));
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -196,7 +196,7 @@ public class PaymentsApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync(ApiRoute("payments/1"));
+        var response = await Client.DeleteAsync(ApiControllerRoute("payments/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

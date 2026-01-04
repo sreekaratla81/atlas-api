@@ -17,14 +17,14 @@ public class UsersApiTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await DataSeeder.SeedUserAsync(db);
 
-        var response = await Client.GetAsync(ApiRoute("api/users"));
+        var response = await Client.GetAsync(ApiControllerRoute("users"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync(ApiRoute("api/users/1"));
+        var response = await Client.GetAsync(ApiControllerRoute("users/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -32,7 +32,7 @@ public class UsersApiTests : IntegrationTestBase
     public async Task Post_CreatesUser()
     {
         var user = new User { Name = "User", Phone = "1", Email = "u@example.com", PasswordHash = "hash", Role = "admin" };
-        var response = await Client.PostAsJsonAsync(ApiRoute("api/users"), user);
+        var response = await Client.PostAsJsonAsync(ApiControllerRoute("users"), user);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope = Factory.Services.CreateScope();
@@ -48,7 +48,7 @@ public class UsersApiTests : IntegrationTestBase
         var user = await DataSeeder.SeedUserAsync(db);
         user.Name = "Updated";
 
-        var response = await Client.PutAsJsonAsync(ApiRoute($"api/users/{user.Id}"), user);
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"users/{user.Id}"), user);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -60,7 +60,7 @@ public class UsersApiTests : IntegrationTestBase
     public async Task Put_ReturnsBadRequest_OnIdMismatch()
     {
         var user = new User { Id = 1, Name = "U", Phone = "1", Email = "e", PasswordHash = "p", Role = "r" };
-        var response = await Client.PutAsJsonAsync(ApiRoute("api/users/2"), user);
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute("users/2"), user);
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -72,7 +72,7 @@ public class UsersApiTests : IntegrationTestBase
         var user = await DataSeeder.SeedUserAsync(db);
         var id = user.Id;
 
-        var response = await Client.DeleteAsync(ApiRoute($"api/users/{id}"));
+        var response = await Client.DeleteAsync(ApiControllerRoute($"users/{id}"));
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -83,7 +83,7 @@ public class UsersApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync(ApiRoute("api/users/1"));
+        var response = await Client.DeleteAsync(ApiControllerRoute("users/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

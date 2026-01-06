@@ -111,7 +111,7 @@ namespace Atlas.Api
                 // Guard production migrations to avoid unintended schema changes unless explicitly enabled.
                 if (ShouldRunMigrations(scopedEnv, config))
                 {
-                    //db.Database.Migrate();
+                    db.Database.Migrate();
                 }
 
                 ValidateEnvironmentMarker(db, scopedEnv);

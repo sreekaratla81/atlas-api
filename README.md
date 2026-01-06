@@ -54,6 +54,26 @@ CI runs expect `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release`
 to pass. Make sure this command succeeds locally before opening a pull
 request.
 
+## CORS allowlist
+
+Admin surfaces rely on an explicit CORS allowlist defined in `Program.cs` via
+the `AtlasCorsPolicy` policy. By default, we allow:
+
+- `http://localhost:5173`
+- `http://127.0.0.1:5173` (development only)
+- `https://admin.atlashomestays.com`
+- `https://devadmin.atlashomestays.com`
+- `https://www.atlashomestays.com`
+- `https://*.pages.dev` (for Cloudflare Pages previews)
+
+To add a new admin domain, supply a `Cors:AdditionalOrigins` array entry in
+configuration (appsettings, environment variables, or App Service settings).
+The API merges these entries into the allowlist while de-duplicating values.
+
+⚠️ **Do not use `AllowAnyOrigin` in production.** Doing so permits credentialed
+requests from untrusted sites and will break cookie-based Auth0 flows. Always
+add explicit domains to the allowlist instead.
+
 ## Deployment
 
 Production deploys are automated through the GitHub Actions workflow at

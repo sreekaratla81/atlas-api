@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace Atlas.Api
 {
@@ -21,30 +23,16 @@ namespace Atlas.Api
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
 
-            const string CorsPolicy = "AtlasCors";
+            const string CorsPolicy = "AtlasCorsPolicy";
+            var allowedOrigins = BuildAllowedOrigins(builder.Configuration, env);
 
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy(name: CorsPolicy, policy =>
                 {
                     policy
-                        .SetIsOriginAllowed(origin =>
-                        {
-                            try
-                            {
-                                var uri = new Uri(origin);
-                                var host = uri.Host.ToLowerInvariant();
-                                return
-                                    // Local dev
-                                    (origin == "http://localhost:5173") ||
-                                    (origin == "http://127.0.0.1:5173") ||
-                                    // Production
-                                    (origin == "https://admin.atlashomestays.com") ||
-                                    // Cloudflare Pages previews (optional)
-                                    host.EndsWith(".pages.dev");
-                            }
-                            catch { return false; }
-                        })
+                        .WithOrigins(allowedOrigins)
+                        .SetIsOriginAllowedToAllowWildcardSubdomains()
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials();
@@ -140,6 +128,20 @@ namespace Atlas.Api
 
             app.UseRouting();
 
+            if (app.Environment.IsDevelopment())
+            {
+                app.Use(async (context, next) =>
+                {
+                    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+                    var origin = context.Request.Headers.Origin.ToString();
+
+                    logger.LogInformation("CORS Origin header: {Origin}", string.IsNullOrWhiteSpace(origin) ? "<none>" : origin);
+                    logger.LogInformation("Applying CORS policy: {CorsPolicy}", CorsPolicy);
+
+                    await next();
+                });
+            }
+
             app.UseCors(CorsPolicy);
 
             // Optional: HTTPS redirect
@@ -170,6 +172,38 @@ namespace Atlas.Api
             }
 
             return config.GetValue<bool>("RunMigrations");
+        }
+
+        internal static string[] BuildAllowedOrigins(IConfiguration config, IWebHostEnvironment env)
+        {
+            var requiredOrigins = new[]
+            {
+                "http://localhost:5173",
+                "https://admin.atlashomestays.com",
+                "https://devadmin.atlashomestays.com",
+                "https://www.atlashomestays.com",
+                "https://*.pages.dev"
+            };
+
+            var origins = ImmutableArray.CreateBuilder<string>();
+            origins.AddRange(requiredOrigins);
+
+            if (env.IsDevelopment())
+            {
+                origins.Add("http://127.0.0.1:5173");
+            }
+
+            var additionalOrigins = config.GetSection("Cors:AdditionalOrigins").Get<string[]>();
+            if (additionalOrigins is { Length: > 0 })
+            {
+                origins.AddRange(additionalOrigins.Where(origin => !string.IsNullOrWhiteSpace(origin)));
+            }
+
+            return origins
+                .Select(origin => origin.Trim())
+                .Where(origin => !string.IsNullOrWhiteSpace(origin))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
         }
     }
 }

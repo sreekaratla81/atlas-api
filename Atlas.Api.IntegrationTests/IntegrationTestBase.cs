@@ -81,22 +81,29 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
 
     private static async Task SeedBaselineDataAsync(AppDbContext db)
     {
-        if (await db.Properties.AnyAsync())
+        if (!await db.EnvironmentMarkers.AnyAsync())
         {
-            return;
+            db.EnvironmentMarkers.Add(new EnvironmentMarker
+            {
+                Marker = "DEV"
+            });
+            await db.SaveChangesAsync();
         }
 
-        db.Properties.Add(new Property
+        if (!await db.Properties.AnyAsync())
         {
-            Name = "Test Villa",
-            Address = "Seed Address",
-            Type = "Villa",
-            OwnerName = "Owner",
-            ContactPhone = "000",
-            CommissionPercent = 10,
-            Status = "Active"
-        });
-        await db.SaveChangesAsync();
+            db.Properties.Add(new Property
+            {
+                Name = "Test Villa",
+                Address = "Seed Address",
+                Type = "Villa",
+                OwnerName = "Owner",
+                ContactPhone = "000",
+                CommissionPercent = 10,
+                Status = "Active"
+            });
+            await db.SaveChangesAsync();
+        }
     }
 
     protected T GetService<T>() where T : notnull

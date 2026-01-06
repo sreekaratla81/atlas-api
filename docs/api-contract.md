@@ -17,6 +17,15 @@
 
 ## Endpoints
 
+### Operations (`Atlas.Api/Controllers/OpsController.cs`)
+
+#### `GET /ops/db-info`
+- **Purpose**: Return operational environment metadata without exposing secrets.
+- **Request body**: none
+- **Response**: JSON object containing `environment` (ASPNETCORE_ENVIRONMENT), `server` (SQL Server name), `database` (database name), and `marker` (value from the `EnvironmentMarker` table indicating DEV/PROD alignment).
+- **Notes**: Intended for safety checks; avoids returning connection strings or credentials.
+- **Status codes**: 200 on success; 500-style `ProblemDetails` if the marker record is missing.
+
 ### Availability (`Atlas.Api/Controllers/AvailabilityController.cs`)
 
 #### `GET /availability`

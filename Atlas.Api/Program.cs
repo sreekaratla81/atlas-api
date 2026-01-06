@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Collections.Immutable;
 using System.Linq;
+using Atlas.Api.Models;
 
 namespace Atlas.Api
 {
@@ -112,6 +113,8 @@ namespace Atlas.Api
                 {
                     //db.Database.Migrate();
                 }
+
+                ValidateEnvironmentMarker(db, scopedEnv);
             }
 
             app.UseSwagger();
@@ -172,6 +175,46 @@ namespace Atlas.Api
             }
 
             return config.GetValue<bool>("RunMigrations");
+        }
+
+        internal static void ValidateEnvironmentMarker(AppDbContext db, IWebHostEnvironment env)
+        {
+            if (!env.IsDevelopment() && !env.IsProduction())
+            {
+                return;
+            }
+
+            EnvironmentMarker? marker;
+            try
+            {
+                marker = db.EnvironmentMarkers
+                    .AsNoTracking()
+                    .FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    "Environment marker validation failed. Ensure migrations are applied before starting the application.",
+                    ex);
+            }
+
+            if (marker is null)
+            {
+                throw new InvalidOperationException(
+                    "Environment marker is missing. Apply the EnvironmentMarker migration to seed the marker value.");
+            }
+
+            if (env.IsDevelopment() && string.Equals(marker.Marker, "PROD", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Development environment is configured with a production database (EnvironmentMarker=PROD). Abort startup.");
+            }
+
+            if (env.IsProduction() && string.Equals(marker.Marker, "DEV", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Production environment is configured with a development database (EnvironmentMarker=DEV). Abort startup.");
+            }
         }
 
         internal static string[] BuildAllowedOrigins(IConfiguration config, IWebHostEnvironment env)

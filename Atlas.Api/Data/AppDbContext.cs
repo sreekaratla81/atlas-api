@@ -194,6 +194,19 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<AvailabilityBlock>()
                 .HasIndex(ab => ab.BookingId);
 
+            modelBuilder.Entity<EnvironmentMarker>()
+                .ToTable("EnvironmentMarker");
+
+            modelBuilder.Entity<EnvironmentMarker>()
+                .Property(em => em.Marker)
+                .HasColumnType("varchar(10)")
+                .HasMaxLength(10)
+                .IsRequired();
+
+            modelBuilder.Entity<EnvironmentMarker>()
+                .HasIndex(em => em.Marker)
+                .IsUnique();
+
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
                 .WithMany()
@@ -462,5 +475,6 @@ namespace Atlas.Api.Data
         public DbSet<CommunicationLog> CommunicationLogs { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
         public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
+        public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
     }
 }

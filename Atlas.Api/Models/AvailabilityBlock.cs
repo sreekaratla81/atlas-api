@@ -36,6 +36,11 @@ namespace Atlas.Api.Models
         [Column(TypeName = "varchar(20)")]
         public string Status { get; set; } = "Active";
 
+
+        // In AvailabilityBlock.cs
+        [Required]
+        public bool Inventory { get; set; } = true;  
+
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     }

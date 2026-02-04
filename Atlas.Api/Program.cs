@@ -8,6 +8,8 @@ using System.Text;
 using System.Collections.Immutable;
 using System.Linq;
 using Atlas.Api.Models;
+using Atlas.Api.Services;
+using Atlas.Api.Models.Dtos.Razorpay;
 
 namespace Atlas.Api
 {
@@ -58,6 +60,17 @@ namespace Atlas.Api
                 c.IgnoreObsoleteProperties();
             });
 
+            // Configure Razorpay
+            builder.Services.Configure<RazorpayConfig>(builder.Configuration.GetSection("Razorpay"));
+            
+            // Add HttpClient for Razorpay
+            builder.Services.AddHttpClient("Razorpay", client =>
+            {
+                client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            });
+            
+            builder.Services.AddScoped<IRazorpayPaymentService, RazorpayPaymentService>();
+            
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();

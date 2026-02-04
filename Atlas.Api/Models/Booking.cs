@@ -54,6 +54,9 @@ namespace Atlas.Api.Models
 
         [JsonIgnore]
         public virtual BankAccount? BankAccount { get; set; }
+        
+        [JsonIgnore]
+        public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
         public int? GuestsPlanned { get; set; }
         public int? GuestsActual { get; set; }
         public decimal? ExtraGuestCharge { get; set; }

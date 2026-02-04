@@ -1,4 +1,4 @@
-﻿using Atlas.Api.Models;
+using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -65,9 +65,40 @@ namespace Atlas.Api.Data
                 .HasColumnType("varchar(50)")
                 .HasMaxLength(50);
 
-            modelBuilder.Entity<Payment>()
-                .Property(p => p.Amount)
-                .HasPrecision(18, 2);
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.Property(p => p.Amount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(p => p.Method)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(p => p.Type)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(p => p.Status)
+                    .HasMaxLength(20)
+                    .HasDefaultValue("pending");
+
+                entity.Property(p => p.RazorpayOrderId)
+                    .HasMaxLength(100);
+
+                entity.Property(p => p.RazorpayPaymentId)
+                    .HasMaxLength(100);
+
+                entity.Property(p => p.RazorpaySignature)
+                    .HasMaxLength(200);
+
+                entity.Property(p => p.Note)
+                    .IsRequired();
+
+                entity.HasOne(p => p.Booking)
+                    .WithMany(b => b.Payments)
+                    .HasForeignKey(p => p.BookingId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<Property>()
                 .Property(p => p.CommissionPercent)

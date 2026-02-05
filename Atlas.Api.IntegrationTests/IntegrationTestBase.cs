@@ -15,8 +15,6 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
     protected readonly CustomWebApplicationFactory Factory;
     protected HttpClient Client { get; }
 
-    private static Respawner? _respawner;
-    private static readonly SemaphoreSlim RespawnerSemaphore = new(1, 1);
     private TransactionScope? _testTransaction;
 
     protected IntegrationTestBase(CustomWebApplicationFactory factory)
@@ -32,7 +30,7 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
 
     public async Task InitializeAsync()
     {
-        await ResetDatabase();
+        await IntegrationTestDatabase.ResetAsync(Factory);
         _testTransaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
     }
 
@@ -43,9 +41,20 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
         return Task.CompletedTask;
     }
 
-    protected async Task ResetDatabase()
+    protected T GetService<T>() where T : notnull
     {
-        using var scope = Factory.Services.CreateScope();
+        return Factory.Services.GetRequiredService<T>();
+    }
+}
+
+internal static class IntegrationTestDatabase
+{
+    private static Respawner? _respawner;
+    private static readonly SemaphoreSlim RespawnerSemaphore = new(1, 1);
+
+    internal static async Task ResetAsync(CustomWebApplicationFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var connection = (SqlConnection)db.Database.GetDbConnection();
 
@@ -112,10 +121,5 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
             });
             await db.SaveChangesAsync();
         }
-    }
-
-    protected T GetService<T>() where T : notnull
-    {
-        return Factory.Services.GetRequiredService<T>();
     }
 }

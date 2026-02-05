@@ -74,6 +74,7 @@ public class PropertiesApiTests : IntegrationTestBase
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var properties = await response.Content.ReadFromJsonAsync<List<Property>>();
+        Assert.NotNull(properties);
         Assert.Contains(properties, p => p.Name == "Test Villa");
     }
 

@@ -65,6 +65,7 @@ namespace Atlas.Api.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error retrieving availability for property {PropertyId}", propertyId);
                 return StatusCode(500, "Internal server error");
             }
         }

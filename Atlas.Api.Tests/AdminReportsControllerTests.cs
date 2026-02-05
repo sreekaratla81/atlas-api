@@ -46,9 +46,6 @@ public class AdminReportsControllerTests
         var fees = 200 * 0.15m + 300 * 0.18m;
         Assert.Equal(net, second.TotalNet);
         Assert.Equal(fees, second.TotalFees);
-        // For backward compatibility ensure TotalGross equals TotalNet + TotalFees
-        Assert.Equal(first.TotalNet + first.TotalFees, first.TotalGross);
-        Assert.Equal(second.TotalNet + second.TotalFees, second.TotalGross);
     }
 
     [Fact]

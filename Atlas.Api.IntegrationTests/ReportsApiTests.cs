@@ -50,7 +50,7 @@ public class ReportsApiTests : IntegrationTestBase
         return listing.Id;
     }
 
-    private static async Task<int> SeedBankAccountDataAsync(AppDbContext db)
+    private static async Task<BankAccount> SeedBankAccountDataAsync(AppDbContext db)
     {
         var property = await DataSeeder.SeedPropertyAsync(db);
         var listing = await DataSeeder.SeedListingAsync(db, property);
@@ -69,7 +69,7 @@ public class ReportsApiTests : IntegrationTestBase
             PaymentStatus = "Paid"
         });
         await db.SaveChangesAsync();
-        return account.Id;
+        return account;
     }
 
     [Fact]
@@ -164,15 +164,16 @@ public class ReportsApiTests : IntegrationTestBase
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var accountId = await SeedBankAccountDataAsync(db);
+        var account = await SeedBankAccountDataAsync(db);
 
         var response = await Client.GetAsync(ApiRoute("reports/bank-account-earnings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();
         Assert.NotNull(data);
-        var account = Assert.Single(data!.Where(entry => entry.BankAccountId == accountId));
-        Assert.Equal(400, account.AmountReceived);
+        var expectedDisplay = $"{account.BankName} - {account.AccountNumber}";
+        var accountEntry = Assert.Single(data!.Where(entry => entry.AccountDisplay == expectedDisplay && entry.Bank == account.BankName));
+        Assert.Equal(400, accountEntry.AmountReceived);
     }
 
     [Fact]
@@ -187,7 +188,8 @@ public class ReportsApiTests : IntegrationTestBase
 
         var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();
         Assert.NotNull(data);
-        var accountEntry = Assert.Single(data!.Where(entry => entry.BankAccountId == account.Id));
+        var expectedDisplay = $"{account.BankName} - {account.AccountNumber}";
+        var accountEntry = Assert.Single(data!.Where(entry => entry.AccountDisplay == expectedDisplay && entry.Bank == account.BankName));
         Assert.Equal(0, accountEntry.AmountReceived);
     }
 }

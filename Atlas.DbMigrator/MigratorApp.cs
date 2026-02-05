@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Atlas.DbMigrator;
 
-public static class MigratorApp
+public sealed class MigratorApp
 {
     public static async Task<int> RunAsync(string[] args, TextWriter output, TextWriter error, CancellationToken cancellationToken = default)
     {

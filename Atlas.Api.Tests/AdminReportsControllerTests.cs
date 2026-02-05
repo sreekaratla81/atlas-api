@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq;
 
+namespace Atlas.Api.Tests;
+
 public class AdminReportsControllerTests
 {
     [Fact]

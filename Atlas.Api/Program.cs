@@ -124,7 +124,7 @@ namespace Atlas.Api
                 // Guard production migrations to avoid unintended schema changes unless explicitly enabled.
                 if (ShouldRunMigrations(scopedEnv, config))
                 {
-                    //db.Database.Migrate();
+                    db.Database.Migrate();
                 }
 
                 //ValidateEnvironmentMarker(db, scopedEnv);
@@ -182,7 +182,7 @@ namespace Atlas.Api
 
         internal static bool ShouldRunMigrations(IWebHostEnvironment env, IConfiguration config)
         {
-            if (env.IsDevelopment() || env.IsEnvironment("Test"))
+            if (env.IsDevelopment() || env.IsEnvironment("IntegrationTest"))
             {
                 return true;
             }

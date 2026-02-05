@@ -115,21 +115,6 @@ namespace Atlas.Api
 
             var app = builder.Build();
 
-            using (var scope = app.Services.CreateScope())
-            {
-                var scopedEnv = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                // Guard production migrations to avoid unintended schema changes unless explicitly enabled.
-                if (ShouldRunMigrations(scopedEnv, config))
-                {
-                    db.Database.Migrate();
-                }
-
-                //ValidateEnvironmentMarker(db, scopedEnv);
-            }
-
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -178,56 +163,6 @@ namespace Atlas.Api
             app.MapControllers();
 
             app.Run();
-        }
-
-        internal static bool ShouldRunMigrations(IWebHostEnvironment env, IConfiguration config)
-        {
-            if (env.IsDevelopment() || env.IsEnvironment("IntegrationTest"))
-            {
-                return true;
-            }
-
-            return config.GetValue<bool>("RunMigrations");
-        }
-
-        internal static void ValidateEnvironmentMarker(AppDbContext db, IWebHostEnvironment env)
-        {
-            if (!env.IsDevelopment() && !env.IsProduction())
-            {
-                return;
-            }
-
-            EnvironmentMarker? marker;
-            try
-            {
-                marker = db.EnvironmentMarkers
-                    .AsNoTracking()
-                    .FirstOrDefault();
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException(
-                    "Environment marker validation failed. Ensure migrations are applied before starting the application.",
-                    ex);
-            }
-
-            if (marker is null)
-            {
-                throw new InvalidOperationException(
-                    "Environment marker is missing. Apply the EnvironmentMarker migration to seed the marker value.");
-            }
-
-            if (env.IsDevelopment() && string.Equals(marker.Marker, "PROD", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException(
-                    "Development environment is configured with a production database (EnvironmentMarker=PROD). Abort startup.");
-            }
-
-            if (env.IsProduction() && string.Equals(marker.Marker, "DEV", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException(
-                    "Production environment is configured with a development database (EnvironmentMarker=DEV). Abort startup.");
-            }
         }
 
         internal static string[] BuildAllowedOrigins(IConfiguration config, IWebHostEnvironment env)

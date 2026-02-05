@@ -48,6 +48,33 @@ at runtime. You don't need to run `dotnet ef database update` before testing.
 Integration tests require SQL Server LocalDb. Ensure LocalDb is available or
 provide a connection string via the `Atlas_TestDb` environment variable.
 
+## How to run migrations (local/dev/prod)
+
+Use the `Atlas.DbMigrator` console app to list or apply EF Core migrations. The
+app redacts connection details in logs and never prints credentials. When
+`--check-only` finds pending migrations it prints only the migration names and
+exits with code `2`.
+
+**Local (LocalDb, no secrets):**
+
+```bash
+dotnet run --project Atlas.DbMigrator -- --connection "Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_Local;Trusted_Connection=True;MultipleActiveResultSets=True;TrustServerCertificate=True"
+```
+
+**Dev/Prod (use secrets or environment variables):**
+
+```bash
+# check-only (fails with exit code 2 if pending migrations exist)
+dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DB_CONNECTION}" --check-only
+
+# apply migrations
+dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DB_CONNECTION}"
+```
+
+Set `ATLAS_DB_CONNECTION` (or another env var) using your secret manager, GitHub
+Actions secrets, or Azure App Service configuration. Logs are redacted and
+should not include connection string secrets.
+
 ## CI validation
 
 CI runs expect `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release`
@@ -85,8 +112,13 @@ Production deploys are automated through the GitHub Actions workflow at
 - **Required secret:** `AZURE_WEBAPP_PUBLISH_PROFILE` (App Service publish
   profile XML from Azure Portal → App Service **atlas-homes-api** → Get publish
   profile → paste into repository secret).
+- **Required DB secrets:** `ATLAS_DEV_SQL_CONNECTION_STRING` and
+  `ATLAS_PROD_SQL_CONNECTION_STRING` (environment-specific SQL Server connection
+  strings used by `Atlas.DbMigrator`; keep these values in GitHub Secrets or App
+  Service configuration and never log them).
 - **What it does:** Checks out code, installs .NET 8 SDK, restores packages,
-  builds Release, runs unit tests, publishes to `./publish`, and deploys using
+  builds Release, runs unit + integration tests, checks/applies database
+  migrations via `Atlas.DbMigrator`, publishes to `./publish`, and deploys using
   the publish profile.
 - **Troubleshooting:** YAML indentation errors or malformed keys will cause the
   workflow to be rejected by GitHub. Verify the workflow YAML structure matches
@@ -98,6 +130,5 @@ Production deploys are automated through the GitHub Actions workflow at
 - The deploy workflow lets `dotnet test` build the test project (no `--no-build`)
   because disabling the build step can cause VSTest to treat the test DLL as an
   invalid argument on GitHub-hosted runners.
-- The deploy pipeline runs unit tests only. Run integration tests (if present)
-  in a separate workflow such as PR validation or nightly runs so production
-  deployments are not blocked.
+- The deploy pipeline runs unit and integration tests; if LocalDb is unavailable
+  on the runner, update the workflow to use a compatible SQL Server target.

@@ -5,13 +5,21 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Select the deployment target.
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
 
 permissions:
   contents: read
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -33,13 +41,32 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      # Keep this fast; unit tests only
       - name: Run unit tests
         run: dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --configuration Release
 
-      # Optional: smoke integration tests (only if you want them blocking deploy)
-      # - name: Run smoke integration tests
-      #   run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release --no-build --filter "Category=Smoke"
+      - name: Run integration tests
+        run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release
+
+      - name: Run DbMigrator unit tests
+        run: dotnet test ./Atlas.DbMigrator.Tests/Atlas.DbMigrator.Tests.csproj --configuration Release
+
+      - name: Run DbMigrator integration tests
+        run: dotnet test ./Atlas.DbMigrator.IntegrationTests/Atlas.DbMigrator.IntegrationTests.csproj --configuration Release
+
+      # Required secrets:
+      # - ATLAS_DEV_SQL_CONNECTION_STRING (dev)
+      # - ATLAS_PROD_SQL_CONNECTION_STRING (prod)
+      - name: Check for pending migrations
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        env:
+          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        run: dotnet run --project Atlas.DbMigrator -- --connection "${{ env.MIGRATOR_CONNECTION }}" --check-only
+
+      - name: Apply migrations
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        env:
+          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        run: dotnet run --project Atlas.DbMigrator -- --connection "${{ env.MIGRATOR_CONNECTION }}"
 
       - name: Publish
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish

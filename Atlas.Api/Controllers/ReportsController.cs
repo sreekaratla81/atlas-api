@@ -105,9 +105,9 @@ namespace Atlas.Api.Controllers
                 {
                     Bank = account.BankName,
                     AccountDisplay = account.BankName + " - " +
-                        (account.AccountNumber.Length >= 4
-                            ? account.AccountNumber.Substring(account.AccountNumber.Length - 4)
-                            : account.AccountNumber),
+                        ((account.AccountNumber ?? string.Empty).Length >= 4
+                            ? (account.AccountNumber ?? string.Empty).Substring((account.AccountNumber ?? string.Empty).Length - 4)
+                            : (account.AccountNumber ?? string.Empty)),
                     AmountReceived = _context.Bookings
                         .Where(b =>
                             b.BankAccountId == account.Id &&

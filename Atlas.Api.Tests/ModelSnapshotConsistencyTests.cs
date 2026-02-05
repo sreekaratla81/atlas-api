@@ -18,9 +18,16 @@ public class ModelSnapshotConsistencyTests
         using var context = new AppDbContext(options);
         var migrationsAssembly = context.GetService<IMigrationsAssembly>();
         var differ = context.GetService<IMigrationsModelDiffer>();
+        var runtimeInitializer = context.GetService<IModelRuntimeInitializer>();
 
-        var currentModel = context.Model.GetRelationalModel();
-        var snapshotModel = migrationsAssembly.ModelSnapshot?.Model.GetRelationalModel();
+        var initializedCurrentModel = runtimeInitializer.Initialize(context.Model, designTime: true);
+        var snapshotModelDefinition = migrationsAssembly.ModelSnapshot?.Model;
+        var initializedSnapshotModel = snapshotModelDefinition == null
+            ? null
+            : runtimeInitializer.Initialize(snapshotModelDefinition, designTime: true);
+
+        var currentModel = initializedCurrentModel.GetRelationalModel();
+        var snapshotModel = initializedSnapshotModel?.GetRelationalModel();
 
         Assert.True(snapshotModel != null, "Model snapshot is missing. Add a migration to create it.");
 

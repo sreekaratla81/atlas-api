@@ -19,8 +19,9 @@ public class ModelSnapshotConsistencyTests
         var migrationsAssembly = context.GetService<IMigrationsAssembly>();
         var differ = context.GetService<IMigrationsModelDiffer>();
         var runtimeInitializer = context.GetService<IModelRuntimeInitializer>();
+        var designTimeModel = context.GetService<IDesignTimeModel>().Model;
 
-        var initializedCurrentModel = runtimeInitializer.Initialize(context.Model, designTime: true);
+        var initializedCurrentModel = runtimeInitializer.Initialize(designTimeModel, designTime: true);
         var snapshotModelDefinition = migrationsAssembly.ModelSnapshot?.Model;
         var initializedSnapshotModel = snapshotModelDefinition == null
             ? null

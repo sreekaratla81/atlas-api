@@ -78,7 +78,11 @@ namespace Atlas.Api
             var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
                 ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
-            Console.WriteLine($"[DEBUG] Using connection string: {connectionString}");
+            if (env.IsDevelopment())
+            {
+                var redactedConnectionString = ConnectionStringRedactor.Redact(connectionString);
+                Console.WriteLine($"[DEBUG] Using connection string: {redactedConnectionString}");
+            }
 
             if (string.IsNullOrWhiteSpace(connectionString))
             {

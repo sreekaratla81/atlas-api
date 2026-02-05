@@ -77,7 +77,7 @@ namespace Atlas.Api.Controllers
                         }
                         list.Add(new BookingEarningDetail
                         {
-                            Source = booking.BookingSource,
+                            Source = booking.BookingSource ?? "Unknown",
                             Amount = dailyAmount,
                             GuestName = guestName,
                             CheckinDate = booking.CheckinDate

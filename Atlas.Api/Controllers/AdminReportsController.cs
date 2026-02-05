@@ -245,7 +245,7 @@ namespace Atlas.Api.Controllers
             var result = await query.GroupBy(b => b.BookingSource)
                 .Select(g => new SourceBookingSummary
                 {
-                    Source = g.Key,
+                    Source = g.Key ?? "Unknown",
                     Count = g.Count()
                 }).ToListAsync();
 

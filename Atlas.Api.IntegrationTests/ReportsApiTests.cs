@@ -50,6 +50,26 @@ public class ReportsApiTests : IntegrationTestBase
         return listing.Id;
     }
 
+    private static async Task<int> SeedNullSourceBookingAsync(AppDbContext db)
+    {
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        var guest = await DataSeeder.SeedGuestAsync(db);
+        db.Bookings.Add(new Booking
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            CheckinDate = new DateTime(2025, 7, 10),
+            CheckoutDate = new DateTime(2025, 7, 11),
+            BookingSource = null,
+            AmountReceived = 120,
+            Notes = string.Empty,
+            PaymentStatus = "Paid"
+        });
+        await db.SaveChangesAsync();
+        return listing.Id;
+    }
+
     private static async Task<BankAccount> SeedBankAccountDataAsync(AppDbContext db)
     {
         var property = await DataSeeder.SeedPropertyAsync(db);
@@ -111,6 +131,24 @@ public class ReportsApiTests : IntegrationTestBase
         Assert.Equal("Guest", earning.GuestName);
         Assert.Equal(new DateTime(2025, 6, 18), earning.CheckinDate);
         Assert.Equal(2650.88m, entry.Total);
+    }
+
+    [Fact]
+    public async Task GetCalendarEarnings_ReturnsUnknownSource_WhenSourceIsNull()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var listingId = await SeedNullSourceBookingAsync(db);
+
+        var response = await Client.GetAsync(ApiRoute($"reports/calendar-earnings?listingId={listingId}&month=2025-07"));
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
+        Assert.NotNull(list);
+        Assert.Single(list!);
+        var entry = list![0];
+        Assert.Single(entry.Earnings);
+        Assert.Equal("Unknown", entry.Earnings[0].Source);
     }
 
     [Fact]

@@ -93,6 +93,35 @@ public class AdminReportsControllerTests
     }
 
     [Fact]
+    public async Task GetBookingSourceReport_UsesUnknownWhenSourceNull()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: nameof(GetBookingSourceReport_UsesUnknownWhenSourceNull))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.Bookings.Add(new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            CheckinDate = DateTime.UtcNow,
+            CheckoutDate = DateTime.UtcNow,
+            BookingSource = null,
+            AmountReceived = 10,
+            Notes = string.Empty,
+            PaymentStatus = "Pending"
+        });
+        await context.SaveChangesAsync();
+        var controller = new AdminReportsController(context, NullLogger<AdminReportsController>.Instance);
+
+        var result = await controller.GetBookingSourceReport(null, null, null);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var list = Assert.IsAssignableFrom<IEnumerable<SourceBookingSummary>>(ok.Value).ToList();
+        var summary = Assert.Single(list);
+        Assert.Equal("Unknown", summary.Source);
+        Assert.Equal(1, summary.Count);
+    }
+
+    [Fact]
     public async Task GetBookings_ReturnsAll_WhenNoFilters()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

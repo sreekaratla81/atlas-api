@@ -55,6 +55,10 @@ app redacts connection details in logs and never prints credentials. When
 `--check-only` finds pending migrations it prints only the migration names and
 exits with code `2`.
 
+The API does not apply schema migrations on startup in any environment. Use the
+DbMigrator as the single authoritative path for schema updates; integration
+tests handle migrations through their own test fixtures.
+
 **Local (LocalDb, no secrets):**
 
 ```bash

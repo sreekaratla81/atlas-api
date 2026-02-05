@@ -22,7 +22,7 @@ public class ModelSnapshotConsistencyTests
         var currentModel = context.Model.GetRelationalModel();
         var snapshotModel = migrationsAssembly.ModelSnapshot?.Model.GetRelationalModel();
 
-        Assert.NotNull(snapshotModel, "Model snapshot is missing. Add a migration to create it.");
+        Assert.True(snapshotModel != null, "Model snapshot is missing. Add a migration to create it.");
 
         var hasDifferences = differ.HasDifferences(snapshotModel!, currentModel);
 

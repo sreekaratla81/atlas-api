@@ -73,7 +73,7 @@ public class ReportsControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
         Assert.Equal(3, list.Count);
-        Assert.All(list, i => Assert.Equal(1, i.Earnings.Count));
+        Assert.All(list, i => Assert.Single(i.Earnings));
         Assert.All(list, i => Assert.Equal("airbnb", i.Earnings[0].Source));
         Assert.All(list, i => Assert.Equal("Unknown", i.Earnings[0].GuestName));
         Assert.All(list, i => Assert.Equal(new DateTime(2025, 7, 5), i.Earnings[0].CheckinDate));

@@ -49,6 +49,36 @@ public class ReportsControllerTests
     }
 
     [Fact]
+    public async Task GetCalendarEarnings_UsesUnknownSource_WhenSourceIsNull()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(nameof(GetCalendarEarnings_UsesUnknownSource_WhenSourceIsNull))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.Bookings.Add(new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            CheckinDate = new DateTime(2025, 7, 10),
+            CheckoutDate = new DateTime(2025, 7, 11),
+            BookingSource = null,
+            AmountReceived = 120,
+            Notes = string.Empty,
+            PaymentStatus = "Paid"
+        });
+        await context.SaveChangesAsync();
+
+        var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
+        var result = await controller.GetCalendarEarnings(1, "2025-07");
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
+
+        Assert.Single(list);
+        var detail = Assert.Single(list[0].Earnings);
+        Assert.Equal("Unknown", detail.Source);
+    }
+
+    [Fact]
     public async Task GetCalendarEarnings_SpansMultipleDays()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -296,17 +326,17 @@ public class ReportsControllerTests
     }
 
     [Fact]
-    public async Task GetBankAccountEarnings_HandlesNullAccountNumber()
+    public async Task GetBankAccountEarnings_HandlesEmptyAccountNumber()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(nameof(GetBankAccountEarnings_HandlesNullAccountNumber))
+            .UseInMemoryDatabase(nameof(GetBankAccountEarnings_HandlesEmptyAccountNumber))
             .Options;
         using var context = new AppDbContext(options);
         context.BankAccounts.Add(new BankAccount
         {
             Id = 1,
             BankName = "Bank",
-            AccountNumber = null,
+            AccountNumber = string.Empty,
             IFSC = "I",
             AccountType = "S"
         });

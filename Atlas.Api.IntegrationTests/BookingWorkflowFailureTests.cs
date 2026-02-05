@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Collections.Generic;
 using System;
+using System.Transactions;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -14,6 +15,7 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
 {
     private readonly FailingBookingWorkflowFactory _factory;
     private HttpClient _client = null!;
+    private TransactionScope? _testTransaction;
 
     public BookingWorkflowFailureTests(FailingBookingWorkflowFactory factory)
     {
@@ -23,10 +25,16 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
     public async Task InitializeAsync()
     {
         _client = _factory.CreateClient();
-        await ResetDatabaseAsync();
+        await IntegrationTestDatabase.ResetAsync(_factory);
+        _testTransaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public Task DisposeAsync()
+    {
+        _testTransaction?.Dispose();
+        _testTransaction = null;
+        return Task.CompletedTask;
+    }
 
     [Fact]
     public async Task Post_CreatesBooking_WhenWorkflowPublisherFails()
@@ -115,13 +123,6 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
         });
     }
 
-    private async Task ResetDatabaseAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.EnsureDeletedAsync();
-        await db.Database.MigrateAsync();
-    }
 }
 
 public sealed class FailingBookingWorkflowFactory : CustomWebApplicationFactory

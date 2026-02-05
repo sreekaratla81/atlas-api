@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Respawn;
 using Respawn.Graph;
+using System.Transactions;
 
 namespace Atlas.Api.IntegrationTests;
 
@@ -16,6 +17,7 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
 
     private static Respawner? _respawner;
     private static readonly SemaphoreSlim RespawnerSemaphore = new(1, 1);
+    private TransactionScope? _testTransaction;
 
     protected IntegrationTestBase(CustomWebApplicationFactory factory)
     {
@@ -31,9 +33,15 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
     public async Task InitializeAsync()
     {
         await ResetDatabase();
+        _testTransaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public Task DisposeAsync()
+    {
+        _testTransaction?.Dispose();
+        _testTransaction = null;
+        return Task.CompletedTask;
+    }
 
     protected async Task ResetDatabase()
     {

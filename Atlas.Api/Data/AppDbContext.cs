@@ -194,6 +194,10 @@ namespace Atlas.Api.Data
                 .HasColumnType("date");
 
             modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.Inventory)
+                .HasColumnType("bit");
+
+            modelBuilder.Entity<AvailabilityBlock>()
                 .Property(ab => ab.BlockType)
                 .HasMaxLength(30)
                 .HasColumnType("varchar(30)")

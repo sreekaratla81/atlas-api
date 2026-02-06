@@ -8,10 +8,21 @@ public class MigratorArgumentParserTests
     [Fact]
     public void TryParse_ReturnsFalse_WhenConnectionMissing()
     {
-        var success = MigratorArgumentParser.TryParse(["--check-only"], out _, out var error);
+        const string envVarName = "MIGRATOR_CONNECTION";
+        var original = Environment.GetEnvironmentVariable(envVarName);
 
-        Assert.False(success);
-        Assert.Equal("--connection is required.", error);
+        try
+        {
+            Environment.SetEnvironmentVariable(envVarName, null);
+            var success = MigratorArgumentParser.TryParse(["--check-only"], out _, out var error);
+
+            Assert.False(success);
+            Assert.Equal("--connection is required.", error);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(envVarName, original);
+        }
     }
 
     [Fact]
@@ -32,6 +43,29 @@ public class MigratorArgumentParserTests
         Assert.Null(error);
         Assert.Equal("Server=.;Database=Atlas;", options.ConnectionString);
         Assert.True(options.CheckOnly);
+    }
+
+    [Fact]
+    public void TryParse_UsesEnvironmentVariable_WhenConnectionArgumentMissing()
+    {
+        const string envVarName = "MIGRATOR_CONNECTION";
+        var original = Environment.GetEnvironmentVariable(envVarName);
+
+        try
+        {
+            Environment.SetEnvironmentVariable(envVarName, "Server=.;Database=Atlas;");
+
+            var success = MigratorArgumentParser.TryParse(["--check-only"], out var options, out var error);
+
+            Assert.True(success);
+            Assert.Null(error);
+            Assert.Equal("Server=.;Database=Atlas;", options.ConnectionString);
+            Assert.True(options.CheckOnly);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(envVarName, original);
+        }
     }
 
     [Fact]

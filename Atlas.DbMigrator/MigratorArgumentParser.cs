@@ -41,6 +41,15 @@ public static class MigratorArgumentParser
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
+            var envConnection = Environment.GetEnvironmentVariable("MIGRATOR_CONNECTION");
+            if (!string.IsNullOrWhiteSpace(envConnection))
+            {
+                connectionString = envConnection;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
             error = "--connection is required.";
             return false;
         }

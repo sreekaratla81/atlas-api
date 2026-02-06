@@ -69,25 +69,25 @@ dotnet run --project Atlas.DbMigrator -- --connection "Server=(localdb)\\MSSQLLo
 
 ```bash
 # check-only (fails with exit code 2 if pending migrations exist)
-dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DB_CONNECTION}" --check-only
+dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DEV_SQL_CONNECTION}" --check-only
 
 # apply migrations
-dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DB_CONNECTION}"
+dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DEV_SQL_CONNECTION}"
 ```
 
 **Visual Studio launch profile (Windows):**
 
-If you set `ATLAS_DB_CONNECTION` in the launch profile environment variables,
-pass `%ATLAS_DB_CONNECTION%` in the command line arguments so the migrator
+If you set `ATLAS_DEV_SQL_CONNECTION` in the launch profile environment variables,
+pass `%ATLAS_DEV_SQL_CONNECTION%` in the command line arguments so the migrator
 expands it at runtime.
 
 ```
---connection "%ATLAS_DB_CONNECTION%" --check-only
+--connection "%ATLAS_DEV_SQL_CONNECTION%" --check-only
 ```
 
-Set `ATLAS_DB_CONNECTION` (or another env var) using your secret manager, GitHub
-Actions secrets, or Azure App Service configuration. Logs are redacted and
-should not include connection string secrets.
+Set `ATLAS_DEV_SQL_CONNECTION` (and `ATLAS_PROD_SQL_CONNECTION` when added) via
+your secret manager, GitHub Actions secrets, or Azure App Service configuration.
+Logs are redacted and should not include connection string secrets.
 
 ## CI validation
 
@@ -126,10 +126,13 @@ Production deploys are automated through the GitHub Actions workflow at
 - **Required secret:** `AZURE_WEBAPP_PUBLISH_PROFILE` (App Service publish
   profile XML from Azure Portal → App Service **atlas-homes-api** → Get publish
   profile → paste into repository secret).
-- **Required DB secrets:** `ATLAS_DEV_SQL_CONNECTION_STRING` and
-  `ATLAS_PROD_SQL_CONNECTION_STRING` (environment-specific SQL Server connection
-  strings used by `Atlas.DbMigrator`; keep these values in GitHub Secrets or App
-  Service configuration and never log them).
+- **Required DB secrets:** `ATLAS_DEV_SQL_CONNECTION` (and
+  `ATLAS_PROD_SQL_CONNECTION` when added). These are the SQL Server connection
+  strings consumed by `Atlas.DbMigrator`. Keep them in GitHub Secrets or App
+  Service configuration and never log them.
+- **Migration/deploy flow:** Check pending migrations → Apply migrations →
+  Deploy. The deploy workflow follows this order so schema updates land before
+  the App Service restart.
 - **What it does:** Checks out code, installs .NET 8 SDK, restores packages,
   builds Release, runs unit + integration tests, checks/applies database
   migrations via `Atlas.DbMigrator`, publishes to `./publish`, and deploys using
@@ -146,3 +149,7 @@ Production deploys are automated through the GitHub Actions workflow at
   invalid argument on GitHub-hosted runners.
 - The deploy pipeline runs unit and integration tests; if LocalDb is unavailable
   on the runner, update the workflow to use a compatible SQL Server target.
+- If you see `Missing value for --connection`, verify the GitHub Actions secret
+  exists (`ATLAS_DEV_SQL_CONNECTION`, and `ATLAS_PROD_SQL_CONNECTION` when
+  added) and that the workflow passes it into the DbMigrator step as an
+  environment variable or argument.

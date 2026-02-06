@@ -131,12 +131,14 @@ Production deploys are automated through the GitHub Actions workflow at
   strings consumed by `Atlas.DbMigrator`. Keep them in GitHub Secrets or App
   Service configuration and never log them.
 - **Migration/deploy flow:** Check pending migrations → Apply migrations →
-  Deploy. The deploy workflow follows this order so schema updates land before
-  the App Service restart.
+  Deploy (dev only). The deploy workflow keeps the `--check-only` gate but no
+  longer auto-applies **production** migrations on `main` deploys. Production
+  migrations must be executed manually through the `prod-migrate.yml` workflow
+  with explicit confirmation before deploying.
 - **What it does:** Checks out code, installs .NET 8 SDK, restores packages,
-  builds Release, runs unit + integration tests, checks/applies database
-  migrations via `Atlas.DbMigrator`, publishes to `./publish`, and deploys using
-  the publish profile.
+  builds Release, runs unit + integration tests, runs the `--check-only`
+  migration gate, applies **dev** database migrations via `Atlas.DbMigrator`,
+  publishes to `./publish`, and deploys using the publish profile.
 - **Troubleshooting:** YAML indentation errors or malformed keys will cause the
   workflow to be rejected by GitHub. Verify the workflow YAML structure matches
   the example in `.github/workflows/deploy.yml`. Ensure the publish profile

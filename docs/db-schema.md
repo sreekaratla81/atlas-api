@@ -37,6 +37,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | BlockType | varchar(30) | No |
 | Source | varchar(30) | No |
 | Status | varchar(20) | No |
+| Inventory | bit | No |
 | CreatedAtUtc | datetime | No |
 | UpdatedAtUtc | datetime | No |
 

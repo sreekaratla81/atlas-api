@@ -37,8 +37,8 @@ namespace Atlas.Api.Models
         public string Status { get; set; } = "Active";
 
 
-        // In AvailabilityBlock.cs
         [Required]
+        [Column(TypeName = "bit")]
         public bool Inventory { get; set; } = true;  
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

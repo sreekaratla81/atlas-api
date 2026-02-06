@@ -22,7 +22,12 @@ public static class MigratorArgumentParser
                         return false;
                     }
 
-                    connectionString = args[i + 1];
+                    var rawConnection = args[i + 1];
+                    if (!TryResolveConnectionString(rawConnection, out connectionString, out error))
+                    {
+                        return false;
+                    }
+
                     i++;
                     break;
                 case "--check-only":
@@ -42,5 +47,65 @@ public static class MigratorArgumentParser
 
         options = new MigratorOptions(connectionString, checkOnly);
         return true;
+    }
+
+    private static bool TryResolveConnectionString(string rawConnection, out string? connectionString, out string? error)
+    {
+        connectionString = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(rawConnection))
+        {
+            error = "Missing value for --connection.";
+            return false;
+        }
+
+        var trimmed = rawConnection.Trim();
+        var envVarName = TryGetEnvironmentVariableName(trimmed);
+        if (!string.IsNullOrWhiteSpace(envVarName))
+        {
+            var envValue = Environment.GetEnvironmentVariable(envVarName);
+            if (string.IsNullOrWhiteSpace(envValue))
+            {
+                error = $"Environment variable '{envVarName}' is not set.";
+                return false;
+            }
+
+            connectionString = envValue;
+            return true;
+        }
+
+        var expanded = Environment.ExpandEnvironmentVariables(rawConnection);
+        connectionString = expanded;
+        return true;
+    }
+
+    private static string? TryGetEnvironmentVariableName(string value)
+    {
+        if (value.Length > 2 && value.StartsWith('%') && value.EndsWith('%'))
+        {
+            return value[1..^1];
+        }
+
+        if (value.StartsWith("${", StringComparison.Ordinal) && value.EndsWith('}') && value.Length > 3)
+        {
+            return value[2..^1];
+        }
+
+        if (value.StartsWith('$') && value.Length > 1)
+        {
+            var candidate = value[1..];
+            foreach (var ch in candidate)
+            {
+                if (!char.IsLetterOrDigit(ch) && ch != '_')
+                {
+                    return null;
+                }
+            }
+
+            return candidate;
+        }
+
+        return null;
     }
 }

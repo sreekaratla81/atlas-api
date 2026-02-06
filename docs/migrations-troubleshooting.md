@@ -45,3 +45,11 @@ END
 ```
 dotnet ef database update
 ```
+
+## “Invalid column name 'Inventory'” during API usage
+
+If you see `Invalid column name 'Inventory'`, it indicates schema drift between the database and the expected model. Resolve it by running the DbMigrator; it is the only supported migration path (do not apply migrations on API startup). Use the exact command below with your connection string:
+
+```
+dotnet run --project Atlas.DbMigrator -- --connection "$env:ATLAS_DB_CONNECTION"
+```

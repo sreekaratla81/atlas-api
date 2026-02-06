@@ -1,0 +1,38 @@
+name: Apply Production Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type APPLY_PROD_MIGRATIONS to run migrations.
+        required: true
+        type: string
+      reason:
+        description: Optional reason for applying production migrations.
+        required: false
+        type: string
+
+concurrency: prod-migrations
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Check for pending migrations
+        run: dotnet run --project Atlas.DbMigrator -- --connection "${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}" --check-only
+
+      - name: Apply migrations
+        if: inputs.confirm == 'APPLY_PROD_MIGRATIONS'
+        run: dotnet run --project Atlas.DbMigrator -- --connection "${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}"

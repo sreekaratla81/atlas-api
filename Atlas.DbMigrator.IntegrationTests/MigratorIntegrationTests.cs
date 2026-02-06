@@ -39,6 +39,33 @@ public class MigratorIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task AppliesMigrationsUsingEnvironmentVariableConnectionString()
+    {
+        const string envVarName = "ATLAS_DB_CONNECTION";
+        var original = Environment.GetEnvironmentVariable(envVarName);
+        var connectionString = BuildLocalDbConnectionString();
+        var args = new[] { "--connection", $"%{envVarName}%" };
+
+        try
+        {
+            Environment.SetEnvironmentVariable(envVarName, connectionString);
+            var exitCode = await MigratorApp.RunAsync(args, TextWriter.Null, TextWriter.Null, CancellationToken.None);
+
+            Assert.Equal(0, exitCode);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(envVarName, original);
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            await using var dbContext = new AppDbContext(options);
+            await dbContext.Database.EnsureDeletedAsync();
+        }
+    }
+
     private static string BuildLocalDbConnectionString()
     {
         var testRunId = Environment.GetEnvironmentVariable("ATLAS_TEST_RUN_ID")

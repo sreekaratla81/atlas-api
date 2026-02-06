@@ -75,6 +75,16 @@ dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DB_CONNECTION}" -
 dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DB_CONNECTION}"
 ```
 
+**Visual Studio launch profile (Windows):**
+
+If you set `ATLAS_DB_CONNECTION` in the launch profile environment variables,
+pass `%ATLAS_DB_CONNECTION%` in the command line arguments so the migrator
+expands it at runtime.
+
+```
+--connection "%ATLAS_DB_CONNECTION%" --check-only
+```
+
 Set `ATLAS_DB_CONNECTION` (or another env var) using your secret manager, GitHub
 Actions secrets, or Azure App Service configuration. Logs are redacted and
 should not include connection string secrets.

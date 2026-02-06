@@ -7,7 +7,12 @@ Copy/paste one of the commands below to execute the migrator.
 **Local (LocalDb):**
 
 ```bash
-dotnet run --project Atlas.DbMigrator -- --connection "Server=(localdb)\\MSSQLLocalDB;Database=AtlasHomestays_Local;Trusted_Connection=True;MultipleActiveResultSets=True;TrustServerCertificate=True"
+
+# check-only (exit code 2 if pending migrations exist)
+dotnet run -- --connection "Server=.;Database=atlasdb-dev-latest;Trusted_Connection=True;TrustServerCertificate=True" --check-only
+
+# apply migrations
+dotnet run -- --connection "Server=.;Database=atlasdb-dev-latest;Trusted_Connection=True;TrustServerCertificate=True"
 ```
 
 **Dev/Prod (env var connection string):**

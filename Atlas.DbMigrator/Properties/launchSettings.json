@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Atlas.DbMigrator": {
+      "commandName": "Project",
+      "commandLineArgs": "--connection \"%ATLAS_DB_CONNECTION%\" --check-only",
+      "environmentVariables": {
+        "ATLAS_DB_CONNECTION": "Server=.;Database=atlasdb-dev-latest;Trusted_Connection=True;TrustServerCertificate=True"
+      }
+    }
+  }
+}

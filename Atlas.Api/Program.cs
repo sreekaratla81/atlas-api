@@ -174,6 +174,7 @@ namespace Atlas.Api
             var requiredOrigins = new[]
             {
                 "http://localhost:5173",
+                "https://localhost:7018",
                 "https://admin.atlashomestays.com",
                 "https://devadmin.atlashomestays.com",
                 "https://www.atlashomestays.com",
@@ -186,6 +187,7 @@ namespace Atlas.Api
             if (env.IsDevelopment())
             {
                 origins.Add("http://127.0.0.1:5173");
+                origins.Add("https://127.0.0.1:7018");
             }
 
             var additionalOrigins = config.GetSection("Cors:AdditionalOrigins").Get<string[]>();

@@ -58,12 +58,12 @@ jobs:
 
       - name: Check for pending migrations
         env:
-          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "${{ env.MIGRATOR_CONNECTION }}" --check-only
 
       - name: Apply migrations
         env:
-          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "${{ env.MIGRATOR_CONNECTION }}"
       
       - name: Login to Azure

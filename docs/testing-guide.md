@@ -12,7 +12,7 @@ During test startup, the `SqlServerTestDatabase` fixture:
 1. Builds a connection string against `(localdb)\MSSQLLocalDB` using the shared database name.
 2. Creates the database if it does not exist.
 3. Applies Entity Framework Core migrations.
-4. Exposes the connection string through the `DEFAULT_CONNECTION` environment variable so the application factory can use it.
+4. Exposes the connection string through the `ConnectionStrings__DefaultConnection` environment variable so the application factory can use it.
 
 When the test run completes, the fixture drops the database unless told to retain it.
 

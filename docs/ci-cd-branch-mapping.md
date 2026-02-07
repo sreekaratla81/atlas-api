@@ -1,72 +1,42 @@
-# CI/CD Branch → Environment → Azure Web App Mapping
+# CI/CD Branch Mapping
 
-## Quick diagram
+## Branch → Workflow → App → Connection String Diagram
 
+```text
+Dev branch
+  dev → dev_atlas-homes-api-dev.yml → atlas-homes-api-dev → ATLAS_DEV_SQL_CONNECTION_STRING
+
+Main branch
+  main → deploy.yml → atlas-homes-api → ATLAS_PROD_SQL_CONNECTION_STRING
+  (prod migrations gated)
 ```
-dev  → dev_atlas-homes-api-dev.yml → atlas-homes-api-dev → ATLAS_DEV_SQL_CONNECTION_STRING
-main → deploy.yml                 → atlas-homes-api     → ATLAS_PROD_SQL_CONNECTION_STRING
-manual prod migrations → prod-migrate.yml → (no deploy) → ATLAS_PROD_SQL_CONNECTION_STRING (gated)
-```
 
-## Workflow inventory and deployment targets
+## Workflow Reference Table
 
-| Workflow file | Trigger branches | Deploy target app-name | Auth method | Uses DbMigrator? | Dev/Prod |
-| --- | --- | --- | --- | --- | --- |
-| `.github/workflows/dev_atlas-homes-api-dev.yml` | `on.push.branches: [dev]` and `workflow_dispatch` | `atlas-homes-api-dev` | `azure/login@v2` (client/tenant/subscription secrets) | Yes (validate/check/apply) | Dev |
-| `.github/workflows/deploy.yml` | `on.push.branches: [main]` and `workflow_dispatch` | `atlas-homes-api` | `azure/webapps-deploy@v3` with publish profile | Yes (validate/check/apply, dev-only apply for manual dispatch) | Prod |
-| `.github/workflows/prod-migrate.yml` | `workflow_dispatch` only | _None (migrations only)_ | _None (no deploy)_ | Yes (validate/check/apply gated) | Prod |
+| Workflow file | Trigger(s) | Azure app name (`with.app-name`) | Auth method | DbMigrator usage |
+| --- | --- | --- | --- | --- |
+| `.github/workflows/dev_atlas-homes-api-dev.yml` | `on.push.branches: [dev]`, `workflow_dispatch` | `atlas-homes-api-dev` | `azure/login@v2` with `client-id`, `tenant-id`, `subscription-id` secrets | Validates dev connection, checks pending migrations, applies migrations using `ATLAS_DEV_SQL_CONNECTION_STRING`. |
+| `.github/workflows/deploy.yml` | `on.push.branches: [main]`, `workflow_dispatch` | `atlas-homes-api` | `azure/webapps-deploy@v3` with publish profile secret `AZURE_WEBAPP_PUBLISH_PROFILE` | Validates connection + checks pending migrations on `main` (or `release/*`); applies migrations only for `workflow_dispatch` + `inputs.environment == dev` (prod migrations gated). |
+| `.github/workflows/prod-migrate.yml` | `workflow_dispatch` only | _N/A_ (no app deploy) | _N/A_ | Validates prod connection, checks pending migrations, applies migrations only when `inputs.confirm == 'APPLY_PROD_MIGRATIONS'` using `ATLAS_PROD_SQL_CONNECTION_STRING`. |
 
-## Branch → environment mapping logic (exact mechanism)
+## Checklist for Verification
 
-### Dev branch
-- `dev_atlas-homes-api-dev.yml` uses a dedicated workflow with a fixed branch trigger: `on.push.branches: - dev` and deploys to `app-name: 'atlas-homes-api-dev'`. This is a **separate workflow per branch** mapping. See `.github/workflows/dev_atlas-homes-api-dev.yml` `on.push.branches` and `Deploy to Azure Web App` `app-name` keys.
+- **Branch triggers**: Confirm the correct branch is listed under `on.push.branches` in each workflow.
+  - `dev_atlas-homes-api-dev.yml` should list `dev`.
+  - `deploy.yml` should list `main`.
+- **App name**: Confirm `with.app-name` matches the intended Azure Web App name.
+  - Dev workflow → `atlas-homes-api-dev`.
+  - Main workflow → `atlas-homes-api`.
+- **Migration gating**: Review `if:` conditions on migration steps.
+  - `deploy.yml` should apply migrations only on `workflow_dispatch` when `inputs.environment == dev`.
+  - `prod-migrate.yml` should apply migrations only when `inputs.confirm == 'APPLY_PROD_MIGRATIONS'`.
 
-### Main branch (prod)
-- `deploy.yml` uses a dedicated workflow with a fixed branch trigger: `on.push.branches: - main` and deploys to `app-name: atlas-homes-api`. This is also a **separate workflow per branch** mapping. See `.github/workflows/deploy.yml` `on.push.branches` and `Deploy to Azure Web App` `app-name` keys.
+## Common Misconfigurations
 
-### Manual dispatch nuance
-- `deploy.yml` also supports `workflow_dispatch` with an `environment` input (`dev` or `prod`), but the **deploy target app-name remains `atlas-homes-api`**, so manual runs still deploy to the prod app unless edited. The input is only used to decide which DB connection string is used for migrator checks/apply in this workflow.
-
-## Azure auth binding per workflow
-
-### Dev deployment (`dev_atlas-homes-api-dev.yml`)
-- Auth uses `azure/login@v2` with these secrets:
-  - `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`
-  - `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`
-  - `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9`
-- The target app is set by `app-name: 'atlas-homes-api-dev'` in the deploy step.
-
-### Prod deployment (`deploy.yml`)
-- Auth uses `azure/webapps-deploy@v3` with a publish profile secret:
-  - `AZURE_WEBAPP_PUBLISH_PROFILE`
-- The target app is set by `app-name: atlas-homes-api` in the deploy step.
-
-## DbMigrator environment mapping
-
-### Dev workflow (dev branch)
-- `dev_atlas-homes-api-dev.yml` uses `ATLAS_DEV_SQL_CONNECTION_STRING` for:
-  - `Validate migrator connection`
-  - `Check for pending migrations`
-  - `Apply migrations`
-
-### Prod workflow (main branch)
-- `deploy.yml` uses a conditional expression to select the connection string:
-  - `ATLAS_DEV_SQL_CONNECTION_STRING` only when `workflow_dispatch` and `inputs.environment == 'dev'`
-  - Otherwise `ATLAS_PROD_SQL_CONNECTION_STRING`
-- Migrations **apply** only when `workflow_dispatch` and `inputs.environment == 'dev'` (`Apply migrations` step `if`), so prod applies are not automatic in this workflow.
-
-### Prod migrations (manual gated)
-- `prod-migrate.yml` uses `ATLAS_PROD_SQL_CONNECTION_STRING`.
-- Apply step is **explicitly gated** by `if: inputs.confirm == 'APPLY_PROD_MIGRATIONS'`.
-
-## How to verify quickly
-
-- **Branch triggers:** check `on.push.branches` in each workflow YAML.
-- **App target:** check `Deploy to Azure Web App` → `app-name`.
-- **Migration gating:** check `Apply migrations` step `if:` conditions in `deploy.yml` and `prod-migrate.yml`.
-
-## Common misconfigurations to avoid
-
-- Using the same `app-name` in both workflows (would deploy dev and prod to the same Azure Web App).
-- Using the wrong publish profile secret for prod (deploy would succeed but target the wrong app or fail authorization).
-- Missing or misspelled DB connection string secrets (migrator will fail at the validation step).
+- **Same app name in both workflows**: `atlas-homes-api` and `atlas-homes-api-dev` must remain distinct to prevent deploys from overwriting the wrong environment.
+- **Wrong auth secret type**:
+  - `dev_atlas-homes-api-dev.yml` expects `azure/login` secrets (client/tenant/subscription IDs).
+  - `deploy.yml` expects `AZURE_WEBAPP_PUBLISH_PROFILE` for publish-profile deployments.
+- **Missing/typo secrets**:
+  - `ATLAS_DEV_SQL_CONNECTION_STRING` and `ATLAS_PROD_SQL_CONNECTION_STRING` must match the workflow references exactly.
+  - Ensure secrets are present in the repo/organization for the relevant environment.

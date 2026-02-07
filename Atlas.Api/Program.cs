@@ -75,8 +75,7 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
 
-            var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
-                ?? builder.Configuration.GetConnectionString("DefaultConnection");
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
             if (env.IsDevelopment())
             {
@@ -98,10 +97,6 @@ namespace Atlas.Api
             });
 
             var jwtKey = builder.Configuration["Jwt:Key"];
-            if (string.IsNullOrWhiteSpace(jwtKey))
-            {
-                jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
-            }
 
             // TODO: Re-enable authentication before going to production
             // builder.Services.AddAuthentication("Bearer")

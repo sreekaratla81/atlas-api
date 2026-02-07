@@ -217,19 +217,28 @@ namespace Atlas.Api.Services
 
                 _logger.LogInformation("Creating new booking for listing: {ListingId}", request.BookingDraft.ListingId);
                 
-                // Check if the default guest exists
-                const int defaultGuestId = 871; // This should be moved to configuration in a production environment
-                var guest = await _context.Guests.FindAsync(defaultGuestId);
-                if (guest == null)
+                // Create or get the guest from the request
+                var guest = await _context.Guests
+                    .FirstOrDefaultAsync(g => g.Email == request.GuestInfo.Email) ?? new Guest
+                    {
+                        Name = !string.IsNullOrWhiteSpace(request.GuestInfo.Name) 
+                            ? request.GuestInfo.Name 
+                            : "Guest User",
+                        Email = request.GuestInfo.Email,
+                        Phone = request.GuestInfo.Phone,
+                        IdProofUrl = null // Can be updated later if needed
+                    };
+
+                if (guest.Id == 0) // New guest
                 {
-                    _logger.LogError("Default guest with ID {DefaultGuestId} not found in the database", defaultGuestId);
-                    throw new InvalidOperationException($"Default guest with ID {defaultGuestId} not found in the database. Please ensure there is a guest with this ID.");
+                    _context.Guests.Add(guest);
+                    await _context.SaveChangesAsync();
                 }
 
                 var booking = new Booking
                 {
                     ListingId = request.BookingDraft.ListingId,
-GuestId = defaultGuestId, // Using default guest ID
+                    GuestId = guest.Id,
                     CheckinDate = request.BookingDraft.CheckinDate,
                     CheckoutDate = request.BookingDraft.CheckoutDate,
                     GuestsPlanned = request.BookingDraft.Guests,

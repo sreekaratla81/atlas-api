@@ -2,5 +2,7 @@
 **/bin/
 **/obj/
 .env.local
+Atlas.Api/.env
+Atlas.Api/appsettings.Development.json
 /.vs/AtlasHomestays
 /.nuget/

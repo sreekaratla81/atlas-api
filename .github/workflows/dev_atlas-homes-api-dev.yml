@@ -67,11 +67,24 @@ jobs:
           }
 
       - name: Check for pending migrations
+        id: check_migrations
         env:
           MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
-        run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
+        run: |
+          dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -eq 2) {
+            "pending=true" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          if ($exitCode -eq 0) {
+            "pending=false" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          exit $exitCode
 
       - name: Apply migrations
+        if: steps.check_migrations.outputs.pending == 'true'
         env:
           MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"

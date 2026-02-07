@@ -75,18 +75,21 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
 
+            ValidateRequiredConfiguration(builder.Configuration, env);
+
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
             if (env.IsDevelopment())
             {
+                if (IsPlaceholderValue(connectionString))
+                {
+                    Console.WriteLine("[WARN] Connection string is still using the placeholder value. Set it via environment variables for local development.");
+                }
+
                 var redactedConnectionString = ConnectionStringRedactor.Redact(connectionString);
                 Console.WriteLine($"[DEBUG] Using connection string: {redactedConnectionString}");
             }
 
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new InvalidOperationException("Database connection string is not configured.");
-            }
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseSqlServer(connectionString);
@@ -97,6 +100,7 @@ namespace Atlas.Api
             });
 
             var jwtKey = builder.Configuration["Jwt:Key"];
+            _ = jwtKey;
 
             // TODO: Re-enable authentication before going to production
             // builder.Services.AddAuthentication("Bearer")
@@ -196,6 +200,43 @@ namespace Atlas.Api
                 .Where(origin => !string.IsNullOrWhiteSpace(origin))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+        }
+
+        internal static void ValidateRequiredConfiguration(IConfiguration config, IWebHostEnvironment env)
+        {
+            if (ShouldSkipRequiredConfigValidation(env))
+            {
+                return;
+            }
+
+            var connectionString = config.GetConnectionString("DefaultConnection");
+            if (IsPlaceholderValue(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "Database connection string 'DefaultConnection' is not configured. " +
+                    "Set it via environment variables or Azure App Service connection strings.");
+            }
+
+            var jwtKey = config["Jwt:Key"];
+            if (IsPlaceholderValue(jwtKey))
+            {
+                throw new InvalidOperationException(
+                    "JWT signing key 'Jwt:Key' is not configured. " +
+                    "Set it via environment variables or Azure App Service settings.");
+            }
+        }
+
+        private static bool ShouldSkipRequiredConfigValidation(IWebHostEnvironment env)
+        {
+            return env.IsDevelopment()
+                || env.IsEnvironment("IntegrationTest")
+                || env.IsEnvironment("Testing");
+        }
+
+        private static bool IsPlaceholderValue(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                || string.Equals(value.Trim(), "__SET_VIA_ENV_OR_AZURE__", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

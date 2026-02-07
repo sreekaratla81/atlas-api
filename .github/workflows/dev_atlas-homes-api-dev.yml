@@ -6,7 +6,7 @@ name: Build and deploy ASP.Net Core app to Azure Web App - atlas-homes-api-dev
 on:
   push:
     branches:
-      - dev
+      - dev # dev branch deploys to atlas-homes-api-dev
   workflow_dispatch:
 
 jobs:
@@ -86,7 +86,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'atlas-homes-api-dev'
+          app-name: 'atlas-homes-api-dev' # dev app
           slot-name: 'Production'
           package: .
           

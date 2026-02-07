@@ -3,7 +3,7 @@ name: Deploy .NET API to Azure
 on:
   push:
     branches:
-      - main
+      - main # prod branch deploys to atlas-homes-api
   workflow_dispatch:
     inputs:
       environment:
@@ -83,6 +83,6 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: atlas-homes-api
+          app-name: atlas-homes-api # prod app
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./publish

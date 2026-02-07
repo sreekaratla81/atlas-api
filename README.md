@@ -89,6 +89,22 @@ Set `ATLAS_DEV_SQL_CONNECTION` (and `ATLAS_PROD_SQL_CONNECTION` when added) via
 your secret manager, GitHub Actions secrets, or Azure App Service configuration.
 Logs are redacted and should not include connection string secrets.
 
+## Runtime configuration
+
+Configure production runtime settings in Azure App Service and GitHub Actions:
+
+- **Azure App Service → Connection strings:** add `DefaultConnection` with type
+  `SQLAzure` (or `SQLServer` for non-Azure SQL Server targets) and the expected
+  database connection string.
+- **Azure App Service → Application settings:** set `Jwt__Key` for JWT signing
+  and any other required application settings (for example, Auth0/client IDs or
+  tenant settings used by the API).
+- **GitHub Actions secrets:** add `ATLAS_DEV_SQL_CONNECTION_STRING` and
+  `ATLAS_PROD_SQL_CONNECTION_STRING` for CI/CD and migration workflows.
+
+Reminder: never commit connection strings, JWT keys, or `.env` files to the
+repository—use secret managers or platform configuration instead.
+
 ## CI validation
 
 CI runs expect `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release`

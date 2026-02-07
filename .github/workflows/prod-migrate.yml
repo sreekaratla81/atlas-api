@@ -40,12 +40,29 @@ jobs:
           }
 
       - name: Check for pending migrations
+        id: check_migrations
         env:
           MIGRATOR_CONNECTION: ${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
-        run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
+        shell: pwsh
+        run: |
+          dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -eq 2) {
+            "pending=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          if ($exitCode -eq 0) {
+            "pending=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          exit $exitCode
+
+      - name: Skip migrations (no pending)
+        if: steps.check_migrations.outputs.pending == 'false'
+        run: Write-Host "No pending migrations detected; skipping apply."
 
       - name: Apply migrations
-        if: inputs.confirm == 'APPLY_PROD_MIGRATIONS'
+        if: inputs.confirm == 'APPLY_PROD_MIGRATIONS' && steps.check_migrations.outputs.pending == 'true'
         env:
           MIGRATOR_CONNECTION: ${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"

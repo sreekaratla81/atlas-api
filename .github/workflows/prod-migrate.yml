@@ -30,9 +30,22 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Validate migrator connection
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        run: |
+          if (-not $env:MIGRATOR_CONNECTION) {
+            Write-Error "Missing database connection string. Ensure ATLAS_PROD_SQL_CONNECTION_STRING is configured."
+            exit 1
+          }
+
       - name: Check for pending migrations
-        run: dotnet run --project Atlas.DbMigrator -- --connection "${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}" --check-only
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
 
       - name: Apply migrations
         if: inputs.confirm == 'APPLY_PROD_MIGRATIONS'
-        run: dotnet run --project Atlas.DbMigrator -- --connection "${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}"
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"

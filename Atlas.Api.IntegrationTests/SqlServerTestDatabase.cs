@@ -23,7 +23,7 @@ public class SqlServerTestDatabase : IAsyncLifetime, IDisposable
 
     public async Task InitializeAsync()
     {
-        Environment.SetEnvironmentVariable("DEFAULT_CONNECTION", _connectionString);
+        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", _connectionString);
 
         await EnsureDatabaseExistsAsync();
         await ApplyMigrationsAsync();

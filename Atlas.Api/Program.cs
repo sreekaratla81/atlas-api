@@ -175,6 +175,7 @@ namespace Atlas.Api
                 "http://localhost:5173",
                 "https://localhost:7018",
                 "https://admin.atlashomestays.com",
+                "https://dev.atlashomestays.com",
                 "https://devadmin.atlashomestays.com",
                 "https://www.atlashomestays.com",
                 "https://*.pages.dev"

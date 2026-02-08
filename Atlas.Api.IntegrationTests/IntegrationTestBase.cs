@@ -2,6 +2,7 @@ using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Respawn;
 using Respawn.Graph;
@@ -98,7 +99,7 @@ internal static class IntegrationTestDatabase
             var isDatabaseEmpty = await IsDatabaseEmptyAsync(db, connection);
             if (isDatabaseEmpty)
             {
-                var migrations = (await db.Database.GetMigrationsAsync()).ToList();
+                var migrations = db.Database.GetMigrations().ToList();
                 if (migrations.Count > 0)
                 {
                     await db.Database.MigrateAsync();
@@ -111,7 +112,7 @@ internal static class IntegrationTestDatabase
                 isDatabaseEmpty = await IsDatabaseEmptyAsync(db, connection);
                 if (isDatabaseEmpty)
                 {
-                    var appliedMigrations = (await db.Database.GetAppliedMigrationsAsync()).ToList();
+                    var appliedMigrations = db.Database.GetAppliedMigrations().ToList();
                     var diagnostic = BuildMissingTablesDiagnostic(
                         connection.Database,
                         GetModelTableNames(db),

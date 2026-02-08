@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,9 +13,8 @@ internal static class DatabaseSchemaInitializer
         DatabaseFacade database,
         CancellationToken cancellationToken = default)
     {
-        var migrations = await database.GetMigrationsAsync(cancellationToken);
-
-        if (!migrations.Any())
+        var migrationsAssembly = database.GetService<IMigrationsAssembly>();
+        if (!migrationsAssembly.Migrations.Any())
         {
             await database.EnsureCreatedAsync(cancellationToken);
             return true;

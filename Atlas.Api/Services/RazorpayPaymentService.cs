@@ -3,6 +3,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+using System.Linq;
 using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Atlas.Api.Models.Dtos.Razorpay;
@@ -101,6 +104,16 @@ namespace Atlas.Api.Services
                     RazorpayOrderId = orderId,
                     Status = "pending"
                 };
+
+                // Validate model before saving
+                var validationResults = new List<ValidationResult>();
+                var isValid = Validator.TryValidateObject(payment, new ValidationContext(payment), validationResults, true);
+                if (!isValid)
+                {
+                    var errorMessages = validationResults.Select(v => v.ErrorMessage);
+                    _logger.LogError("Payment validation failed: {Errors}", string.Join(", ", errorMessages));
+                    throw new ValidationException($"Invalid payment data: {string.Join(", ", errorMessages)}");
+                }
 
                 _context.Payments.Add(payment);
                 

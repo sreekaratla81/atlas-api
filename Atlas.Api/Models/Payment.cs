@@ -29,8 +29,8 @@ namespace Atlas.Api.Models
         [Required]
         public DateTime ReceivedOn { get; set; }
         
-        [Required]
-        public string Note { get; set; } = null!;
+        [MaxLength(500)]
+        public string? Note { get; set; }
         
         // Razorpay specific fields
         [MaxLength(100)]

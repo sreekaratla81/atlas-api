@@ -7,7 +7,7 @@ namespace Atlas.Api.IntegrationTests;
 
 public class MigrationSafetyTests : IntegrationTestBase
 {
-    public MigrationSafetyTests(CustomWebApplicationFactory factory) : base(factory)
+    public MigrationSafetyTests(SqlServerTestDatabase database) : base(database)
     {
     }
 

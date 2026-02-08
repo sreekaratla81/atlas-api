@@ -5,7 +5,7 @@ namespace Atlas.Api.IntegrationTests;
 
 public class CorsIntegrationTests : IntegrationTestBase
 {
-    public CorsIntegrationTests(CustomWebApplicationFactory factory) : base(factory)
+    public CorsIntegrationTests(SqlServerTestDatabase database) : base(database)
     {
     }
 

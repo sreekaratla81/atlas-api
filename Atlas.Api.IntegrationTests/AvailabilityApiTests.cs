@@ -9,7 +9,7 @@ namespace Atlas.Api.IntegrationTests;
 [Trait("Suite", "Contract")]
 public class AvailabilityApiTests : IntegrationTestBase
 {
-    public AvailabilityApiTests(CustomWebApplicationFactory factory) : base(factory) { }
+    public AvailabilityApiTests(SqlServerTestDatabase database) : base(database) { }
 
     [Fact]
     public async Task Get_ReturnsAvailableListingsWithPricing()

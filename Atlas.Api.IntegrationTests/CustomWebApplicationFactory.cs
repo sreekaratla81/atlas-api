@@ -14,7 +14,13 @@ namespace Atlas.Api.IntegrationTests;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    public CustomWebApplicationFactory(string? connectionString = null)
+    {
+        ConnectionString = connectionString;
+    }
+
     public PathString PathBase { get; } = new("/");
+    public string? ConnectionString { get; set; }
 
     public string ApiRoute(string relativePath)
     {
@@ -36,7 +42,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", "Cascade");
 
         var dbName = "AtlasHomestays_TestDb";
-        var connectionString =
+        var connectionString = ConnectionString ??
             Environment.GetEnvironmentVariable("Atlas_TestDb") ??
             Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";

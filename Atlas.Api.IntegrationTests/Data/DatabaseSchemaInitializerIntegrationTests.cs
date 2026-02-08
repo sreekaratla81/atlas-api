@@ -1,6 +1,10 @@
 using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using System;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -23,6 +27,7 @@ public class DatabaseSchemaInitializerIntegrationTests
         await using var db = new AppDbContext(options);
         try
         {
+            Assert.True(HasMigrationTypesForContext(db.Database.GetService<IMigrationsAssembly>().Assembly, typeof(AppDbContext)));
             var usedEnsureCreated = await DatabaseSchemaInitializer.EnsureSchemaAsync(db.Database);
 
             Assert.False(usedEnsureCreated);
@@ -33,5 +38,13 @@ public class DatabaseSchemaInitializerIntegrationTests
         {
             await db.Database.EnsureDeletedAsync();
         }
+    }
+
+    private static bool HasMigrationTypesForContext(Assembly assembly, Type contextType)
+    {
+        return assembly.GetExportedTypes()
+            .Where(type => typeof(Migration).IsAssignableFrom(type) && !type.IsAbstract)
+            .Any(type => type.GetCustomAttributes<DbContextAttribute>(inherit: true)
+                .Any(attribute => attribute.ContextType == contextType));
     }
 }

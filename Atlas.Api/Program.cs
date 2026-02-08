@@ -24,6 +24,7 @@ namespace Atlas.Api
             builder.Configuration
                 .AddJsonFile("appsettings.json")
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.local.json", optional: true)
                 .AddEnvironmentVariables();
 
             const string CorsPolicy = "AtlasCorsPolicy";

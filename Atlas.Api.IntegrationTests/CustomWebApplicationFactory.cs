@@ -53,9 +53,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
+            var migrationsAssembly = typeof(AppDbContext).Assembly.GetName().Name;
             services.AddDbContext<AppDbContext>(o =>
                 o.UseSqlServer(connectionString, sqlOptions =>
-                    sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
+                    sqlOptions.MigrationsAssembly(migrationsAssembly))
                  .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
         });
     }

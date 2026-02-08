@@ -41,12 +41,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "IntegrationTest");
         Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", "Cascade");
 
-        var dbName = "AtlasHomestays_TestDb";
+        var dbName = $"AtlasHomestays_TestDb_{TestRunId.Value}";
         var connectionString = ConnectionString ??
             Environment.GetEnvironmentVariable("Atlas_TestDb") ??
             Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
+        TestConnectionStringGuard.Validate(connectionString, nameof(CustomWebApplicationFactory));
         Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", connectionString);
 
         builder.ConfigureServices(services =>

@@ -13,9 +13,10 @@ public class SqlServerTestDatabase : IAsyncLifetime, IDisposable
     public SqlServerTestDatabase()
     {
         _databaseName = $"AtlasHomestays_TestDb_{TestRunId.Value}";
-        _connectionString =
-            Environment.GetEnvironmentVariable("Atlas_TestDb") ??
+        var configuredConnectionString = Environment.GetEnvironmentVariable("Atlas_TestDb");
+        _connectionString = configuredConnectionString ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;";
+        TestConnectionStringGuard.Validate(_connectionString, "Atlas_TestDb");
         _masterConnectionString = "Server=(localdb)\\MSSQLLocalDB;Database=master;Trusted_Connection=True;";
     }
 

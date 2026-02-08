@@ -46,7 +46,11 @@ Integration tests automatically detect and apply any pending EF Core migrations
 at runtime. You don't need to run `dotnet ef database update` before testing.
 
 Integration tests require SQL Server LocalDb. Ensure LocalDb is available or
-provide a connection string via the `Atlas_TestDb` environment variable.
+provide a connection string via the `Atlas_TestDb` environment variable. The
+connection string must target LocalDb and use a database name starting with
+`AtlasHomestays_TestDb_`; the test harness enforces this to avoid accidental
+production usage. Set `ATLAS_ALLOW_NON_LOCALDB_TESTS=true` only if you
+deliberately need to override the guard.
 
 ## How to run migrations (local/dev/prod)
 

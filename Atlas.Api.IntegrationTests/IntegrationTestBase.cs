@@ -81,7 +81,7 @@ internal static class IntegrationTestDatabase
                 return;
             }
 
-            await db.Database.MigrateAsync();
+            await DatabaseSchemaInitializer.EnsureSchemaAsync(db.Database);
 
             _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
             {

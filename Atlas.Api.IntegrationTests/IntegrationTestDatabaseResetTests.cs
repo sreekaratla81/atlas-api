@@ -2,18 +2,37 @@ using Atlas.Api.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using Xunit;
 
 namespace Atlas.Api.IntegrationTests;
 
 [Collection("IntegrationTests")]
-public class IntegrationTestDatabaseResetTests : IClassFixture<CustomWebApplicationFactory>
+public class IntegrationTestDatabaseResetTests : IClassFixture<SqlServerTestDatabase>, IAsyncLifetime
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly SqlServerTestDatabase _database;
+    private CustomWebApplicationFactory _factory = null!;
+    private string? _previousDefaultConnection;
 
-    public IntegrationTestDatabaseResetTests(CustomWebApplicationFactory factory)
+    public IntegrationTestDatabaseResetTests(SqlServerTestDatabase database)
     {
-        _factory = factory;
+        _database = database;
+    }
+
+    public Task InitializeAsync()
+    {
+        _previousDefaultConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", null);
+
+        _factory = new CustomWebApplicationFactory(_database.ConnectionString);
+        return Task.CompletedTask;
+    }
+
+    public Task DisposeAsync()
+    {
+        _factory.Dispose();
+        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", _previousDefaultConnection);
+        return Task.CompletedTask;
     }
 
     [Fact]

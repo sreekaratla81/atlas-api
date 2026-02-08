@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Respawn;
 using Respawn.Graph;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Transactions;
 
 namespace Atlas.Api.IntegrationTests;
@@ -65,15 +68,19 @@ internal static class IntegrationTestDatabase
 
         await connection.OpenAsync();
 
-        await EnsureRespawnerAsync(db, connection);
+        var isDatabaseEmpty = await IsDatabaseEmptyAsync(db, connection);
+        await EnsureRespawnerAsync(db, connection, isDatabaseEmpty);
         await _respawner!.ResetAsync(connection);
 
         await SeedBaselineDataAsync(db);
     }
 
-    private static async Task EnsureRespawnerAsync(AppDbContext db, SqlConnection connection)
+    private static async Task EnsureRespawnerAsync(
+        AppDbContext db,
+        SqlConnection connection,
+        bool forceRecreate)
     {
-        if (_respawner != null)
+        if (_respawner != null && !forceRecreate)
         {
             return;
         }
@@ -81,7 +88,7 @@ internal static class IntegrationTestDatabase
         await RespawnerSemaphore.WaitAsync();
         try
         {
-            if (_respawner != null)
+            if (_respawner != null && !forceRecreate)
             {
                 return;
             }
@@ -99,6 +106,48 @@ internal static class IntegrationTestDatabase
         {
             RespawnerSemaphore.Release();
         }
+    }
+
+    private static async Task<bool> IsDatabaseEmptyAsync(AppDbContext db, SqlConnection connection)
+    {
+        var modelTables = GetModelTableNames(db);
+        if (modelTables.Count == 0)
+        {
+            return true;
+        }
+
+        await using var command = connection.CreateCommand();
+        var conditions = new List<string>(modelTables.Count);
+
+        for (var index = 0; index < modelTables.Count; index++)
+        {
+            var table = modelTables[index];
+            var schemaParameter = $"@schema{index}";
+            var tableParameter = $"@table{index}";
+            conditions.Add($"(TABLE_SCHEMA = {schemaParameter} AND TABLE_NAME = {tableParameter})");
+            command.Parameters.AddWithValue(schemaParameter, table.Schema);
+            command.Parameters.AddWithValue(tableParameter, table.Table);
+        }
+
+        command.CommandText = $"""
+SELECT COUNT(*)
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE'
+  AND ({string.Join(" OR ", conditions)})
+""";
+
+        var tableCount = (int)await command.ExecuteScalarAsync();
+        return tableCount == 0;
+    }
+
+    internal static IReadOnlyList<(string Schema, string Table)> GetModelTableNames(AppDbContext db)
+    {
+        return db.Model.GetEntityTypes()
+            .Select(entityType => (Schema: entityType.GetSchema() ?? "dbo", Table: entityType.GetTableName()))
+            .Where(table => !string.IsNullOrWhiteSpace(table.Table))
+            .Where(table => !string.Equals(table.Table, "__EFMigrationsHistory", StringComparison.OrdinalIgnoreCase))
+            .Distinct()
+            .ToList();
     }
 
     private static async Task SeedBaselineDataAsync(AppDbContext db)

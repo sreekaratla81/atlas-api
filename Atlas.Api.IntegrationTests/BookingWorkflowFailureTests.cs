@@ -11,15 +11,15 @@ using System.Transactions;
 namespace Atlas.Api.IntegrationTests;
 
 [Collection("IntegrationTests")]
-public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowFactory>, IAsyncLifetime
+public class BookingWorkflowFailureTests : IAsyncLifetime
 {
     private readonly FailingBookingWorkflowFactory _factory;
     private HttpClient _client = null!;
     private TransactionScope? _testTransaction;
 
-    public BookingWorkflowFailureTests(FailingBookingWorkflowFactory factory)
+    public BookingWorkflowFailureTests(SqlServerTestDatabase database)
     {
-        _factory = factory;
+        _factory = new FailingBookingWorkflowFactory(database.ConnectionString);
     }
 
     public async Task InitializeAsync()
@@ -33,6 +33,7 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
     {
         _testTransaction?.Dispose();
         _testTransaction = null;
+        _factory.Dispose();
         return Task.CompletedTask;
     }
 
@@ -127,6 +128,10 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
 
 public sealed class FailingBookingWorkflowFactory : CustomWebApplicationFactory
 {
+    public FailingBookingWorkflowFactory(string connectionString) : base(connectionString)
+    {
+    }
+
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);

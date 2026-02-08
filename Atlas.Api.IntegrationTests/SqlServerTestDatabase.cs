@@ -13,9 +13,7 @@ public class SqlServerTestDatabase : IAsyncLifetime, IDisposable
     public SqlServerTestDatabase()
     {
         _databaseName = $"AtlasHomestays_TestDb_{TestRunId.Value}";
-        _connectionString =
-            Environment.GetEnvironmentVariable("Atlas_TestDb") ??
-            $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;";
+        _connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;";
         _masterConnectionString = "Server=(localdb)\\MSSQLLocalDB;Database=master;Trusted_Connection=True;";
     }
 
@@ -23,8 +21,6 @@ public class SqlServerTestDatabase : IAsyncLifetime, IDisposable
 
     public async Task InitializeAsync()
     {
-        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", _connectionString);
-
         await EnsureDatabaseExistsAsync();
         await ApplyMigrationsAsync();
     }

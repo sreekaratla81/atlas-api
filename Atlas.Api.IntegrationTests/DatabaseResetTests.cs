@@ -8,7 +8,7 @@ namespace Atlas.Api.IntegrationTests;
 
 public class DatabaseResetTests : IntegrationTestBase
 {
-    public DatabaseResetTests(CustomWebApplicationFactory factory) : base(factory)
+    public DatabaseResetTests(SqlServerTestDatabase database) : base(database)
     {
     }
 

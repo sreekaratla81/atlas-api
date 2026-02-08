@@ -8,7 +8,7 @@ namespace Atlas.Api.IntegrationTests;
 [Trait("Suite", "Contract")]
 public class ReportsApiTests : IntegrationTestBase
 {
-    public ReportsApiTests(CustomWebApplicationFactory factory) : base(factory) { }
+    public ReportsApiTests(SqlServerTestDatabase database) : base(database) { }
 
     private static async Task<int> SeedDataAsync(AppDbContext db)
     {

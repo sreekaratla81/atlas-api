@@ -9,7 +9,7 @@ namespace Atlas.Api.IntegrationTests;
 [Trait("Suite", "Contract")]
 public class PropertiesApiTests : IntegrationTestBase
 {
-    public PropertiesApiTests(CustomWebApplicationFactory factory) : base(factory) {}
+    public PropertiesApiTests(SqlServerTestDatabase database) : base(database) {}
 
     private static async Task<(Property property, Listing listing, Guest guest, Booking booking)> SeedDataAsync(AppDbContext db)
     {

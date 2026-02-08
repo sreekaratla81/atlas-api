@@ -1,5 +1,6 @@
 using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using Xunit;
 
 namespace Atlas.Api.IntegrationTests;
@@ -21,5 +22,25 @@ public class IntegrationTestDatabaseModelTableTests
         Assert.Contains(tables, table => table.Table == "Properties");
         Assert.DoesNotContain(tables, table => table.Table == "__EFMigrationsHistory");
         Assert.All(tables, table => Assert.False(string.IsNullOrWhiteSpace(table.Schema)));
+    }
+
+    [Fact]
+    public void BuildMissingTablesDiagnostic_IncludesExpectedDetails()
+    {
+        var message = IntegrationTestDatabase.BuildMissingTablesDiagnostic(
+            "AtlasTestDb",
+            new List<(string Schema, string Table)>
+            {
+                ("dbo", "EnvironmentMarkers"),
+                ("dbo", "Properties")
+            },
+            new List<string> { "20260208131757_InitialCreate" },
+            new List<string> { "20260208131757_InitialCreate" });
+
+        Assert.Contains("AtlasTestDb", message);
+        Assert.Contains("dbo.EnvironmentMarkers", message);
+        Assert.Contains("dbo.Properties", message);
+        Assert.Contains("20260208131757_InitialCreate", message);
+        Assert.Contains("Respawner initialization failed", message);
     }
 }

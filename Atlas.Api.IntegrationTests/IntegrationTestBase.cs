@@ -95,6 +95,32 @@ internal static class IntegrationTestDatabase
 
             await DatabaseSchemaInitializer.EnsureSchemaAsync(db.Database);
 
+            var isDatabaseEmpty = await IsDatabaseEmptyAsync(db, connection);
+            if (isDatabaseEmpty)
+            {
+                var migrations = (await db.Database.GetMigrationsAsync()).ToList();
+                if (migrations.Count > 0)
+                {
+                    await db.Database.MigrateAsync();
+                }
+                else
+                {
+                    await db.Database.EnsureCreatedAsync();
+                }
+
+                isDatabaseEmpty = await IsDatabaseEmptyAsync(db, connection);
+                if (isDatabaseEmpty)
+                {
+                    var appliedMigrations = (await db.Database.GetAppliedMigrationsAsync()).ToList();
+                    var diagnostic = BuildMissingTablesDiagnostic(
+                        connection.Database,
+                        GetModelTableNames(db),
+                        migrations,
+                        appliedMigrations);
+                    throw new InvalidOperationException(diagnostic);
+                }
+            }
+
             _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
             {
                 DbAdapter = DbAdapter.SqlServer,
@@ -154,6 +180,25 @@ WHERE TABLE_TYPE = 'BASE TABLE'
             .Select(table => (table.Schema, Table: table.Table!))
             .Distinct()
             .ToList();
+    }
+
+    internal static string BuildMissingTablesDiagnostic(
+        string databaseName,
+        IReadOnlyList<(string Schema, string Table)> modelTables,
+        IReadOnlyCollection<string> migrations,
+        IReadOnlyCollection<string> appliedMigrations)
+    {
+        var tableList = modelTables.Count == 0
+            ? "<none>"
+            : string.Join(", ", modelTables.Select(table => $"{table.Schema}.{table.Table}"));
+        var migrationList = migrations.Count == 0 ? "<none>" : string.Join(", ", migrations);
+        var appliedList = appliedMigrations.Count == 0 ? "<none>" : string.Join(", ", appliedMigrations);
+
+        return $"Respawner initialization failed because no tables were found in database '{databaseName}' after schema initialization. " +
+            $"Model tables: {tableList}. " +
+            $"Migrations: {migrationList}. " +
+            $"Applied migrations: {appliedList}. " +
+            "Ensure migrations are available and applied before creating the respawner.";
     }
 
     private static async Task SeedBaselineDataAsync(AppDbContext db)

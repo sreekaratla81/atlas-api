@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Linq;
 using Xunit;
 
 namespace Atlas.Api.IntegrationTests;
@@ -67,5 +68,7 @@ CREATE DATABASE [{databaseName}];";
         var verifyDb = verifyScope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         Assert.True(await verifyDb.EnvironmentMarkers.AnyAsync());
+        var appliedMigrations = await verifyDb.Database.GetAppliedMigrationsAsync();
+        Assert.NotEmpty(appliedMigrations);
     }
 }

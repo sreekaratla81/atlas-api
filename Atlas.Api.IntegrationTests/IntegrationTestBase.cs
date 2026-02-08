@@ -136,16 +136,22 @@ WHERE TABLE_TYPE = 'BASE TABLE'
   AND ({string.Join(" OR ", conditions)})
 """;
 
-        var tableCount = (int)await command.ExecuteScalarAsync();
+        var result = await command.ExecuteScalarAsync();
+        var tableCount = Convert.ToInt32(result ?? 0);
         return tableCount == 0;
     }
 
     internal static IReadOnlyList<(string Schema, string Table)> GetModelTableNames(AppDbContext db)
     {
         return db.Model.GetEntityTypes()
-            .Select(entityType => (Schema: entityType.GetSchema() ?? "dbo", Table: entityType.GetTableName()))
+            .Select(entityType => new
+            {
+                Schema = entityType.GetSchema() ?? "dbo",
+                Table = entityType.GetTableName()
+            })
             .Where(table => !string.IsNullOrWhiteSpace(table.Table))
             .Where(table => !string.Equals(table.Table, "__EFMigrationsHistory", StringComparison.OrdinalIgnoreCase))
+            .Select(table => (table.Schema, Table: table.Table!))
             .Distinct()
             .ToList();
     }

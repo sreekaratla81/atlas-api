@@ -53,8 +53,9 @@ public class SqlServerTestDatabase : IAsyncLifetime, IDisposable
     private async Task ApplyMigrationsAsync()
     {
         var builder = new DbContextOptionsBuilder<AppDbContext>();
+        var migrationsAssembly = typeof(AppDbContext).Assembly.GetName().Name;
         builder.UseSqlServer(_connectionString, sqlOptions =>
-            sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+            sqlOptions.MigrationsAssembly(migrationsAssembly));
 
         await using var context = new AppDbContext(builder.Options);
         await context.Database.MigrateAsync();

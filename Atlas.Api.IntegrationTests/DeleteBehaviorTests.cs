@@ -8,7 +8,7 @@ namespace Atlas.Api.IntegrationTests;
 
 public class DeleteBehaviorTests : IntegrationTestBase
 {
-    public DeleteBehaviorTests(CustomWebApplicationFactory factory) : base(factory) { }
+    public DeleteBehaviorTests(SqlServerTestDatabase database) : base(database) { }
 
     [Fact]
     public void OnModelCreating_UsesCascadeDeletesInIntegrationTests()

@@ -14,7 +14,8 @@ internal static class DatabaseSchemaInitializer
         CancellationToken cancellationToken = default)
     {
         var migrationsAssembly = database.GetService<IMigrationsAssembly>();
-        if (!migrationsAssembly.Migrations.Any())
+        if (!migrationsAssembly.Migrations.Any() &&
+            !HasMigrationsInContextAssembly(database, migrationsAssembly))
         {
             await database.EnsureCreatedAsync(cancellationToken);
             return true;
@@ -22,5 +23,21 @@ internal static class DatabaseSchemaInitializer
 
         await database.MigrateAsync(cancellationToken);
         return false;
+    }
+
+    private static bool HasMigrationsInContextAssembly(
+        DatabaseFacade database,
+        IMigrationsAssembly migrationsAssembly)
+    {
+        var currentContext = database.GetService<ICurrentDbContext>().Context;
+        var contextAssembly = currentContext.GetType().Assembly;
+
+        if (!ReferenceEquals(migrationsAssembly.Assembly, contextAssembly))
+        {
+            return false;
+        }
+
+        return contextAssembly.GetExportedTypes()
+            .Any(type => typeof(Migration).IsAssignableFrom(type) && !type.IsAbstract);
     }
 }

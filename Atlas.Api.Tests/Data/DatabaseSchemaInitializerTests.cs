@@ -14,9 +14,10 @@ public class DatabaseSchemaInitializerTests
         var dbName = $"AtlasSchema_NoMigrations_{Guid.NewGuid():N}";
         var connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
+        var migrationsAssembly = typeof(DatabaseSchemaInitializerTests).Assembly.GetName().Name;
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(connectionString, sqlOptions =>
-                sqlOptions.MigrationsAssembly(typeof(DatabaseSchemaInitializerTests).Assembly.FullName))
+                sqlOptions.MigrationsAssembly(migrationsAssembly))
             .Options;
 
         await using var db = new AppDbContext(options);
@@ -40,9 +41,10 @@ public class DatabaseSchemaInitializerTests
         var dbName = $"AtlasSchema_WithMigrations_{Guid.NewGuid():N}";
         var connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
+        var migrationsAssembly = typeof(AppDbContext).Assembly.GetName().Name;
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(connectionString, sqlOptions =>
-                sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
+                sqlOptions.MigrationsAssembly(migrationsAssembly))
             .Options;
 
         await using var db = new AppDbContext(options);

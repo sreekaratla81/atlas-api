@@ -11,19 +11,22 @@ using System.Transactions;
 namespace Atlas.Api.IntegrationTests;
 
 [Collection("IntegrationTests")]
-public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowFactory>, IAsyncLifetime
+public class BookingWorkflowFailureTests : IClassFixture<SqlServerTestDatabase>, IAsyncLifetime
 {
-    private readonly FailingBookingWorkflowFactory _factory;
+    private readonly SqlServerTestDatabase _database;
+    private FailingBookingWorkflowFactory _factory = null!;
     private HttpClient _client = null!;
     private TransactionScope? _testTransaction;
 
-    public BookingWorkflowFailureTests(FailingBookingWorkflowFactory factory)
+    public BookingWorkflowFailureTests(SqlServerTestDatabase database)
     {
-        _factory = factory;
+        _database = database;
     }
 
     public async Task InitializeAsync()
     {
+        Environment.SetEnvironmentVariable("Atlas_TestDb", _database.ConnectionString);
+        _factory = new FailingBookingWorkflowFactory(_database.ConnectionString);
         _client = _factory.CreateClient();
         await IntegrationTestDatabase.ResetAsync(_factory);
         _testTransaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
@@ -33,6 +36,8 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
     {
         _testTransaction?.Dispose();
         _testTransaction = null;
+        _client.Dispose();
+        _factory.Dispose();
         return Task.CompletedTask;
     }
 
@@ -127,6 +132,10 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
 
 public sealed class FailingBookingWorkflowFactory : CustomWebApplicationFactory
 {
+    public FailingBookingWorkflowFactory(string? connectionString = null) : base(connectionString)
+    {
+    }
+
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);

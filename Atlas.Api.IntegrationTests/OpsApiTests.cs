@@ -7,7 +7,7 @@ namespace Atlas.Api.IntegrationTests;
 
 public class OpsApiTests : IntegrationTestBase
 {
-    public OpsApiTests(CustomWebApplicationFactory factory) : base(factory)
+    public OpsApiTests(SqlServerTestDatabase database) : base(database)
     {
     }
 

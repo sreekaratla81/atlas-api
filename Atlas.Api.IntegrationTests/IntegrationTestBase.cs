@@ -10,18 +10,17 @@ using System.Transactions;
 namespace Atlas.Api.IntegrationTests;
 
 [Collection("IntegrationTests")]
-public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
+public abstract class IntegrationTestBase : IClassFixture<SqlServerTestDatabase>, IAsyncLifetime
 {
-    protected readonly CustomWebApplicationFactory Factory;
-    protected HttpClient Client { get; }
+    protected CustomWebApplicationFactory Factory { get; private set; } = null!;
+    protected HttpClient Client { get; private set; } = null!;
 
+    private readonly SqlServerTestDatabase _database;
     private TransactionScope? _testTransaction;
 
-    protected IntegrationTestBase(CustomWebApplicationFactory factory)
+    protected IntegrationTestBase(SqlServerTestDatabase database)
     {
-        Factory = factory;
-
-        Client = factory.CreateClient();
+        _database = database;
     }
 
     protected string ApiRoute(string relativePath) => Factory.ApiRoute(relativePath);
@@ -30,6 +29,10 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
 
     public async Task InitializeAsync()
     {
+        Environment.SetEnvironmentVariable("Atlas_TestDb", _database.ConnectionString);
+        Factory = new CustomWebApplicationFactory(_database.ConnectionString);
+        Client = Factory.CreateClient();
+
         await IntegrationTestDatabase.ResetAsync(Factory);
         _testTransaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
     }
@@ -38,6 +41,8 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
     {
         _testTransaction?.Dispose();
         _testTransaction = null;
+        Client.Dispose();
+        Factory.Dispose();
         return Task.CompletedTask;
     }
 

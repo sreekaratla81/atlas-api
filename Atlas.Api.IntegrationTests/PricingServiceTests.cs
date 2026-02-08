@@ -8,7 +8,7 @@ namespace Atlas.Api.IntegrationTests;
 
 public class PricingServiceTests : IntegrationTestBase
 {
-    public PricingServiceTests(CustomWebApplicationFactory factory) : base(factory) { }
+    public PricingServiceTests(SqlServerTestDatabase database) : base(database) { }
 
     [Fact]
     public async Task GetPricingAsync_UsesOverridesAndTotalsRates()

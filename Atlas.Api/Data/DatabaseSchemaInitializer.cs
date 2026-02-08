@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,15 +30,11 @@ internal static class DatabaseSchemaInitializer
         DatabaseFacade database,
         IMigrationsAssembly migrationsAssembly)
     {
-        var currentContext = database.GetService<ICurrentDbContext>().Context;
-        var contextAssembly = currentContext.GetType().Assembly;
+        var currentContextType = database.GetService<ICurrentDbContext>().Context.GetType();
 
-        if (!ReferenceEquals(migrationsAssembly.Assembly, contextAssembly))
-        {
-            return false;
-        }
-
-        return contextAssembly.GetExportedTypes()
-            .Any(type => typeof(Migration).IsAssignableFrom(type) && !type.IsAbstract);
+        return migrationsAssembly.Assembly.GetExportedTypes()
+            .Where(type => typeof(Migration).IsAssignableFrom(type) && !type.IsAbstract)
+            .Any(type => type.GetCustomAttributes<DbContextAttribute>(inherit: true)
+                .Any(attribute => attribute.ContextType == currentContextType));
     }
 }

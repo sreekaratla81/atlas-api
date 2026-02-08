@@ -1,5 +1,7 @@
 using Atlas.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -26,6 +28,7 @@ public class DatabaseSchemaInitializerTests
             var usedEnsureCreated = await DatabaseSchemaInitializer.EnsureSchemaAsync(db.Database);
 
             Assert.True(usedEnsureCreated);
+            Assert.Empty(db.Database.GetService<IMigrationsAssembly>().Migrations);
             var markers = await db.EnvironmentMarkers.ToListAsync();
             Assert.NotNull(markers);
         }
@@ -53,12 +56,27 @@ public class DatabaseSchemaInitializerTests
             var usedEnsureCreated = await DatabaseSchemaInitializer.EnsureSchemaAsync(db.Database);
 
             Assert.False(usedEnsureCreated);
+            Assert.NotEmpty(db.Database.GetService<IMigrationsAssembly>().Migrations);
             var markers = await db.EnvironmentMarkers.ToListAsync();
             Assert.NotNull(markers);
         }
         finally
         {
             await db.Database.EnsureDeletedAsync();
+        }
+    }
+
+    private sealed class OtherDbContext(DbContextOptions options) : DbContext(options);
+
+    [DbContext(typeof(OtherDbContext))]
+    private sealed class OtherContextMigration : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+        }
+
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
         }
     }
 }

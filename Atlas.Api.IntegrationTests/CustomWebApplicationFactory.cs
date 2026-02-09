@@ -14,7 +14,13 @@ namespace Atlas.Api.IntegrationTests;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    public CustomWebApplicationFactory(string? connectionString = null)
+    {
+        ConnectionString = connectionString;
+    }
+
     public PathString PathBase { get; } = new("/");
+    public string? ConnectionString { get; set; }
 
     public string ApiRoute(string relativePath)
     {
@@ -35,20 +41,22 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "IntegrationTest");
         Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", "Cascade");
 
-        var dbName = "AtlasHomestays_TestDb";
-        var connectionString =
+        var dbName = $"AtlasHomestays_TestDb_{TestRunId.Value}";
+        var connectionString = ConnectionString ??
             Environment.GetEnvironmentVariable("Atlas_TestDb") ??
             Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
+        TestConnectionStringGuard.Validate(connectionString, nameof(CustomWebApplicationFactory));
         Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", connectionString);
 
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
+            var migrationsAssembly = typeof(AppDbContext).Assembly.GetName().Name;
             services.AddDbContext<AppDbContext>(o =>
                 o.UseSqlServer(connectionString, sqlOptions =>
-                    sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
+                    sqlOptions.MigrationsAssembly(migrationsAssembly))
                  .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
         });
     }

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260208131757_InitialCreate")]
+    [Migration("20250629080000_InitialBaseline")]
     partial class InitialCreate
     {
         /// <inheritdoc />

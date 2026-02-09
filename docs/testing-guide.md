@@ -13,6 +13,7 @@ During test startup, the `SqlServerTestDatabase` fixture:
 2. Creates the database if it does not exist.
 3. Applies Entity Framework Core migrations.
 4. Exposes the connection string through the `ConnectionStrings__DefaultConnection` environment variable so the application factory can use it.
+5. Validates the connection string to ensure it targets LocalDb and a test database name prefix.
 
 When the test run completes, the fixture drops the database unless told to retain it.
 
@@ -26,10 +27,11 @@ Integration tests use the core `Respawn` package with `DbAdapter.SqlServer` to w
 The `IntegrationTestBase` fixture runs the respawner before every test to guarantee isolation. Tests must not depend on execution order or shared state and should assume the database is clean (aside from baseline seed data) at the start of each test.
 
 ### Running integration tests locally
-1. Ensure you have access to SQL Server; by default the suite uses `(localdb)\MSSQLLocalDB`. You can override the connection string with the `Atlas_TestDb` environment variable if you need to target another instance. The connection string must point to a database the test runner can create and drop.
+1. Ensure you have access to SQL Server; by default the suite uses `(localdb)\MSSQLLocalDB`. If you set `Atlas_TestDb`, the connection string must target LocalDb and use a database name that starts with `AtlasHomestays_TestDb_` (for example, `AtlasHomestays_TestDb_202401010101`). This guard prevents accidentally pointing tests at production data.
 2. (Optional) Set `ATLAS_TEST_RUN_ID` to label the test database. This is helpful when running multiple suites in parallel across machines.
 3. (Optional) Set `ATLAS_TEST_KEEP_DB=true` to keep the database after the run for inspection.
-4. Execute the integration tests, for example:
+4. (Optional) Set `ATLAS_ALLOW_NON_LOCALDB_TESTS=true` only when you deliberately need to target a non-LocalDb instance for tests.
+5. Execute the integration tests, for example:
    ```bash
    dotnet test Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj
    ```

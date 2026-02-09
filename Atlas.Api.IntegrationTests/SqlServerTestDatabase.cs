@@ -13,9 +13,10 @@ public class SqlServerTestDatabase : IAsyncLifetime, IDisposable
     public SqlServerTestDatabase()
     {
         _databaseName = $"AtlasHomestays_TestDb_{TestRunId.Value}";
-        _connectionString =
-            Environment.GetEnvironmentVariable("Atlas_TestDb") ??
+        var configuredConnectionString = Environment.GetEnvironmentVariable("Atlas_TestDb");
+        _connectionString = configuredConnectionString ??
             $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;";
+        TestConnectionStringGuard.Validate(_connectionString, "Atlas_TestDb");
         _masterConnectionString = "Server=(localdb)\\MSSQLLocalDB;Database=master;Trusted_Connection=True;";
     }
 
@@ -25,7 +26,6 @@ public class SqlServerTestDatabase : IAsyncLifetime, IDisposable
     {
         Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", _connectionString);
 
-        await EnsureDatabaseExistsAsync();
         await ApplyMigrationsAsync();
     }
 
@@ -52,8 +52,9 @@ public class SqlServerTestDatabase : IAsyncLifetime, IDisposable
     private async Task ApplyMigrationsAsync()
     {
         var builder = new DbContextOptionsBuilder<AppDbContext>();
+        var migrationsAssembly = typeof(AppDbContext).Assembly.GetName().Name;
         builder.UseSqlServer(_connectionString, sqlOptions =>
-            sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+            sqlOptions.MigrationsAssembly(migrationsAssembly));
 
         await using var context = new AppDbContext(builder.Options);
         await context.Database.MigrateAsync();

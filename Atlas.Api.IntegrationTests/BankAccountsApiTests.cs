@@ -8,7 +8,7 @@ namespace Atlas.Api.IntegrationTests;
 [Trait("Suite", "Contract")]
 public class BankAccountsApiTests : IntegrationTestBase
 {
-    public BankAccountsApiTests(CustomWebApplicationFactory factory) : base(factory) {}
+    public BankAccountsApiTests(SqlServerTestDatabase database) : base(database) {}
 
     [Fact]
     public async Task GetAll_ReturnsOk()

@@ -93,6 +93,13 @@ namespace Atlas.Api.Services
                 }
 
                 // Create payment record
+                // Note: Payment.Note is required in database, so ensure it's never null
+                var paymentNote = $"Razorpay Order ID: {orderId}";
+                if (string.IsNullOrWhiteSpace(paymentNote))
+                {
+                    paymentNote = "Razorpay payment";
+                }
+                
                 var payment = new Payment
                 {
                     BookingId = booking.Id,
@@ -100,7 +107,7 @@ namespace Atlas.Api.Services
                     Method = "Razorpay",
                     Type = "payment",
                     ReceivedOn = DateTime.UtcNow,
-                    Note = $"Razorpay Order ID: {orderId}",
+                    Note = paymentNote, // Required field - ensure it's never null
                     RazorpayOrderId = orderId,
                     Status = "pending"
                 };
@@ -123,7 +130,17 @@ namespace Atlas.Api.Services
                 booking.Currency = request.Currency;
                 
                 _logger.LogInformation("Saving booking and payment updates to database");
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException dbEx)
+                {
+                    _logger.LogError(dbEx, "Database error saving booking and payment");
+                    var errorMessage = ExtractFullExceptionMessage(dbEx);
+                    _logger.LogError("Full exception chain: {FullException}", errorMessage);
+                    throw new InvalidOperationException($"Failed to save changes: {errorMessage}", dbEx);
+                }
 
                 var result = new RazorpayOrderResponse
                 {
@@ -230,6 +247,14 @@ namespace Atlas.Api.Services
 
                 _logger.LogInformation("Creating new booking for listing: {ListingId}", request.BookingDraft.ListingId);
                 
+                // Validate that the listing exists
+                var listingExists = await _context.Listings.AnyAsync(l => l.Id == request.BookingDraft.ListingId);
+                if (!listingExists)
+                {
+                    _logger.LogError("Listing with ID {ListingId} does not exist", request.BookingDraft.ListingId);
+                    throw new ArgumentException($"Listing with ID {request.BookingDraft.ListingId} does not exist");
+                }
+                
                 // Create or get the guest from the request
                 var guest = await _context.Guests
                     .FirstOrDefaultAsync(g => g.Email == request.GuestInfo.Email) ?? new Guest
@@ -258,6 +283,7 @@ namespace Atlas.Api.Services
                     Notes = request.BookingDraft.Notes ?? string.Empty,
                     BookingStatus = "Confirmed",
                     PaymentStatus = "pending",
+                    Currency = request.Currency, // Set currency when creating booking
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -268,11 +294,35 @@ namespace Atlas.Api.Services
 
                 return booking;
             }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error in GetOrCreateBookingAsync");
+                var errorMessage = ExtractFullExceptionMessage(dbEx);
+                _logger.LogError("Full exception chain: {FullException}", errorMessage);
+                throw new InvalidOperationException($"Failed to save booking: {errorMessage}", dbEx);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetOrCreateBookingAsync");
                 throw; // Re-throw to be handled by the caller
             }
+        }
+
+        private string ExtractFullExceptionMessage(Exception ex)
+        {
+            var messages = new List<string>();
+            var current = ex;
+            
+            while (current != null)
+            {
+                if (!string.IsNullOrWhiteSpace(current.Message))
+                {
+                    messages.Add(current.Message);
+                }
+                current = current.InnerException;
+            }
+            
+            return string.Join(" -> ", messages);
         }
     }
 }

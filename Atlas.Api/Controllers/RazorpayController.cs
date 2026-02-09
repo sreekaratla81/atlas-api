@@ -1,9 +1,11 @@
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Atlas.Api.Models.Dtos.Razorpay;
 using Atlas.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Atlas.Api.Controllers
 {
@@ -35,11 +37,37 @@ namespace Atlas.Api.Controllers
                 var response = await _razorpayService.CreateOrderAsync(request);
                 return Ok(response);
             }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error creating Razorpay order");
+                var errorMessage = ExtractFullExceptionMessage(dbEx);
+                _logger.LogError("Full exception details: {FullException}", dbEx.ToString());
+                return BadRequest(new { message = $"Database error: {errorMessage}" });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating Razorpay order");
-                return BadRequest(new { message = ex.Message });
+                var errorMessage = ExtractFullExceptionMessage(ex);
+                _logger.LogError("Full exception details: {FullException}", ex.ToString());
+                return BadRequest(new { message = errorMessage });
             }
+        }
+
+        private string ExtractFullExceptionMessage(Exception ex)
+        {
+            var messages = new List<string>();
+            var current = ex;
+            
+            while (current != null)
+            {
+                if (!string.IsNullOrWhiteSpace(current.Message))
+                {
+                    messages.Add(current.Message);
+                }
+                current = current.InnerException;
+            }
+            
+            return string.Join(" -> ", messages);
         }
 
         /// <summary>

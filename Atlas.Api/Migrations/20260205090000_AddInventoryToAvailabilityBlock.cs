@@ -9,12 +9,19 @@ namespace Atlas.Api.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Placeholder; will be backfilled from git history
+            migrationBuilder.AddColumn<bool>(
+                name: "Inventory",
+                table: "AvailabilityBlock",
+                type: "bit",
+                nullable: false,
+                defaultValue: true);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Placeholder; will be backfilled from git history
+            migrationBuilder.DropColumn(
+                name: "Inventory",
+                table: "AvailabilityBlock");
         }
     }
 }

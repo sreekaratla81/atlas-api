@@ -9,8 +9,8 @@ using Atlas.Api.Data;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251106120000_UpdateCommunicationLogSchema")]
-    partial class UpdateCommunicationLogSchema
+    [Migration("20251106120000_UpdateCommunicationLogsSchema")]
+    partial class UpdateCommunicationLogsSchema
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

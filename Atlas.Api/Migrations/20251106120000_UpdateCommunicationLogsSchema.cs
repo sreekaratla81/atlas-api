@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Atlas.Api.Migrations
 {
-    public partial class UpdateCommunicationLogSchema : Migration
+    public partial class UpdateCommunicationLogsSchema : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

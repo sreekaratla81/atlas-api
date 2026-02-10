@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Atlas.Api.Data;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
     [Migration("20260208044729_MakePaymentNoteNullable")]
+    [DbContext(typeof(AppDbContext))]
     public partial class MakePaymentNoteNullable : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

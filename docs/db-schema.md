@@ -319,7 +319,11 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | Method | nvarchar(max) | No |
 | Type | nvarchar(max) | No |
 | ReceivedOn | datetime2 | No |
-| Note | nvarchar(max) | No |
+| Note | nvarchar(500) | No |
+| RazorpayOrderId | nvarchar(100) | Yes |
+| RazorpayPaymentId | nvarchar(100) | Yes |
+| RazorpaySignature | nvarchar(200) | Yes |
+| Status | nvarchar(20) | No |
 
 **Primary Key**
 - Id

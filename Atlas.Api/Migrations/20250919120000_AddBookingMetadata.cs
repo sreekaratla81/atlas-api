@@ -1,13 +1,9 @@
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Atlas.Api.Data;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
-    [Migration("20250919120000_AddBookingMetadata")]
-    [DbContext(typeof(AppDbContext))]
     public partial class AddBookingMetadata : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

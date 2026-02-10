@@ -1,13 +1,9 @@
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Atlas.Api.Data;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
-    [Migration("20251111120000_MakeMessageTemplateKeyNullable")]
-    [DbContext(typeof(AppDbContext))]
     public partial class MakeMessageTemplateKeyNullable : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

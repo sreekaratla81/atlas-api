@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Atlas.Api.Data;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
     [Migration("20251108120000_MakeBookingSourceNullable")]
+    [DbContext(typeof(AppDbContext))]
     public partial class MakeBookingSourceNullable : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

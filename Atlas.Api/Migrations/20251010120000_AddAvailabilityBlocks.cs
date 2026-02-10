@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Atlas.Api.Data;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
     [Migration("20251010120000_AddAvailabilityBlocks")]
+    [DbContext(typeof(AppDbContext))]
     public partial class AddAvailabilityBlocks : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

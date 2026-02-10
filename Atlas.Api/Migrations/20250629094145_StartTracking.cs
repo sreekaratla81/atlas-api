@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Atlas.Api.Data;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
     [Migration("20250629094145_StartTracking")]
+    [DbContext(typeof(AppDbContext))]
     public partial class StartTracking : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

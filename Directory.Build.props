@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <CoverageExcludeByFile>**/Migrations/*;**/*.g.cs;**/*.Designer.cs;**/Program.cs</CoverageExcludeByFile>
+  </PropertyGroup>
+</Project>

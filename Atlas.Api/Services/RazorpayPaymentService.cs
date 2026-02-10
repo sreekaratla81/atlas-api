@@ -57,6 +57,38 @@ namespace Atlas.Api.Services
                 var booking = await GetOrCreateBookingAsync(request);
                 _logger.LogInformation("Booking created/retrieved with ID: {BookingId}", booking.Id);
                 
+                // Create temporary 5-minute availability blocks for payment flow
+                var checkInDate = booking.CheckinDate.Date;
+                var checkOutDate = booking.CheckoutDate.Date;
+                var now = DateTime.UtcNow;
+                
+                // Generate list of dates to block
+                var datesToBlock = new List<DateTime>();
+                for (var d = checkInDate; d < checkOutDate; d = d.AddDays(1))
+                {
+                    datesToBlock.Add(d);
+                }
+                
+                // Create temporary availability blocks (5-minute expiry)
+                var temporaryBlocks = datesToBlock.Select(date => new AvailabilityBlock
+                {
+                    ListingId = booking.ListingId,
+                    BookingId = booking.Id,
+                    StartDate = date,
+                    EndDate = date.AddDays(1),
+                    BlockType = "Hold",
+                    Source = "Razorpay",
+                    Status = "Hold",
+                    Inventory = false,  // inventory = 0
+                    CreatedAtUtc = now,
+                    UpdatedAtUtc = now
+                }).ToList();
+                
+                _context.AvailabilityBlocks.AddRange(temporaryBlocks);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Created {Count} temporary availability blocks for booking {BookingId} (expires in 5 minutes)", 
+                    temporaryBlocks.Count, booking.Id);
+                
                 // Create Razorpay order
                 var orderRequest = new
                 {
@@ -212,12 +244,57 @@ namespace Atlas.Api.Services
             payment.ReceivedOn = DateTime.UtcNow;
             payment.Note = $"Razorpay Payment ID: {request.RazorpayPaymentId}";
 
-            // Update booking status
+            // Update booking status from "Hold" to "blocked" after successful payment
             booking.PaymentStatus = "paid";
             booking.AmountReceived = booking.TotalAmount ?? 0;
+            
+            // Check if booking status is "Hold" (case-insensitive check)
+            var currentBookingStatus = booking.BookingStatus;
+            if (string.Equals(currentBookingStatus, "Hold", StringComparison.OrdinalIgnoreCase))
+            {
+                booking.BookingStatus = "blocked";
+                _logger.LogInformation("Updated booking status from '{CurrentStatus}' to 'blocked' for booking ID: {BookingId}", 
+                    currentBookingStatus, request.BookingId);
+            }
+            else
+            {
+                _logger.LogInformation("Booking status is '{CurrentStatus}', not updating to blocked for booking ID: {BookingId}", 
+                    currentBookingStatus, request.BookingId);
+            }
 
+            // Convert temporary "Hold" availability blocks to permanent "blocked" status
+            var temporaryBlocks = await _context.AvailabilityBlocks
+                .Where(ab => ab.BookingId == booking.Id 
+                    && ab.BlockType == "Hold" 
+                    && ab.Status == "Hold")
+                .ToListAsync();
+
+            _logger.LogInformation("Found {Count} temporary Hold blocks for booking ID: {BookingId}", 
+                temporaryBlocks.Count, request.BookingId);
+
+            if (temporaryBlocks.Any())
+            {
+                foreach (var block in temporaryBlocks)
+                {
+                    block.BlockType = "Booking";
+                    block.Source = "System";
+                    block.Status = "blocked";  // Permanent blocked status
+                    block.Inventory = false;  // Ensure inventory = 0 (blocked)
+                    block.UpdatedAtUtc = DateTime.UtcNow;
+                    _logger.LogDebug("Updating block ID {BlockId}: BlockType=Booking, Status=blocked, Inventory=false", block.Id);
+                }
+                _logger.LogInformation("Converted {Count} temporary Hold blocks to permanent blocked status for booking ID: {BookingId}", 
+                    temporaryBlocks.Count, request.BookingId);
+            }
+            else
+            {
+                _logger.LogWarning("No temporary Hold blocks found for booking ID: {BookingId}", request.BookingId);
+            }
+
+            // Save all changes (booking, payment, and availability blocks are already tracked)
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Successfully updated payment and booking status for booking ID: {BookingId}", request.BookingId);
+            _logger.LogInformation("Successfully saved changes: payment status=completed, booking status={BookingStatus}, blocks updated={BlockCount} for booking ID: {BookingId}", 
+                booking.BookingStatus, temporaryBlocks.Count, request.BookingId);
 
             return true;
         }
@@ -255,6 +332,34 @@ namespace Atlas.Api.Services
                     throw new ArgumentException($"Listing with ID {request.BookingDraft.ListingId} does not exist");
                 }
                 
+                // Check availability: ensure no blocked dates overlap with requested booking dates
+                // Exclude expired holds (holds older than 5 minutes are considered invalid)
+                var checkInDate = request.BookingDraft.CheckinDate.Date;
+                var checkOutDate = request.BookingDraft.CheckoutDate.Date;
+                var now = DateTime.UtcNow;
+                
+                var hasBlockedDates = await _context.AvailabilityBlocks
+                    .AsNoTracking()
+                    .AnyAsync(block => block.ListingId == request.BookingDraft.ListingId
+                        && block.Inventory == false  // Blocked dates
+                        && block.StartDate < checkOutDate
+                        && block.EndDate > checkInDate
+                        && (
+                            // Permanent blocks (not holds)
+                            (block.BlockType != "Hold" && block.Status != "Hold")
+                            ||
+                            // Active holds (not expired - within 5 minutes)
+                            ((block.BlockType == "Hold" || block.Status == "Hold")
+                             && now <= block.CreatedAtUtc.AddMinutes(5))
+                        ));
+                
+                if (hasBlockedDates)
+                {
+                    _logger.LogWarning("Booking dates {CheckIn} to {CheckOut} overlap with blocked dates for listing {ListingId}", 
+                        checkInDate, checkOutDate, request.BookingDraft.ListingId);
+                    throw new ArgumentException($"Selected dates ({checkInDate:yyyy-MM-dd} to {checkOutDate:yyyy-MM-dd}) are not available. Please choose different dates.");
+                }
+                
                 // Create or get the guest from the request
                 var guest = await _context.Guests
                     .FirstOrDefaultAsync(g => g.Email == request.GuestInfo.Email) ?? new Guest
@@ -281,7 +386,7 @@ namespace Atlas.Api.Services
                     CheckoutDate = request.BookingDraft.CheckoutDate,
                     GuestsPlanned = request.BookingDraft.Guests,
                     Notes = request.BookingDraft.Notes ?? string.Empty,
-                    BookingStatus = "Confirmed",
+                    BookingStatus = "Hold",  // Temporary hold status for payment flow
                     PaymentStatus = "pending",
                     Currency = request.Currency, // Set currency when creating booking
                     CreatedAt = DateTime.UtcNow
@@ -291,6 +396,32 @@ namespace Atlas.Api.Services
                 _context.Bookings.Add(booking);
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Successfully created booking with ID: {BookingId}", booking.Id);
+
+                // Create temporary availability blocks for each date in the booking range (5-minute expiry)
+                var dates = new List<DateTime>();
+                for (var d = checkInDate; d < checkOutDate; d = d.AddDays(1))
+                {
+                    dates.Add(d);
+                }
+
+                var temporaryBlocks = dates.Select(date => new AvailabilityBlock
+                {
+                    ListingId = request.BookingDraft.ListingId,
+                    BookingId = booking.Id,
+                    StartDate = date,
+                    EndDate = date.AddDays(1),
+                    BlockType = "Hold",
+                    Source = "Razorpay",
+                    Status = "Hold",
+                    Inventory = false,  // Blocked (inventory = 0)
+                    CreatedAtUtc = now,
+                    UpdatedAtUtc = now
+                }).ToList();
+
+                _context.AvailabilityBlocks.AddRange(temporaryBlocks);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Created {Count} temporary availability blocks for booking {BookingId} (expires in 5 minutes)", 
+                    temporaryBlocks.Count, booking.Id);
 
                 return booking;
             }

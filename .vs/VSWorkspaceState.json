@@ -4,6 +4,6 @@
     "\\Atlas.Api",
     "\\Atlas.Api\\Controllers"
   ],
-  "SelectedNode": "\\AtlasHomestays.sln",
+  "SelectedNode": "\\Atlas.Api\\Controllers\\AvailabilityController.cs",
   "PreviewInSolutionExplorer": false
 }

@@ -151,7 +151,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BankAccounts", (string)null);
+                    b.ToTable("BankAccounts");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Booking", b =>
@@ -254,7 +254,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.CommunicationLog", b =>
@@ -388,7 +388,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Guests", (string)null);
+                    b.ToTable("Guests");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Incident", b =>
@@ -426,7 +426,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Incidents", (string)null);
+                    b.ToTable("Incidents");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
@@ -476,7 +476,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasIndex("PropertyId");
 
-                    b.ToTable("Listings", (string)null);
+                    b.ToTable("Listings");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.ListingDailyRate", b =>
@@ -733,7 +733,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasIndex("BookingId");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Property", b =>
@@ -774,7 +774,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Properties", (string)null);
+                    b.ToTable("Properties");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.User", b =>
@@ -807,7 +807,7 @@ namespace Atlas.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.AvailabilityBlock", b =>

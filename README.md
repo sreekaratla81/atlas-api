@@ -175,3 +175,34 @@ Production deploys are automated through the GitHub Actions workflow at
   exists (`ATLAS_DEV_SQL_CONNECTION`, and `ATLAS_PROD_SQL_CONNECTION` when
   added) and that the workflow passes it into the DbMigrator step as an
   environment variable or argument.
+
+## Unit test coverage workflow
+
+Unit-test coverage is tracked in CI using `.github/workflows/coverage-unit.yml`.
+
+- Coverage collection runs only against `Atlas.Api.Tests` so DB-heavy integration setup does not dilute unit-test metrics.
+- Reports are generated from `coverage.cobertura.xml` and uploaded as workflow artifacts (Cobertura XML + HTML report).
+- The target line coverage is **90%+**, but the threshold step is **non-blocking** (`continue-on-error: true`) so failed coverage emits a warning without blocking merges.
+
+### Run coverage locally
+
+```bash
+./tools/coverage/run.sh
+```
+
+This script runs unit tests with `--collect:"XPlat Code Coverage"`, writes coverage output to `Atlas.Api.Tests/TestResults/**/coverage.cobertura.xml`, and generates HTML + summary output under `tools/coverage/report/`.
+
+### Coverage include/exclude policy
+
+Coverage collection is focused on maintainable business logic. We exclude:
+
+- `**/Migrations/*` (generated schema artifacts)
+- `**/*.g.cs` and `**/*.Designer.cs` (generated files)
+- `**/Program.cs` (startup wiring noise)
+- `**/obj/**` (build output)
+
+These defaults are centralized in `Directory.Build.props` and applied in `coverage.runsettings`.
+
+### Optional strict check before release
+
+Use `.github/workflows/unitests-coverage-strict.yml` (`workflow_dispatch`) when you want enforced coverage checks. This manual workflow fails if line coverage is below 90%, which is useful as a release-readiness gate.

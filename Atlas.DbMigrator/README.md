@@ -35,3 +35,9 @@ dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DEV_SQL_CONNECTIO
 **Troubleshooting:** If you see `Missing value for --connection`, confirm the
 GitHub Actions secret exists and the workflow passes it to DbMigrator via
 `--connection` or an environment variable.
+
+## Placeholder migration warning
+
+Placeholder migrations in `Atlas.Api/Migrations/` exist only to satisfy "migration exists in assembly" checks (for example, `DbMigrator --check-only` against environments whose `__EFMigrationsHistory` already contains those IDs).
+
+Before applying production migrations (especially `20260204064128_AddRazorpayPaymentFields` through `20260209104230_AddRazorpayColumnsToPayments`), restore the real migration bodies and corresponding designer files from previous commits. EF relies on per-migration `TargetModel`, so placeholders are not safe for actual schema-apply workflows.

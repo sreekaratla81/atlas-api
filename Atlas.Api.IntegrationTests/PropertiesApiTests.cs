@@ -88,6 +88,26 @@ public class PropertiesApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Get_ReturnsOk_WhenFound()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var property = await DataSeeder.SeedPropertyAsync(db);
+
+        var response = await Client.GetAsync(ApiRoute($"properties/{property.Id}"));
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_ReturnsBadRequest_WhenPayloadIsInvalid()
+    {
+        var response = await Client.PostAsJsonAsync(ApiRoute("properties"), new { name = "" });
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Post_CreatesProperty()
     {
         var property = new Property

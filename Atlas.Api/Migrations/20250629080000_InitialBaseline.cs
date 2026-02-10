@@ -292,7 +292,6 @@ namespace Atlas.Api.Migrations
                     BlockType = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false),
                     Source = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false),
                     Status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, defaultValue: "Active"),
-                    Inventory = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
@@ -370,7 +369,7 @@ namespace Atlas.Api.Migrations
                     Method = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Type = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ReceivedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    Note = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {

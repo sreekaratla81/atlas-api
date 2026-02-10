@@ -13,6 +13,11 @@ public class DatabaseSchemaInitializerTests
     [Fact]
     public async Task EnsureSchemaAsync_UsesEnsureCreated_WhenNoMigrationsExist()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         var dbName = $"AtlasSchema_NoMigrations_{Guid.NewGuid():N}";
         var connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 
@@ -41,6 +46,11 @@ public class DatabaseSchemaInitializerTests
     [Fact]
     public async Task EnsureSchemaAsync_UsesMigrations_WhenMigrationsExist()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         var dbName = $"AtlasSchema_WithMigrations_{Guid.NewGuid():N}";
         var connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={dbName};Trusted_Connection=True;";
 

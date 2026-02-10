@@ -1,4 +1,5 @@
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +9,7 @@ namespace Atlas.Api.IntegrationTests;
 [Trait("Suite", "Contract")]
 public class PaymentsApiTests : IntegrationTestBase
 {
-    public PaymentsApiTests(CustomWebApplicationFactory factory) : base(factory) {}
+    public PaymentsApiTests(SqlServerTestDatabase database) : base(database) {}
 
     private async Task<Booking> SeedBookingAsync(AppDbContext db)
     {
@@ -113,7 +114,7 @@ public class PaymentsApiTests : IntegrationTestBase
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var booking = await SeedBookingAsync(db);
-        var payment = new Payment
+        var payment = new PaymentCreateDto
         {
             BookingId = booking.Id,
             Amount = 50,
@@ -147,8 +148,16 @@ public class PaymentsApiTests : IntegrationTestBase
         db.Payments.Add(payment);
         await db.SaveChangesAsync();
 
-        payment.Note = "updated";
-        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"payments/{payment.Id}"), payment);
+        var update = new PaymentUpdateDto
+        {
+            BookingId = booking.Id,
+            Amount = payment.Amount,
+            Method = payment.Method,
+            Type = payment.Type,
+            ReceivedOn = payment.ReceivedOn,
+            Note = "updated"
+        };
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"payments/{payment.Id}"), update);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -158,11 +167,11 @@ public class PaymentsApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Put_ReturnsBadRequest_OnIdMismatch()
+    public async Task Put_ReturnsNotFound_WhenMissing()
     {
-        var payment = new Payment { Id = 1, BookingId = 1, Amount = 1, Method = "c", Type = "t", ReceivedOn = DateTime.UtcNow, Note = "n" };
+        var payment = new PaymentUpdateDto { BookingId = 1, Amount = 1, Method = "c", Type = "t", ReceivedOn = DateTime.UtcNow, Note = "n" };
         var response = await Client.PutAsJsonAsync(ApiControllerRoute("payments/2"), payment);
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

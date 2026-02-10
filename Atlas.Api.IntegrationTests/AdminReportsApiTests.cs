@@ -8,7 +8,7 @@ namespace Atlas.Api.IntegrationTests;
 [Trait("Suite", "Contract")]
 public class AdminReportsApiTests : IntegrationTestBase
 {
-    public AdminReportsApiTests(CustomWebApplicationFactory factory) : base(factory) { }
+    public AdminReportsApiTests(SqlServerTestDatabase database) : base(database) { }
 
     private static async Task SeedReportingDataAsync(AppDbContext db)
     {
@@ -17,6 +17,25 @@ public class AdminReportsApiTests : IntegrationTestBase
         var guest = await DataSeeder.SeedGuestAsync(db);
         var booking = await DataSeeder.SeedBookingAsync(db, property, listing, guest);
         await DataSeeder.SeedPaymentAsync(db, booking);
+    }
+
+    private static async Task SeedReportingDataWithNullSourceAsync(AppDbContext db)
+    {
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        var guest = await DataSeeder.SeedGuestAsync(db);
+        db.Bookings.Add(new Booking
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            BookingSource = null,
+            PaymentStatus = "Paid",
+            CheckinDate = DateTime.UtcNow.Date,
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(1),
+            AmountReceived = 100,
+            Notes = "note"
+        });
+        await db.SaveChangesAsync();
     }
 
     [Fact]
@@ -102,6 +121,23 @@ public class AdminReportsApiTests : IntegrationTestBase
 
         var response = await Client.GetAsync(ApiRoute("admin/reports/bookings/source"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetBookingSource_UsesUnknownForNullSource()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await SeedReportingDataWithNullSourceAsync(db);
+
+        var response = await Client.GetAsync(ApiRoute("admin/reports/bookings/source"));
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var data = await response.Content.ReadFromJsonAsync<List<SourceBookingSummary>>();
+        Assert.NotNull(data);
+        var entry = Assert.Single(data!);
+        Assert.Equal("Unknown", entry.Source);
+        Assert.Equal(1, entry.Count);
     }
 
     [Fact]

@@ -43,7 +43,7 @@ namespace Atlas.Api.Controllers
                 CheckOutDate = b.CheckoutDate,
                 AmountReceived = b.AmountReceived,
                 ListingId = b.ListingId,
-                BookingSource = b.BookingSource
+                BookingSource = b.BookingSource ?? string.Empty
             }).ToListAsync();
 
             return Ok(result);
@@ -117,7 +117,7 @@ namespace Atlas.Api.Controllers
                         Key = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("yyyy-MM"),
                         TotalNet = g.Sum(x => x.AmountReceived),
                         TotalFees = g.Sum(x =>
-                            x.BookingSource.ToLower() switch
+                            (x.BookingSource ?? string.Empty).ToLowerInvariant() switch
                             {
                                 "airbnb" => x.AmountReceived * 0.16m,
                                 "booking.com" => x.AmountReceived * 0.15m,
@@ -172,7 +172,7 @@ namespace Atlas.Api.Controllers
                         Key = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("yyyy-MM"),
                         TotalNet = g.Sum(x => x.AmountReceived),
                         TotalFees = g.Sum(x =>
-                            x.BookingSource.ToLower() switch
+                            (x.BookingSource ?? string.Empty).ToLowerInvariant() switch
                             {
                                 "airbnb" => x.AmountReceived * 0.16m,
                                 "booking.com" => x.AmountReceived * 0.15m,
@@ -245,7 +245,7 @@ namespace Atlas.Api.Controllers
             var result = await query.GroupBy(b => b.BookingSource)
                 .Select(g => new SourceBookingSummary
                 {
-                    Source = g.Key,
+                    Source = g.Key ?? "Unknown",
                     Count = g.Count()
                 }).ToListAsync();
 

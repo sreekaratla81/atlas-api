@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Atlas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251111112000_MakeMessageTemplateKeyNullable")]
-    partial class MakeMessageTemplateKeyNullable
+    [Migration("20260209104230_AddRazorpayColumnsToPayments")]
+    partial class AddRazorpayColumnsToPayments
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -87,6 +87,9 @@ namespace Atlas.Api.Migrations
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("date");
+
+                    b.Property<bool>("Inventory")
+                        .HasColumnType("bit");
 
                     b.Property<int>("ListingId")
                         .HasColumnType("int");
@@ -340,6 +343,27 @@ namespace Atlas.Api.Migrations
                     b.HasIndex("TemplateId");
 
                     b.ToTable("CommunicationLog", (string)null);
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.EnvironmentMarker", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Marker")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Marker")
+                        .IsUnique();
+
+                    b.ToTable("EnvironmentMarker", (string)null);
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Guest", b =>
@@ -673,20 +697,44 @@ namespace Atlas.Api.Migrations
 
                     b.Property<string>("Method")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Note")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RazorpayOrderId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RazorpayPaymentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RazorpaySignature")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("ReceivedOn")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("pending");
+
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
 
                     b.ToTable("Payments");
                 });
@@ -868,6 +916,22 @@ namespace Atlas.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.Payment", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.Booking", "Booking")
+                        .WithMany("Payments")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.Booking", b =>
+                {
+                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Listing", b =>

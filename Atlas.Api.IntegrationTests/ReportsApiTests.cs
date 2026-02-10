@@ -8,9 +8,9 @@ namespace Atlas.Api.IntegrationTests;
 [Trait("Suite", "Contract")]
 public class ReportsApiTests : IntegrationTestBase
 {
-    public ReportsApiTests(CustomWebApplicationFactory factory) : base(factory) { }
+    public ReportsApiTests(SqlServerTestDatabase database) : base(database) { }
 
-    private static async Task SeedDataAsync(AppDbContext db)
+    private static async Task<int> SeedDataAsync(AppDbContext db)
     {
         var property = await DataSeeder.SeedPropertyAsync(db);
         var listing = await DataSeeder.SeedListingAsync(db, property);
@@ -27,9 +27,10 @@ public class ReportsApiTests : IntegrationTestBase
             PaymentStatus = "Paid"
         });
         await db.SaveChangesAsync();
+        return listing.Id;
     }
 
-    private static async Task SeedSameDayBookingAsync(AppDbContext db)
+    private static async Task<int> SeedSameDayBookingAsync(AppDbContext db)
     {
         var property = await DataSeeder.SeedPropertyAsync(db);
         var listing = await DataSeeder.SeedListingAsync(db, property);
@@ -46,9 +47,30 @@ public class ReportsApiTests : IntegrationTestBase
             PaymentStatus = "Paid"
         });
         await db.SaveChangesAsync();
+        return listing.Id;
     }
 
-    private static async Task SeedBankAccountDataAsync(AppDbContext db)
+    private static async Task<int> SeedNullSourceBookingAsync(AppDbContext db)
+    {
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        var guest = await DataSeeder.SeedGuestAsync(db);
+        db.Bookings.Add(new Booking
+        {
+            ListingId = listing.Id,
+            GuestId = guest.Id,
+            CheckinDate = new DateTime(2025, 7, 10),
+            CheckoutDate = new DateTime(2025, 7, 11),
+            BookingSource = null,
+            AmountReceived = 120,
+            Notes = string.Empty,
+            PaymentStatus = "Paid"
+        });
+        await db.SaveChangesAsync();
+        return listing.Id;
+    }
+
+    private static async Task<BankAccount> SeedBankAccountDataAsync(AppDbContext db)
     {
         var property = await DataSeeder.SeedPropertyAsync(db);
         var listing = await DataSeeder.SeedListingAsync(db, property);
@@ -67,6 +89,7 @@ public class ReportsApiTests : IntegrationTestBase
             PaymentStatus = "Paid"
         });
         await db.SaveChangesAsync();
+        return account;
     }
 
     [Fact]
@@ -74,9 +97,9 @@ public class ReportsApiTests : IntegrationTestBase
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await SeedDataAsync(db);
+        var listingId = await SeedDataAsync(db);
 
-        var response = await Client.GetAsync(ApiRoute("reports/calendar-earnings?listingId=1&month=2025-07"));
+        var response = await Client.GetAsync(ApiRoute($"reports/calendar-earnings?listingId={listingId}&month=2025-07"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
@@ -91,9 +114,9 @@ public class ReportsApiTests : IntegrationTestBase
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await SeedSameDayBookingAsync(db);
+        var listingId = await SeedSameDayBookingAsync(db);
 
-        var response = await Client.GetAsync(ApiRoute("reports/calendar-earnings?listingId=1&month=2025-06"));
+        var response = await Client.GetAsync(ApiRoute($"reports/calendar-earnings?listingId={listingId}&month=2025-06"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
@@ -108,6 +131,24 @@ public class ReportsApiTests : IntegrationTestBase
         Assert.Equal("Guest", earning.GuestName);
         Assert.Equal(new DateTime(2025, 6, 18), earning.CheckinDate);
         Assert.Equal(2650.88m, entry.Total);
+    }
+
+    [Fact]
+    public async Task GetCalendarEarnings_ReturnsUnknownSource_WhenSourceIsNull()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var listingId = await SeedNullSourceBookingAsync(db);
+
+        var response = await Client.GetAsync(ApiRoute($"reports/calendar-earnings?listingId={listingId}&month=2025-07"));
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+
+        var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
+        Assert.NotNull(list);
+        Assert.Single(list!);
+        var entry = list![0];
+        Assert.Single(entry.Earnings);
+        Assert.Equal("Unknown", entry.Earnings[0].Source);
     }
 
     [Fact]
@@ -143,7 +184,7 @@ public class ReportsApiTests : IntegrationTestBase
             });
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync(ApiRoute("reports/calendar-earnings?listingId=1&month=2025-07"));
+        var response = await Client.GetAsync(ApiRoute($"reports/calendar-earnings?listingId={listing.Id}&month=2025-07"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var list = await response.Content.ReadFromJsonAsync<List<CalendarEarningEntry>>();
@@ -161,15 +202,16 @@ public class ReportsApiTests : IntegrationTestBase
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await SeedBankAccountDataAsync(db);
+        var account = await SeedBankAccountDataAsync(db);
 
         var response = await Client.GetAsync(ApiRoute("reports/bank-account-earnings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();
         Assert.NotNull(data);
-        Assert.Single(data!);
-        Assert.Equal(400, data![0].AmountReceived);
+        var expectedDisplay = $"{account.BankName} - {account.AccountNumber}";
+        var accountEntry = Assert.Single(data!.Where(entry => entry.AccountDisplay == expectedDisplay && entry.Bank == account.BankName));
+        Assert.Equal(400, accountEntry.AmountReceived);
     }
 
     [Fact]
@@ -177,14 +219,15 @@ public class ReportsApiTests : IntegrationTestBase
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await DataSeeder.SeedBankAccountAsync(db);
+        var account = await DataSeeder.SeedBankAccountAsync(db);
 
         var response = await Client.GetAsync(ApiRoute("reports/bank-account-earnings"));
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
 
         var data = await response.Content.ReadFromJsonAsync<List<BankAccountEarnings>>();
         Assert.NotNull(data);
-        Assert.Single(data!);
-        Assert.Equal(0, data![0].AmountReceived);
+        var expectedDisplay = $"{account.BankName} - {account.AccountNumber}";
+        var accountEntry = Assert.Single(data!.Where(entry => entry.AccountDisplay == expectedDisplay && entry.Bank == account.BankName));
+        Assert.Equal(0, accountEntry.AmountReceived);
     }
 }

@@ -22,6 +22,7 @@ public class CorsConfigurationTests
         {
             "http://localhost:5173",
             "https://admin.atlashomestays.com",
+            "https://dev.atlashomestays.com",
             "https://devadmin.atlashomestays.com",
             "https://www.atlashomestays.com",
             "https://*.pages.dev"

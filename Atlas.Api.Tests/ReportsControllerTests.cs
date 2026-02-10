@@ -49,6 +49,36 @@ public class ReportsControllerTests
     }
 
     [Fact]
+    public async Task GetCalendarEarnings_UsesUnknownSource_WhenSourceIsNull()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(nameof(GetCalendarEarnings_UsesUnknownSource_WhenSourceIsNull))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.Bookings.Add(new Booking
+        {
+            ListingId = 1,
+            GuestId = 1,
+            CheckinDate = new DateTime(2025, 7, 10),
+            CheckoutDate = new DateTime(2025, 7, 11),
+            BookingSource = null,
+            AmountReceived = 120,
+            Notes = string.Empty,
+            PaymentStatus = "Paid"
+        });
+        await context.SaveChangesAsync();
+
+        var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
+        var result = await controller.GetCalendarEarnings(1, "2025-07");
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
+
+        Assert.Single(list);
+        var detail = Assert.Single(list[0].Earnings);
+        Assert.Equal("Unknown", detail.Source);
+    }
+
+    [Fact]
     public async Task GetCalendarEarnings_SpansMultipleDays()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -73,7 +103,7 @@ public class ReportsControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var list = Assert.IsAssignableFrom<IEnumerable<CalendarEarningEntry>>(ok.Value).ToList();
         Assert.Equal(3, list.Count);
-        Assert.All(list, i => Assert.Equal(1, i.Earnings.Count));
+        Assert.All(list, i => Assert.Single(i.Earnings));
         Assert.All(list, i => Assert.Equal("airbnb", i.Earnings[0].Source));
         Assert.All(list, i => Assert.Equal("Unknown", i.Earnings[0].GuestName));
         Assert.All(list, i => Assert.Equal(new DateTime(2025, 7, 5), i.Earnings[0].CheckinDate));
@@ -293,6 +323,31 @@ public class ReportsControllerTests
         var list = Assert.IsAssignableFrom<IEnumerable<BankAccountEarnings>>(ok.Value).ToList();
         Assert.Single(list);
         Assert.Equal(0, list[0].AmountReceived);
+    }
+
+    [Fact]
+    public async Task GetBankAccountEarnings_HandlesEmptyAccountNumber()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(nameof(GetBankAccountEarnings_HandlesEmptyAccountNumber))
+            .Options;
+        using var context = new AppDbContext(options);
+        context.BankAccounts.Add(new BankAccount
+        {
+            Id = 1,
+            BankName = "Bank",
+            AccountNumber = string.Empty,
+            IFSC = "I",
+            AccountType = "S"
+        });
+        await context.SaveChangesAsync();
+
+        var controller = new ReportsController(context, NullLogger<ReportsController>.Instance);
+        var result = await controller.GetBankAccountEarnings();
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var list = Assert.IsAssignableFrom<IEnumerable<BankAccountEarnings>>(ok.Value).ToList();
+        Assert.Single(list);
+        Assert.Equal("Bank - ", list[0].AccountDisplay);
     }
 
     [Fact]

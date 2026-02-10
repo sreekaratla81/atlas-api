@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Atlas.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class MakeMessageTemplateKeyNullable : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -46,6 +46,19 @@ namespace Atlas.Api.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_BankAccounts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EnvironmentMarker",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Marker = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EnvironmentMarker", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -125,24 +138,6 @@ namespace Atlas.Api.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OutboxMessage", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Payments",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    BookingId = table.Column<int>(type: "int", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    Method = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ReceivedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Payments", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -297,6 +292,7 @@ namespace Atlas.Api.Migrations
                     BlockType = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false),
                     Source = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false),
                     Status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, defaultValue: "Active"),
+                    Inventory = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
@@ -359,6 +355,30 @@ namespace Atlas.Api.Migrations
                         name: "FK_CommunicationLog_MessageTemplate_TemplateId",
                         column: x => x.TemplateId,
                         principalTable: "MessageTemplate",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Payments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    BookingId = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Method = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    ReceivedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Payments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Payments_Bookings_BookingId",
+                        column: x => x.BookingId,
+                        principalTable: "Bookings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -442,6 +462,12 @@ namespace Atlas.Api.Migrations
                 column: "TemplateId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_EnvironmentMarker_Marker",
+                table: "EnvironmentMarker",
+                column: "Marker",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ListingDailyRate_ListingId_Date",
                 table: "ListingDailyRate",
                 columns: new[] { "ListingId", "Date" },
@@ -456,6 +482,11 @@ namespace Atlas.Api.Migrations
                 name: "IX_Listings_PropertyId",
                 table: "Listings",
                 column: "PropertyId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Payments_BookingId",
+                table: "Payments",
+                column: "BookingId");
         }
 
         /// <inheritdoc />
@@ -469,6 +500,9 @@ namespace Atlas.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "CommunicationLog");
+
+            migrationBuilder.DropTable(
+                name: "EnvironmentMarker");
 
             migrationBuilder.DropTable(
                 name: "Incidents");
@@ -486,13 +520,13 @@ namespace Atlas.Api.Migrations
                 name: "Users");
 
             migrationBuilder.DropTable(
-                name: "Bookings");
-
-            migrationBuilder.DropTable(
                 name: "MessageTemplate");
 
             migrationBuilder.DropTable(
                 name: "ListingPricing");
+
+            migrationBuilder.DropTable(
+                name: "Bookings");
 
             migrationBuilder.DropTable(
                 name: "BankAccounts");

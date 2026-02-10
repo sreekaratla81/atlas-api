@@ -70,7 +70,7 @@ namespace Atlas.Api.Controllers
                                     .FirstOrDefault(),
                       CheckinDate = b.CheckinDate,
                       CheckoutDate = b.CheckoutDate,
-                      BookingSource = b.BookingSource,
+                      BookingSource = b.BookingSource ?? string.Empty,
                       BookingStatus = b.BookingStatus,
                       TotalAmount = b.TotalAmount ?? 0m,
                       Currency = b.Currency,
@@ -331,7 +331,7 @@ namespace Atlas.Api.Controllers
                 existingBooking.GuestsActual = booking.GuestsActual;
                 existingBooking.ExtraGuestCharge = booking.ExtraGuestCharge;
                 existingBooking.CommissionAmount = booking.CommissionAmount;
-                existingBooking.Notes = booking.Notes;
+                existingBooking.Notes = booking.Notes ?? existingBooking.Notes ?? string.Empty;
                 existingBooking.BankAccountId = booking.BankAccountId;
 
                 if (IsConfirmedStatus(existingBooking.BookingStatus))
@@ -485,7 +485,7 @@ namespace Atlas.Api.Controllers
                 GuestId = booking.GuestId,
                 CheckinDate = booking.CheckinDate,
                 CheckoutDate = booking.CheckoutDate,
-                BookingSource = booking.BookingSource,
+                BookingSource = booking.BookingSource ?? string.Empty,
                 BookingStatus = booking.BookingStatus,
                 TotalAmount = booking.TotalAmount ?? 0m,
                 Currency = booking.Currency,
@@ -501,7 +501,7 @@ namespace Atlas.Api.Controllers
                 GuestsActual = booking.GuestsActual ?? 0,
                 ExtraGuestCharge = booking.ExtraGuestCharge ?? 0,
                 CommissionAmount = booking.CommissionAmount ?? 0,
-                Notes = booking.Notes,
+                Notes = booking.Notes ?? string.Empty,
                 CreatedAt = booking.CreatedAt,
                 PaymentStatus = booking.PaymentStatus
             };

@@ -6,27 +6,40 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Collections.Generic;
 using System;
+using System.Transactions;
 
 namespace Atlas.Api.IntegrationTests;
 
 [Collection("IntegrationTests")]
-public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowFactory>, IAsyncLifetime
+public class BookingWorkflowFailureTests : IClassFixture<SqlServerTestDatabase>, IAsyncLifetime
 {
-    private readonly FailingBookingWorkflowFactory _factory;
+    private readonly SqlServerTestDatabase _database;
+    private FailingBookingWorkflowFactory _factory = null!;
     private HttpClient _client = null!;
+    private TransactionScope? _testTransaction;
 
-    public BookingWorkflowFailureTests(FailingBookingWorkflowFactory factory)
+    public BookingWorkflowFailureTests(SqlServerTestDatabase database)
     {
-        _factory = factory;
+        _database = database;
     }
 
     public async Task InitializeAsync()
     {
+        Environment.SetEnvironmentVariable("Atlas_TestDb", _database.ConnectionString);
+        _factory = new FailingBookingWorkflowFactory(_database.ConnectionString);
         _client = _factory.CreateClient();
-        await ResetDatabaseAsync();
+        await IntegrationTestDatabase.ResetAsync(_factory);
+        _testTransaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public Task DisposeAsync()
+    {
+        _testTransaction?.Dispose();
+        _testTransaction = null;
+        _client.Dispose();
+        _factory.Dispose();
+        return Task.CompletedTask;
+    }
 
     [Fact]
     public async Task Post_CreatesBooking_WhenWorkflowPublisherFails()
@@ -115,17 +128,14 @@ public class BookingWorkflowFailureTests : IClassFixture<FailingBookingWorkflowF
         });
     }
 
-    private async Task ResetDatabaseAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.EnsureDeletedAsync();
-        await db.Database.MigrateAsync();
-    }
 }
 
 public sealed class FailingBookingWorkflowFactory : CustomWebApplicationFactory
 {
+    public FailingBookingWorkflowFactory(string? connectionString = null) : base(connectionString)
+    {
+    }
+
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);

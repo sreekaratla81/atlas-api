@@ -1,0 +1,68 @@
+name: Apply Production Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type APPLY_PROD_MIGRATIONS to run migrations.
+        required: true
+        type: string
+      reason:
+        description: Optional reason for applying production migrations.
+        required: false
+        type: string
+
+concurrency: prod-migrations
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Validate migrator connection
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        run: |
+          if (-not $env:MIGRATOR_CONNECTION) {
+            Write-Error "Missing database connection string. Ensure ATLAS_PROD_SQL_CONNECTION_STRING is configured."
+            exit 1
+          }
+
+      - name: Check for pending migrations
+        id: check_migrations
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        shell: pwsh
+        run: |
+          dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -eq 2) {
+            "pending=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          if ($exitCode -eq 0) {
+            "pending=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          exit $exitCode
+
+      - name: Skip migrations (no pending)
+        if: steps.check_migrations.outputs.pending == 'false'
+        run: Write-Host "No pending migrations detected; skipping apply."
+
+      - name: Apply migrations
+        if: inputs.confirm == 'APPLY_PROD_MIGRATIONS' && steps.check_migrations.outputs.pending == 'true'
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"

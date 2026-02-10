@@ -1,4 +1,4 @@
-﻿using Atlas.Api.Models;
+using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -65,9 +65,40 @@ namespace Atlas.Api.Data
                 .HasColumnType("varchar(50)")
                 .HasMaxLength(50);
 
-            modelBuilder.Entity<Payment>()
-                .Property(p => p.Amount)
-                .HasPrecision(18, 2);
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.Property(p => p.Amount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(p => p.Method)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(p => p.Type)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(p => p.Status)
+                    .HasMaxLength(20)
+                    .HasDefaultValue("pending");
+
+                entity.Property(p => p.RazorpayOrderId)
+                    .HasMaxLength(100);
+
+                entity.Property(p => p.RazorpayPaymentId)
+                    .HasMaxLength(100);
+
+                entity.Property(p => p.RazorpaySignature)
+                    .HasMaxLength(200);
+
+                entity.Property(p => p.Note)
+                    .IsRequired();
+
+                entity.HasOne(p => p.Booking)
+                    .WithMany(b => b.Payments)
+                    .HasForeignKey(p => p.BookingId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<Property>()
                 .Property(p => p.CommissionPercent)
@@ -163,6 +194,10 @@ namespace Atlas.Api.Data
                 .HasColumnType("date");
 
             modelBuilder.Entity<AvailabilityBlock>()
+                .Property(ab => ab.Inventory)
+                .HasColumnType("bit");
+
+            modelBuilder.Entity<AvailabilityBlock>()
                 .Property(ab => ab.BlockType)
                 .HasMaxLength(30)
                 .HasColumnType("varchar(30)")
@@ -193,6 +228,19 @@ namespace Atlas.Api.Data
 
             modelBuilder.Entity<AvailabilityBlock>()
                 .HasIndex(ab => ab.BookingId);
+
+            modelBuilder.Entity<EnvironmentMarker>()
+                .ToTable("EnvironmentMarker");
+
+            modelBuilder.Entity<EnvironmentMarker>()
+                .Property(em => em.Marker)
+                .HasColumnType("varchar(10)")
+                .HasMaxLength(10)
+                .IsRequired();
+
+            modelBuilder.Entity<EnvironmentMarker>()
+                .HasIndex(em => em.Marker)
+                .IsUnique();
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
@@ -462,5 +510,6 @@ namespace Atlas.Api.Data
         public DbSet<CommunicationLog> CommunicationLogs { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
         public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
+        public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
     }
 }

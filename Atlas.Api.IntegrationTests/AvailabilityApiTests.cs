@@ -9,14 +9,13 @@ namespace Atlas.Api.IntegrationTests;
 [Trait("Suite", "Contract")]
 public class AvailabilityApiTests : IntegrationTestBase
 {
-    public AvailabilityApiTests(CustomWebApplicationFactory factory) : base(factory) { }
+    public AvailabilityApiTests(SqlServerTestDatabase database) : base(database) { }
 
     [Fact]
     public async Task Get_ReturnsAvailableListingsWithPricing()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await using var transaction = await db.Database.BeginTransactionAsync();
 
         var property = await DataSeeder.SeedPropertyAsync(db);
         var listing = await DataSeeder.SeedListingAsync(db, property);
@@ -53,6 +52,5 @@ public class AvailabilityApiTests : IntegrationTestBase
         Assert.Equal(2, listingResult.NightlyRates.Count);
         Assert.Equal(250m, listingResult.TotalPrice);
 
-        await transaction.RollbackAsync();
     }
 }

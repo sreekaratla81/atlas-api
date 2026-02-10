@@ -1,0 +1,112 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy ASP.Net Core app to Azure Web App - atlas-homes-api-dev
+
+on:
+  push:
+    branches:
+      - dev # dev branch deploys to atlas-homes-api-dev
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
+
+      - name: dotnet publish
+        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: net-app
+          path: ./net-app
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Validate migrator connection
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
+        run: |
+          if (-not $env:MIGRATOR_CONNECTION) {
+            Write-Error "Missing database connection string. Ensure ATLAS_DEV_SQL_CONNECTION_STRING is configured."
+            exit 1
+          }
+
+      - name: Check for pending migrations
+        id: check_migrations
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
+        run: |
+          dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -eq 2) {
+            "pending=true" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          if ($exitCode -eq 0) {
+            "pending=false" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          exit $exitCode
+
+      - name: Apply migrations
+        if: steps.check_migrations.outputs.pending == 'true'
+        env:
+          MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
+        run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 }}
+
+      - name: List deployment contents
+        shell: pwsh
+        run: |
+          Get-ChildItem -Force
+          Get-ChildItem ./net-app -Force
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'atlas-homes-api-dev' # dev app
+          slot-name: 'Production'
+          package: ./net-app
+          

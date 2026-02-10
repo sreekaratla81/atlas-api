@@ -1,5 +1,6 @@
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,7 @@ public class PaymentsControllerTests
     {
         using var context = GetContext(nameof(Create_ReturnsCreatedAtAction));
         var controller = new PaymentsController(context);
-        var item = new Payment { BookingId = 1, Amount = 10, Method = "cash", Type = "type", ReceivedOn = DateTime.UtcNow, Note="n" };
+        var item = new PaymentCreateDto { BookingId = 1, Amount = 10, Method = "cash", Type = "type", ReceivedOn = DateTime.UtcNow, Note="n" };
 
         var result = await controller.Create(item);
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
@@ -30,15 +31,15 @@ public class PaymentsControllerTests
     }
 
     [Fact]
-    public async Task Update_ReturnsBadRequest_WhenIdMismatch()
+    public async Task Update_ReturnsNotFound_WhenMissing()
     {
-        using var context = GetContext(nameof(Update_ReturnsBadRequest_WhenIdMismatch));
+        using var context = GetContext(nameof(Update_ReturnsNotFound_WhenMissing));
         var controller = new PaymentsController(context);
-        var item = new Payment { Id = 1, BookingId = 1, Amount = 1, Method="cash", Type="type", ReceivedOn=DateTime.UtcNow, Note="n" };
+        var item = new PaymentUpdateDto { BookingId = 1, Amount = 1, Method="cash", Type="type", ReceivedOn=DateTime.UtcNow, Note="n" };
 
         var result = await controller.Update(2, item);
 
-        Assert.IsType<BadRequestResult>(result);
+        Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]

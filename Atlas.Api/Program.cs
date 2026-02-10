@@ -7,6 +7,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Collections.Immutable;
 using System.Linq;
+using Atlas.Api.Models;
+using Atlas.Api.Services;
+using Atlas.Api.Models.Dtos.Razorpay;
 
 namespace Atlas.Api
 {
@@ -21,6 +24,7 @@ namespace Atlas.Api
             builder.Configuration
                 .AddJsonFile("appsettings.json")
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.local.json", optional: true)
                 .AddEnvironmentVariables();
 
             const string CorsPolicy = "AtlasCorsPolicy";
@@ -57,19 +61,36 @@ namespace Atlas.Api
                 c.IgnoreObsoleteProperties();
             });
 
+            // Configure Razorpay
+            builder.Services.Configure<RazorpayConfig>(builder.Configuration.GetSection("Razorpay"));
+            
+            // Add HttpClient for Razorpay
+            builder.Services.AddHttpClient("Razorpay", client =>
+            {
+                client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            });
+            
+            builder.Services.AddScoped<IRazorpayPaymentService, RazorpayPaymentService>();
+            
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
 
-            var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
-                ?? builder.Configuration.GetConnectionString("DefaultConnection");
+            ValidateRequiredConfiguration(builder.Configuration, env);
 
-            Console.WriteLine($"[DEBUG] Using connection string: {connectionString}");
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-            if (string.IsNullOrWhiteSpace(connectionString))
+            if (env.IsDevelopment())
             {
-                throw new InvalidOperationException("Database connection string is not configured.");
+                if (IsPlaceholderValue(connectionString))
+                {
+                    Console.WriteLine("[WARN] Connection string is still using the placeholder value. Set it via environment variables for local development.");
+                }
+
+                var redactedConnectionString = ConnectionStringRedactor.Redact(connectionString);
+                Console.WriteLine($"[DEBUG] Using connection string: {redactedConnectionString}");
             }
+
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseSqlServer(connectionString);
@@ -80,10 +101,7 @@ namespace Atlas.Api
             });
 
             var jwtKey = builder.Configuration["Jwt:Key"];
-            if (string.IsNullOrWhiteSpace(jwtKey))
-            {
-                jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
-            }
+            _ = jwtKey;
 
             // TODO: Re-enable authentication before going to production
             // builder.Services.AddAuthentication("Bearer")
@@ -100,19 +118,6 @@ namespace Atlas.Api
             //     });
 
             var app = builder.Build();
-
-            using (var scope = app.Services.CreateScope())
-            {
-                var scopedEnv = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                // Guard production migrations to avoid unintended schema changes unless explicitly enabled.
-                if (ShouldRunMigrations(scopedEnv, config))
-                {
-                    //db.Database.Migrate();
-                }
-            }
 
             app.UseSwagger();
             app.UseSwaggerUI(c =>
@@ -164,22 +169,14 @@ namespace Atlas.Api
             app.Run();
         }
 
-        internal static bool ShouldRunMigrations(IWebHostEnvironment env, IConfiguration config)
-        {
-            if (env.IsDevelopment() || env.IsEnvironment("Test"))
-            {
-                return true;
-            }
-
-            return config.GetValue<bool>("RunMigrations");
-        }
-
         internal static string[] BuildAllowedOrigins(IConfiguration config, IWebHostEnvironment env)
         {
             var requiredOrigins = new[]
             {
                 "http://localhost:5173",
+                "https://localhost:7018",
                 "https://admin.atlashomestays.com",
+                "https://dev.atlashomestays.com",
                 "https://devadmin.atlashomestays.com",
                 "https://www.atlashomestays.com",
                 "https://*.pages.dev"
@@ -191,6 +188,7 @@ namespace Atlas.Api
             if (env.IsDevelopment())
             {
                 origins.Add("http://127.0.0.1:5173");
+                origins.Add("https://127.0.0.1:7018");
             }
 
             var additionalOrigins = config.GetSection("Cors:AdditionalOrigins").Get<string[]>();
@@ -204,6 +202,43 @@ namespace Atlas.Api
                 .Where(origin => !string.IsNullOrWhiteSpace(origin))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+        }
+
+        internal static void ValidateRequiredConfiguration(IConfiguration config, IWebHostEnvironment env)
+        {
+            if (ShouldSkipRequiredConfigValidation(env))
+            {
+                return;
+            }
+
+            var connectionString = config.GetConnectionString("DefaultConnection");
+            if (IsPlaceholderValue(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "Database connection string 'DefaultConnection' is not configured. " +
+                    "Set it via environment variables or Azure App Service connection strings.");
+            }
+
+            var jwtKey = config["Jwt:Key"];
+            if (IsPlaceholderValue(jwtKey))
+            {
+                throw new InvalidOperationException(
+                    "JWT signing key 'Jwt:Key' is not configured. " +
+                    "Set it via environment variables or Azure App Service settings.");
+            }
+        }
+
+        private static bool ShouldSkipRequiredConfigValidation(IWebHostEnvironment env)
+        {
+            return env.IsDevelopment()
+                || env.IsEnvironment("IntegrationTest")
+                || env.IsEnvironment("Testing");
+        }
+
+        private static bool IsPlaceholderValue(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                || string.Equals(value.Trim(), "__SET_VIA_ENV_OR_AZURE__", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

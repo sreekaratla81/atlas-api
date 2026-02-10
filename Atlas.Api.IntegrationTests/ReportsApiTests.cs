@@ -230,4 +230,12 @@ public class ReportsApiTests : IntegrationTestBase
         var accountEntry = Assert.Single(data!.Where(entry => entry.AccountDisplay == expectedDisplay && entry.Bank == account.BankName));
         Assert.Equal(0, accountEntry.AmountReceived);
     }
+
+    [Fact]
+    public async Task GetCalendarEarnings_ReturnsBadRequest_WhenMonthIsInvalid()
+    {
+        var response = await Client.GetAsync(ApiRoute("reports/calendar-earnings?listingId=1&month=2025-13"));
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

@@ -557,6 +557,29 @@ public class BookingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Post_Cancel_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.PostAsync(ApiRoute("bookings/99999/cancel"), null);
+
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_Cancel_ReturnsBadRequest_WhenStatusIsInvalid()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        data.booking.BookingStatus = "CheckedIn";
+        await db.SaveChangesAsync();
+
+        var response = await Client.PostAsync(ApiRoute($"bookings/{data.booking.Id}/cancel"), null);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     [Trait("Suite", "Smoke")]
     public async Task Post_CheckIn_UpdatesStatusAndTimestamp()
     {
@@ -595,6 +618,29 @@ public class BookingsApiTests : IntegrationTestBase
         var checkedIn = await db3.Bookings.FindAsync(booking.Id);
         Assert.Equal("CheckedIn", checkedIn!.BookingStatus);
         Assert.NotNull(checkedIn.CheckedInAtUtc);
+    }
+
+    [Fact]
+    public async Task Post_CheckIn_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.PostAsync(ApiRoute("bookings/99999/checkin"), null);
+
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_CheckIn_ReturnsBadRequest_WhenStatusIsInvalid()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        data.booking.BookingStatus = "Cancelled";
+        await db.SaveChangesAsync();
+
+        var response = await Client.PostAsync(ApiRoute($"bookings/{data.booking.Id}/checkin"), null);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -639,5 +685,28 @@ public class BookingsApiTests : IntegrationTestBase
         var checkedOut = await db3.Bookings.FindAsync(booking.Id);
         Assert.Equal("CheckedOut", checkedOut!.BookingStatus);
         Assert.NotNull(checkedOut.CheckedOutAtUtc);
+    }
+
+    [Fact]
+    public async Task Post_CheckOut_ReturnsNotFound_WhenMissing()
+    {
+        var response = await Client.PostAsync(ApiRoute("bookings/99999/checkout"), null);
+
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_CheckOut_ReturnsBadRequest_WhenStatusIsInvalid()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var data = await SeedBookingAsync(db);
+
+        data.booking.BookingStatus = "Confirmed";
+        await db.SaveChangesAsync();
+
+        var response = await Client.PostAsync(ApiRoute($"bookings/{data.booking.Id}/checkout"), null);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 }

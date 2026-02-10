@@ -1,0 +1,60 @@
+name: Controller Integration Coverage Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-controller-coverage:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run integration tests with controller-only coverage profile
+        run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release --collect:"XPlat Code Coverage" --settings tests/coverage/coverage.controllers.runsettings
+
+      - name: Enforce >=95% controller coverage (line + branch)
+        shell: pwsh
+        run: |
+          $coverageFile = Get-ChildItem -Path ./Atlas.Api.IntegrationTests/TestResults -Filter coverage.cobertura.xml -Recurse |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+
+          if (-not $coverageFile) {
+            Write-Error "coverage.cobertura.xml was not generated."
+            exit 1
+          }
+
+          [xml]$coverageXml = Get-Content $coverageFile.FullName
+          $lineRate = [double]$coverageXml.coverage.'line-rate'
+          $branchRate = [double]$coverageXml.coverage.'branch-rate'
+          $threshold = 0.95
+
+          if ($lineRate -lt $threshold -or $branchRate -lt $threshold) {
+            Write-Error "Controller coverage threshold not met. threshold=$threshold line-rate=$lineRate branch-rate=$branchRate"
+            exit 1
+          }
+
+          Write-Host "Controller coverage gate passed. threshold=$threshold line-rate=$lineRate branch-rate=$branchRate"
+
+      - name: Upload controller coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controller-coverage-cobertura
+          path: Atlas.Api.IntegrationTests/TestResults/**/coverage.cobertura.xml

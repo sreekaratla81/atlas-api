@@ -1,13 +1,9 @@
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Atlas.Api.Data;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
-    [Migration("20251108120000_ConfigureBookingDatetimeColumns")]
-    [DbContext(typeof(AppDbContext))]
     public partial class ConfigureBookingDatetimeColumns : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

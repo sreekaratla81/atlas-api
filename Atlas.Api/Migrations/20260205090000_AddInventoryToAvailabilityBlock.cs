@@ -1,13 +1,9 @@
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Atlas.Api.Data;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
-    [Migration("20260205090000_AddInventoryToAvailabilityBlock")]
-    [DbContext(typeof(AppDbContext))]
     public partial class AddInventoryToAvailabilityBlock : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -19,7 +19,10 @@ if (-not $logFiles) {
 }
 
 $exceptionPattern = [regex]'(?<type>[A-Za-z_][A-Za-z0-9_.]+Exception)'
-$modulePattern = [regex]'(module|Module|Faulting module name)\s*[:=]\s*(?<module>[A-Za-z0-9_.-]+)'
+$modulePatterns = @(
+    [regex]'(faulting\s+module\s+name|module)\s*[:=]\s*(?<module>[A-Za-z0-9_.-]+)',
+    [regex]'(?<module>[A-Za-z0-9_.-]+\.dll)'
+)
 
 $firstException = $null
 $firstModule = $null
@@ -42,12 +45,18 @@ foreach ($file in $logFiles) {
         }
 
         if (-not $firstModule) {
-            $moduleMatch = $modulePattern.Match($line)
-            if ($moduleMatch.Success) {
-                $firstModule = $moduleMatch.Groups['module'].Value
-                if (-not $evidenceFile) {
-                    $evidenceFile = $file.FullName
-                    $evidenceLine = $lineNumber
+            foreach ($pattern in $modulePatterns) {
+                $moduleMatch = $pattern.Match($line)
+                if ($moduleMatch.Success) {
+                    $candidate = $moduleMatch.Groups['module'].Value
+                    if ($candidate -and $candidate -notmatch 'Exception$') {
+                        $firstModule = $candidate
+                        if (-not $evidenceFile) {
+                            $evidenceFile = $file.FullName
+                            $evidenceLine = $lineNumber
+                        }
+                        break
+                    }
                 }
             }
         }
@@ -71,7 +80,7 @@ if ($firstException -eq 'System.BadImageFormatException') {
     $nativeDependencyHint = @(
         'Potential architecture mismatch detected (x86/x64).',
         'For win-x86 deployments, ensure App Service Platform is set to 32-bit and native runtime assets resolve to win-x86.',
-        'If Microsoft.Data.SqlClient.SNI is implicated, pin Microsoft.Data.SqlClient to a version with win-x86 native assets.'
+        'If Microsoft.Data.SqlClient.SNI.dll is implicated, pin Microsoft.Data.SqlClient to an x86-compatible release and republish with win-x86 RID.'
     ) -join ' '
 }
 

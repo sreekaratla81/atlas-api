@@ -8,6 +8,12 @@ on:
     branches:
       - dev # dev branch deploys to atlas-homes-api-dev
   workflow_dispatch:
+    inputs:
+      run_integration_tests:
+        description: Run integration test suites before deployment.
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -66,6 +72,10 @@ jobs:
             exit 1
           }
 
+      - name: Integration tests paused
+        if: vars.ENABLE_INTEGRATION_TESTS != 'true'
+        run: echo "Integration tests are temporarily paused for dev deploy workflow. Set ENABLE_INTEGRATION_TESTS=true and add test steps to re-enable."
+
       - name: Check for pending migrations
         id: check_migrations
         env:
@@ -89,12 +99,34 @@ jobs:
           MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
       
-      - name: Login to Azure
+      - name: Select deployment authentication mode
+        id: select_auth
+        shell: pwsh
+        env:
+          CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+          TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV }}
+          SUBSCRIPTION_ID_DEV: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
+        run: |
+          $hasOidc = (-not [string]::IsNullOrWhiteSpace($env:CLIENT_ID_DEV)) -and (-not [string]::IsNullOrWhiteSpace($env:TENANT_ID_DEV)) -and (-not [string]::IsNullOrWhiteSpace($env:SUBSCRIPTION_ID_DEV))
+          if (-not $hasOidc) {
+            Write-Error 'Missing OIDC secrets for dev. Configure AZURE_CLIENT_ID_DEV, AZURE_TENANT_ID_DEV, and AZURE_SUBSCRIPTION_ID_DEV.'
+            exit 1
+          }
+
+          'auth_mode=oidc' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Show selected auth mode
+        shell: pwsh
+        env:
+          AUTH_MODE: ${{ steps.select_auth.outputs.auth_mode }}
+        run: Write-Host "Deployment target dev, auth mode $env:AUTH_MODE"
+
+      - name: Login to Azure (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
       - name: List deployment contents
         shell: pwsh

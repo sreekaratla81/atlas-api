@@ -135,6 +135,36 @@ jobs:
           Get-ChildItem -Force
           Get-ChildItem ./net-app -Force
 
+      - name: Validate deployment package files
+        shell: pwsh
+        run: |
+          $deployDir = './net-app'
+          $requiredFiles = @(
+            'Atlas.Api.dll'
+            'Atlas.Api.deps.json'
+            'Atlas.Api.runtimeconfig.json'
+            'web.config'
+          )
+
+          $missingFiles = @()
+          foreach ($file in $requiredFiles) {
+            $path = Join-Path $deployDir $file
+            if (-not (Test-Path -Path $path -PathType Leaf)) {
+              $missingFiles += $file
+            }
+          }
+
+          if ($missingFiles.Count -gt 0) {
+            Write-Error "Missing required deployment files in $deployDir: $($missingFiles -join ', ')"
+            Write-Host 'Repository root listing:'
+            Get-ChildItem -Force
+            Write-Host "Contents of $deployDir:"
+            Get-ChildItem $deployDir -Force
+            exit 1
+          }
+
+          Write-Host 'All required deployment files are present.'
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3

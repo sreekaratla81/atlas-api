@@ -4,6 +4,7 @@
 - [API Contract](api-contract.md)
 - [API Examples](api-examples.http)
 - [DB Schema](db-schema.md)
+- [Deployment Contract](deployment-contract.md)
 
 ## Testing Docs
 - [Testing Guide](testing-guide.md)

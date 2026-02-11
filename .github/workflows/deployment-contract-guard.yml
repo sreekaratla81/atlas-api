@@ -1,0 +1,25 @@
+name: Deployment Contract Guard
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/deploy.yml'
+      - 'tools/ci/validate-deployment-contract.sh'
+      - 'docs/deployment-contract.md'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy.yml'
+      - 'tools/ci/validate-deployment-contract.sh'
+      - 'docs/deployment-contract.md'
+
+jobs:
+  validate-deployment-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate deployment contract settings
+        run: ./tools/ci/validate-deployment-contract.sh

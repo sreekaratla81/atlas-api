@@ -65,6 +65,10 @@ jobs:
         if: vars.ENABLE_INTEGRATION_TESTS == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true'
         run: dotnet test ./Atlas.DbMigrator.IntegrationTests/Atlas.DbMigrator.IntegrationTests.csproj --configuration Release
 
+      - name: Validate deployment contract (win-x86 self-contained)
+        shell: bash
+        run: ./tools/ci/validate-deployment-contract.sh
+
       # Optional follow-up: move integration suites to a dedicated manual/scheduled workflow
       # so long-running validation does not block deployment feedback.
 
@@ -120,8 +124,8 @@ jobs:
 
       - name: Publish
         # Self-contained so Azure App Service does not need .NET 8 runtime installed (avoids 500.31 ANCM).
-        # win-x64 for Windows App Service.
-        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
+        # win-x86 for Windows App Service 32-bit Free/Shared tiers.
+        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
       - name: Prod deployment disabled message
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'

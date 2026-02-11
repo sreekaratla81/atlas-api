@@ -228,6 +228,11 @@ namespace Atlas.Api
                 return;
             }
 
+            var strictOptionalConfig = string.Equals(
+                config["Startup:StrictRequiredConfig"],
+                "true",
+                StringComparison.OrdinalIgnoreCase);
+
             var connectionString = config.GetConnectionString("DefaultConnection");
             if (IsPlaceholderValue(connectionString))
             {
@@ -239,7 +244,8 @@ namespace Atlas.Api
             var jwtKey = config["Jwt:Key"];
             if (IsPlaceholderValue(jwtKey))
             {
-                throw new InvalidOperationException(
+                HandleOptionalStartupConfig(
+                    strictOptionalConfig,
                     "JWT signing key 'Jwt:Key' is not configured. " +
                     "Set it via environment variables or Azure App Service settings.");
             }
@@ -248,10 +254,21 @@ namespace Atlas.Api
             var razorpayKeySecret = config["Razorpay:KeySecret"];
             if (IsPlaceholderValue(razorpayKeyId) || IsPlaceholderValue(razorpayKeySecret))
             {
-                throw new InvalidOperationException(
+                HandleOptionalStartupConfig(
+                    strictOptionalConfig,
                     "Razorpay configuration 'Razorpay:KeyId' and 'Razorpay:KeySecret' are not configured. " +
                     "Set them via environment variables or Azure App Service settings.");
             }
+        }
+
+        private static void HandleOptionalStartupConfig(bool strictOptionalConfig, string message)
+        {
+            if (strictOptionalConfig)
+            {
+                throw new InvalidOperationException(message);
+            }
+
+            Console.WriteLine($"[WARN] {message} Continuing startup because Startup:StrictRequiredConfig is not enabled.");
         }
 
         private static bool ShouldSkipRequiredConfigValidation(IWebHostEnvironment env)

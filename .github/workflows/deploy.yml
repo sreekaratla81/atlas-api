@@ -57,7 +57,15 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore
+        shell: pwsh
+        run: |
+          $globalPackages = (dotnet nuget locals global-packages --list).Split(':', 2)[1].Trim()
+          $sqlClientCachePath = Join-Path $globalPackages 'microsoft.data.sqlclient'
+          if (Test-Path $sqlClientCachePath) {
+            Write-Host "Clearing cached Microsoft.Data.SqlClient package at $sqlClientCachePath"
+            Remove-Item $sqlClientCachePath -Recurse -Force
+          }
+          dotnet restore --force
 
       - name: Unit tests paused
         if: env.RUN_UNIT_TESTS != 'true'
@@ -139,8 +147,13 @@ jobs:
           }
           $sqlClientDll = Join-Path $dir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
           if (-not (Test-Path $sqlClientDll)) {
-            Write-Warning "SqlClient runtime DLL not found at expected path: $sqlClientDll"
-            Write-Warning "Continuing because build validation should not fail on optional runtime layout differences."
+            $foundDlls = Get-ChildItem -Path $dir -Recurse -Filter 'Microsoft.Data.SqlClient.dll' -File -ErrorAction SilentlyContinue
+            if ($foundDlls) {
+              Write-Host "Found Microsoft.Data.SqlClient.dll at unexpected locations:"
+              $foundDlls | ForEach-Object { Write-Host $_.FullName }
+            }
+            Write-Error "SqlClient runtime DLL is missing at required path: $sqlClientDll"
+            exit 1
           }
           Write-Host "All required publish artifacts are present."
 
@@ -203,12 +216,14 @@ jobs:
           }
 
           $sqlClientDll = Join-Path $deployDir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
-          if (Test-Path $sqlClientDll) {
-            Write-Host 'SqlClient runtime DLL found at expected path.'
-          }
-          else {
-            Write-Warning "SqlClient runtime DLL missing at expected path: $sqlClientDll"
-            Write-Warning 'Continuing deploy validation to keep build pipeline resilient.'
+          if (-not (Test-Path $sqlClientDll)) {
+            $foundDlls = Get-ChildItem -Path $deployDir -Recurse -Filter 'Microsoft.Data.SqlClient.dll' -File -ErrorAction SilentlyContinue
+            if ($foundDlls) {
+              Write-Host "Found Microsoft.Data.SqlClient.dll at unexpected locations:"
+              $foundDlls | ForEach-Object { Write-Host $_.FullName }
+            }
+            Write-Error "SqlClient runtime DLL missing at expected path: $sqlClientDll"
+            exit 1
           }
 
           Write-Host 'All required deploy artifacts are present.'

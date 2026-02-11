@@ -5,6 +5,7 @@
 This repo now uses transform-based behavior so diagnostics are only enabled for Development deployments.
 
 - `Atlas.Api/web.config` (baseline / production-safe defaults)
+  - `processPath=".\\Atlas.Api.exe"` for self-contained `win-x86` deployment on 32-bit App Service
   - `stdoutLogEnabled="false"`
   - `ASPNETCORE_DETAILEDERRORS=false`
 - `Atlas.Api/web.Development.config` and `Atlas.Api/web.Debug.config` (diagnostic toggle ON)

@@ -129,15 +129,10 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
-      - name: List deployment contents
+      - name: Validate deploy package contents
         shell: pwsh
         run: |
-          Get-ChildItem -Force
-          Get-ChildItem ./net-app -Force
-
-      - name: Verify published artifacts
-        shell: pwsh
-        run: |
+          $deployDir = './net-app'
           $requiredFiles = @(
             'Atlas.Api.dll'
             'Atlas.Api.deps.json'
@@ -145,13 +140,20 @@ jobs:
             'web.config'
           )
 
-          $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path './net-app' $_)) }
+          $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path $deployDir $_)) }
           if ($missingFiles.Count -gt 0) {
-            Write-Error ("Missing required publish artifacts: {0}" -f ($missingFiles -join ', '))
+            Write-Host 'Deploy directory listing:'
+            if (Test-Path $deployDir) {
+              Get-ChildItem $deployDir -Force
+            }
+            else {
+              Write-Host "Deploy directory does not exist: $deployDir"
+            }
+            Write-Error ("Missing required deploy artifacts: {0}" -f ($missingFiles -join ', '))
             exit 1
           }
 
-          Write-Host 'All required publish artifacts are present.'
+          Write-Host 'All required deploy artifacts are present.'
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp

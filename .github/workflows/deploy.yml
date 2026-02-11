@@ -126,7 +126,18 @@ jobs:
         shell: pwsh
         run: |
           $dir = './publish'
+          Write-Host "=== All published files ==="
           Get-ChildItem -Path $dir -Recurse -Name | ForEach-Object { Write-Host $_ }
+          
+          Write-Host "`n=== Checking runtimes directory ==="
+          $runtimesPath = Join-Path $dir 'runtimes'
+          if (Test-Path $runtimesPath) {
+            Write-Host "runtimes directory exists"
+            Get-ChildItem -Path $runtimesPath -Recurse | ForEach-Object { Write-Host $_.FullName }
+          } else {
+            Write-Warning "runtimes directory does not exist!"
+          }
+          
           $required = @(
             (Join-Path $dir 'Atlas.Api.exe'),
             (Join-Path $dir 'Atlas.Api.dll'),
@@ -141,8 +152,7 @@ jobs:
               exit 1
             }
           }
-          Write-Host "runtimes/win/lib/net8.0 contents:"
-          Get-ChildItem -Path (Join-Path $dir 'runtimes/win/lib/net8.0') -Name | ForEach-Object { Write-Host $_ }
+          Write-Host "`n=== Validation passed ==="
           Write-Host "All required artifacts present (including SqlClient runtime)."
 
       - name: Prod deployment disabled message
@@ -246,7 +256,6 @@ jobs:
 
       - name: Restart Web App
         if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
-        continue-on-error: true
         shell: pwsh
         env:
           APP_NAME: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}
@@ -263,7 +272,7 @@ jobs:
           Write-Host "Restarted $env:APP_NAME"
 
       - name: Smoke test (swagger)
-        if: always() && (github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true')
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
         shell: pwsh
         env:
           APP_NAME: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}

@@ -33,8 +33,8 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: dotnet publish
-        # Self-contained win-x64 to match prod; avoids 500.31 on Windows App Service.
-        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp" -r win-x64 --self-contained true
+        # Self-contained win-x86 for Windows App Service deployment package.
+        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp" -r win-x86 --self-contained true
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -129,11 +129,31 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
-      - name: List deployment contents
+      - name: Validate deploy package contents
         shell: pwsh
         run: |
-          Get-ChildItem -Force
-          Get-ChildItem ./net-app -Force
+          $deployDir = './net-app'
+          $requiredFiles = @(
+            'Atlas.Api.dll'
+            'Atlas.Api.deps.json'
+            'Atlas.Api.runtimeconfig.json'
+            'web.config'
+          )
+
+          $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path $deployDir $_)) }
+          if ($missingFiles.Count -gt 0) {
+            Write-Host 'Deploy directory listing:'
+            if (Test-Path $deployDir) {
+              Get-ChildItem $deployDir -Force
+            }
+            else {
+              Write-Host "Deploy directory does not exist: $deployDir"
+            }
+            Write-Error ("Missing required deploy artifacts: {0}" -f ($missingFiles -join ', '))
+            exit 1
+          }
+
+          Write-Host 'All required deploy artifacts are present.'
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp

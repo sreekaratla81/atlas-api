@@ -120,8 +120,8 @@ jobs:
 
       - name: Publish
         # Self-contained so Azure App Service does not need .NET 8 runtime installed (avoids 500.31 ANCM).
-        # win-x64 for Windows App Service.
-        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
+        # win-x86 for Windows App Service.
+        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
       - name: Prod deployment disabled message
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'
@@ -173,6 +173,33 @@ jobs:
           client-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_CLIENT_ID_DEV || secrets.AZURE_CLIENT_ID_PROD }}
           tenant-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_TENANT_ID_DEV || secrets.AZURE_TENANT_ID_PROD }}
           subscription-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
+
+      - name: Validate deploy package contents
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
+        shell: pwsh
+        run: |
+          $deployDir = './publish'
+          $requiredFiles = @(
+            'Atlas.Api.dll'
+            'Atlas.Api.deps.json'
+            'Atlas.Api.runtimeconfig.json'
+            'web.config'
+          )
+
+          $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path $deployDir $_)) }
+          if ($missingFiles.Count -gt 0) {
+            Write-Host 'Deploy directory listing:'
+            if (Test-Path $deployDir) {
+              Get-ChildItem $deployDir -Force
+            }
+            else {
+              Write-Host "Deploy directory does not exist: $deployDir"
+            }
+            Write-Error ("Missing required deploy artifacts: {0}" -f ($missingFiles -join ', '))
+            exit 1
+          }
+
+          Write-Host 'All required deploy artifacts are present.'
 
       - name: Deploy to Azure Web App
         if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'

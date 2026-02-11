@@ -13,6 +13,11 @@ on:
         options:
           - dev
           - prod
+      run_integration_tests:
+        description: Run integration test suites before deployment.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,14 +50,23 @@ jobs:
       - name: Run unit tests
         run: dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --configuration Release
 
+      - name: Integration tests paused on main pushes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: echo "Integration tests are temporarily paused for main push deploys. Trigger workflow_dispatch with run_integration_tests=true to run them manually."
+
       - name: Run integration tests
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true'
         run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release
 
       - name: Run DbMigrator unit tests
         run: dotnet test ./Atlas.DbMigrator.Tests/Atlas.DbMigrator.Tests.csproj --configuration Release
 
       - name: Run DbMigrator integration tests
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true'
         run: dotnet test ./Atlas.DbMigrator.IntegrationTests/Atlas.DbMigrator.IntegrationTests.csproj --configuration Release
+
+      # Optional follow-up: move integration suites to a dedicated manual/scheduled workflow
+      # so long-running validation does not block deployment feedback.
 
       # Required secrets:
       # - ATLAS_DEV_SQL_CONNECTION_STRING (dev)

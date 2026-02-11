@@ -180,6 +180,7 @@ jobs:
         run: |
           $deployDir = './publish'
           $requiredFiles = @(
+            'Atlas.Api.exe'
             'Atlas.Api.dll'
             'Atlas.Api.deps.json'
             'Atlas.Api.runtimeconfig.json'

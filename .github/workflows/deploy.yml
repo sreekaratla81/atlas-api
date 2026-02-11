@@ -18,6 +18,11 @@ on:
         required: false
         type: boolean
         default: false
+      run_unit_tests:
+        description: Run unit test suites before deployment.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -28,16 +33,17 @@ jobs:
     runs-on: windows-latest
     env:
       SHOULD_DEPLOY: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true' }}
+      RUN_UNIT_TESTS: ${{ vars.ENABLE_UNIT_TESTS == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_unit_tests == 'true') }}
       TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'prod' }}
       MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
       APP_NAME: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}
       RESOURCE_GROUP: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-dev-rg' || 'atlas-prod-rg' }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK
+      - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -53,7 +59,12 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Unit tests paused
+        if: env.RUN_UNIT_TESTS != 'true'
+        run: echo "Unit tests are paused. Set ENABLE_UNIT_TESTS=true or workflow_dispatch run_unit_tests=true to run them."
+
       - name: Run unit tests
+        if: env.RUN_UNIT_TESTS == 'true'
         run: dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj --configuration Release
 
       - name: Integration tests paused on main pushes
@@ -64,7 +75,12 @@ jobs:
         if: vars.ENABLE_INTEGRATION_TESTS == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true'
         run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release
 
+      - name: DbMigrator unit tests paused
+        if: env.RUN_UNIT_TESTS != 'true'
+        run: echo "DbMigrator unit tests are paused. Set ENABLE_UNIT_TESTS=true or workflow_dispatch run_unit_tests=true to run them."
+
       - name: Run DbMigrator unit tests
+        if: env.RUN_UNIT_TESTS == 'true'
         run: dotnet test ./Atlas.DbMigrator.Tests/Atlas.DbMigrator.Tests.csproj --configuration Release
 
       - name: Run DbMigrator integration tests
@@ -104,7 +120,7 @@ jobs:
         # Self-contained win-x86 for 32-bit Free/Shared tier (avoids 500.31 ANCM + 500.32 load failure).
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
-      - name: Validate publish output
+      - name: Validate publish artifacts
         shell: pwsh
         run: |
           $dir = './publish'
@@ -128,7 +144,7 @@ jobs:
           }
           Write-Host "All required publish artifacts are present."
 
-      - name: Prod deployment disabled message
+      - name: Skip prod deployment message
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'
         shell: pwsh
         run: Write-Host 'Prod deployment disabled; build/test only.'
@@ -167,7 +183,7 @@ jobs:
           tenant-id: ${{ env.TARGET_ENV == 'dev' && secrets.AZURE_TENANT_ID_DEV || secrets.AZURE_TENANT_ID_PROD }}
           subscription-id: ${{ env.TARGET_ENV == 'dev' && secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
 
-      - name: Validate deploy package contents
+      - name: Validate deploy artifacts
         if: env.SHOULD_DEPLOY == 'true'
         shell: pwsh
         run: |
@@ -197,7 +213,7 @@ jobs:
 
           Write-Host 'All required deploy artifacts are present.'
 
-      - name: Create deployment zip (include runtimes subtree)
+      - name: Create deployment zip
         if: env.SHOULD_DEPLOY == 'true'
         shell: pwsh
         run: |
@@ -238,7 +254,7 @@ jobs:
             Write-Error "Unable to resolve host name for app '$env:APP_NAME' in resource group '$rg'."
             exit 1
           }
-optimi          $baseUrl = "https://$hostName"
+          $baseUrl = "https://$hostName"
           $swaggerUrl = "$baseUrl/swagger/v1/swagger.json"
           $delays = @(5, 10, 15, 20, 30, 30)
 

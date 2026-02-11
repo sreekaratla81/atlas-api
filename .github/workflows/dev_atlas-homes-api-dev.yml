@@ -26,14 +26,14 @@ jobs:
         with:
           dotnet-version: '8.x'
 
-      - name: Build with dotnet
+      - name: Build
         run: dotnet build --configuration Release
 
-      - name: dotnet publish
+      - name: Publish
         # Self-contained win-x86 for Windows App Service deployment package.
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp" -r win-x86 --self-contained true
 
-      - name: Upload artifact for deployment job
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: net-app
@@ -47,16 +47,16 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download artifact from build job
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: net-app
           path: ./net-app
 
-      - name: Setup .NET SDK
+      - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -117,7 +117,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
-      - name: Validate deploy package contents
+      - name: Validate deploy artifacts
         shell: pwsh
         run: |
           $deployDir = './net-app'

@@ -62,6 +62,8 @@ jobs:
       # - AZURE_WEBAPP_PUBLISH_PROFILE_PROD (optional for prod)
       # - AZURE_CLIENT_ID_DEV / AZURE_TENANT_ID_DEV / AZURE_SUBSCRIPTION_ID_DEV (optional for dev)
       # - AZURE_CLIENT_ID_PROD / AZURE_TENANT_ID_PROD / AZURE_SUBSCRIPTION_ID_PROD (optional for prod)
+      # Optional repository variable:
+      # - DEPLOY_PROD_ON_MAIN (set to 'true' to enable prod deploy steps on push to main)
       - name: Validate migrator connection
         if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
         env:
@@ -106,7 +108,13 @@ jobs:
       - name: Publish
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish
 
+      - name: Prod deployment disabled message
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'
+        shell: pwsh
+        run: Write-Host 'Prod deployment disabled; build/test only.'
+
       - name: Validate deployment authentication
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
         shell: pwsh
         env:
           TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'prod' }}
@@ -138,8 +146,9 @@ jobs:
 
       - name: Login to Azure (OIDC)
         if: >-
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (env.AZURE_CLIENT_ID_DEV != '' || env.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED != '') && (env.AZURE_TENANT_ID_DEV != '' || env.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 != '') && (env.AZURE_SUBSCRIPTION_ID_DEV != '' || env.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 != '')) ||
-          ((github.event_name != 'workflow_dispatch' || github.event.inputs.environment == 'prod') && env.AZURE_CLIENT_ID_PROD != '' && env.AZURE_TENANT_ID_PROD != '' && env.AZURE_SUBSCRIPTION_ID_PROD != '')
+          (github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true') &&
+          ((github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (env.AZURE_CLIENT_ID_DEV != '' || env.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED != '') && (env.AZURE_TENANT_ID_DEV != '' || env.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 != '') && (env.AZURE_SUBSCRIPTION_ID_DEV != '' || env.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 != '')) ||
+          ((github.event_name != 'workflow_dispatch' || github.event.inputs.environment == 'prod') && env.AZURE_CLIENT_ID_PROD != '' && env.AZURE_TENANT_ID_PROD != '' && env.AZURE_SUBSCRIPTION_ID_PROD != ''))
         env:
           AZURE_CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
           AZURE_TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV }}
@@ -157,6 +166,7 @@ jobs:
           subscription-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9) || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
 
       - name: Deploy to Azure Web App
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}

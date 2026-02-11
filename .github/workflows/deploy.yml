@@ -162,20 +162,10 @@ jobs:
         env:
           TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'prod' }}
           AUTH_MODE: ${{ steps.select_auth.outputs.auth_mode }}
-        run: Write-Host "Deployment target: $env:TARGET_ENV | auth mode: $env:AUTH_MODE"
+        run: Write-Host "Deployment target $env:TARGET_ENV, auth mode $env:AUTH_MODE"
 
       - name: Login to Azure (OIDC)
-        if: >-
-          (github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true') &&
-          ((github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && env.AZURE_CLIENT_ID_DEV != '' && env.AZURE_TENANT_ID_DEV != '' && env.AZURE_SUBSCRIPTION_ID_DEV != '') ||
-          ((github.event_name != 'workflow_dispatch' || github.event.inputs.environment == 'prod') && env.AZURE_CLIENT_ID_PROD != '' && env.AZURE_TENANT_ID_PROD != '' && env.AZURE_SUBSCRIPTION_ID_PROD != ''))
-        env:
-          AZURE_CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
-          AZURE_TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV }}
-          AZURE_SUBSCRIPTION_ID_DEV: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
-          AZURE_CLIENT_ID_PROD: ${{ secrets.AZURE_CLIENT_ID_PROD }}
-          AZURE_TENANT_ID_PROD: ${{ secrets.AZURE_TENANT_ID_PROD }}
-          AZURE_SUBSCRIPTION_ID_PROD: ${{ secrets.AZURE_SUBSCRIPTION_ID_PROD }}
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
         uses: azure/login@v2
         with:
           client-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_CLIENT_ID_DEV || secrets.AZURE_CLIENT_ID_PROD }}

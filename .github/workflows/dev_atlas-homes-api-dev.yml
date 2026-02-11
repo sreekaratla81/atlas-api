@@ -119,7 +119,7 @@ jobs:
         shell: pwsh
         env:
           AUTH_MODE: ${{ steps.select_auth.outputs.auth_mode }}
-        run: Write-Host "Deployment target: dev | auth mode: $env:AUTH_MODE"
+        run: Write-Host "Deployment target dev, auth mode $env:AUTH_MODE"
 
       - name: Login to Azure (OIDC)
         uses: azure/login@v2

@@ -178,12 +178,8 @@ namespace Atlas.Api
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
 
-            if (!app.Environment.IsProduction()
-                && !app.Environment.IsEnvironment("IntegrationTest")
-                && !app.Environment.IsEnvironment("Testing"))
-            {
-                app.UsePathBase("/api");
-            }
+            // Always use /api path base for consistency (frontend calls /api/listings/public, etc.)
+            app.UsePathBase("/api");
 
             app.MapControllers();
 
@@ -200,6 +196,7 @@ namespace Atlas.Api
                 "https://dev.atlashomestays.com",
                 "https://devadmin.atlashomestays.com",
                 "https://www.atlashomestays.com",
+                "https://atlashomestays.com",
                 "https://*.pages.dev"
             };
 

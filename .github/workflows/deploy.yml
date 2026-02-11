@@ -65,7 +65,7 @@ jobs:
       - name: Validate migrator connection
         if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
         env:
-          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
         run: |
           if (-not $env:MIGRATOR_CONNECTION) {
             Write-Error "Missing database connection string. Ensure the environment connection string secret is configured."
@@ -75,15 +75,15 @@ jobs:
       - name: Check for pending migrations (strict)
         if: github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
         env:
-          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
 
       - name: Check for pending migrations (manual apply mode)
-        if: github.event_name == 'workflow_dispatch' && (inputs.environment == 'dev' || inputs.environment == 'prod')
+        if: github.event_name == 'workflow_dispatch' && (github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'prod')
         id: check_migrations
         shell: pwsh
         env:
-          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
         run: |
           dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
           $exitCode = $LASTEXITCODE
@@ -98,9 +98,9 @@ jobs:
           exit $exitCode
 
       - name: Apply migrations
-        if: github.event_name == 'workflow_dispatch' && (inputs.environment == 'dev' || inputs.environment == 'prod') && steps.check_migrations.outputs.pending == 'true'
+        if: github.event_name == 'workflow_dispatch' && (github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'prod') && steps.check_migrations.outputs.pending == 'true'
         env:
-          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
 
       - name: Publish
@@ -109,7 +109,7 @@ jobs:
       - name: Validate deployment authentication
         shell: pwsh
         env:
-          TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+          TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'prod' }}
           PUBLISH_PROFILE_DEV: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV }}
           PUBLISH_PROFILE_PROD: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
           CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV || secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED }}
@@ -138,8 +138,8 @@ jobs:
 
       - name: Login to Azure (OIDC)
         if: >-
-          (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && (env.AZURE_CLIENT_ID_DEV != '' || env.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED != '') && (env.AZURE_TENANT_ID_DEV != '' || env.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 != '') && (env.AZURE_SUBSCRIPTION_ID_DEV != '' || env.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 != '')) ||
-          ((github.event_name != 'workflow_dispatch' || inputs.environment == 'prod') && env.AZURE_CLIENT_ID_PROD != '' && env.AZURE_TENANT_ID_PROD != '' && env.AZURE_SUBSCRIPTION_ID_PROD != '')
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (env.AZURE_CLIENT_ID_DEV != '' || env.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED != '') && (env.AZURE_TENANT_ID_DEV != '' || env.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 != '') && (env.AZURE_SUBSCRIPTION_ID_DEV != '' || env.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 != '')) ||
+          ((github.event_name != 'workflow_dispatch' || github.event.inputs.environment == 'prod') && env.AZURE_CLIENT_ID_PROD != '' && env.AZURE_TENANT_ID_PROD != '' && env.AZURE_SUBSCRIPTION_ID_PROD != '')
         env:
           AZURE_CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
           AZURE_TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV }}
@@ -152,13 +152,13 @@ jobs:
           AZURE_SUBSCRIPTION_ID_PROD: ${{ secrets.AZURE_SUBSCRIPTION_ID_PROD }}
         uses: azure/login@v2
         with:
-          client-id: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && (secrets.AZURE_CLIENT_ID_DEV || secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED) || secrets.AZURE_CLIENT_ID_PROD }}
-          tenant-id: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && (secrets.AZURE_TENANT_ID_DEV || secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707) || secrets.AZURE_TENANT_ID_PROD }}
-          subscription-id: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && (secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9) || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
+          client-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (secrets.AZURE_CLIENT_ID_DEV || secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED) || secrets.AZURE_CLIENT_ID_PROD }}
+          tenant-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (secrets.AZURE_TENANT_ID_DEV || secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707) || secrets.AZURE_TENANT_ID_PROD }}
+          subscription-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9) || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}
-          publish-profile: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV || secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
+          app-name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}
+          publish-profile: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV || secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
           package: ./publish

@@ -28,6 +28,16 @@ Main branch
 
 `AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*` correspond to `*_DEV` and `*_PROD` variants shown above.
 
+## Repo variables used by deploy.yml
+
+| Variable | Purpose |
+| --- | --- |
+| `PROD_API_URL` | Base URL for prod smoke test (e.g. `https://atlas-homes-api.azurewebsites.net`). Required when deploying to prod (push to main or workflow_dispatch → prod). |
+| `DEV_API_URL` | Base URL for dev smoke test (e.g. `https://atlas-homes-api-dev.azurewebsites.net`). Required when deploying to dev (workflow_dispatch → dev). |
+| `DEPLOY_PROD_ON_MAIN` | Set to `true` to enable deploy to prod on push to `main`. |
+
+Resource group is **not** a variable: prod uses `atlas-prod-rg`, dev uses `atlas-dev-rg`.
+
 ## Checklist for Verification
 
 - **Branch triggers**: Confirm the correct branch is listed under `on.push.branches` in each workflow.
@@ -45,7 +55,8 @@ Main branch
 - **Why 500.31 happens**: On Azure App Service Free/Shared (Windows), the host is **32-bit only** and does not ship the .NET 8 runtime. A **framework-dependent** publish expects `Microsoft.NetCore.App` / `Microsoft.AspNetCore.App` to be installed, so ANCM fails with "Failed to Find Native Dependencies" (500.31).
 - **Fix**: Prod is published as **self-contained win-x86** (`-r win-x86 --self-contained true`). The app and its runtime are bundled, so no host runtime is required and the 32-bit worker process can load the app.
 - **Logs**: After deploy, stdout and ANCM logs are written under the app’s home directory. In **Kudu** (Advanced Tools → Debug console), open **LogFiles** and check **stdout** (and related logs). See `docs/startup-diagnostics.md` for capturing startup failure reports.
-- **Post-deploy**: The workflow restarts the Web App and runs a smoke test on `/swagger/v1/swagger.json`. Optional repo variable `AZURE_WEBAPP_RG` (default `atlas-api-rg`) is used for restart and smoke test.
+- **Runtime assets**: The full publish output (including **`runtimes/`** and its subtree, e.g. `runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll`) must be deployed. If the deploy package omits `runtimes/`, the app fails at startup with 500.31 and stdout shows "An assembly specified in the application dependencies manifest (Atlas.Api.deps.json) was not found" for `Microsoft.Data.SqlClient`. The workflow zips the **contents** of `./publish` (e.g. `Compress-Archive -Path './publish/*'`) so nested directories are included, and validates that `runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll` exists before deploy.
+- **Post-deploy**: The workflow restarts the Web App and runs a smoke test. Resource group is chosen by target: **prod** → `atlas-prod-rg` (app `atlas-homes-api`), **dev** (workflow_dispatch with environment = dev) → `atlas-dev-rg` (app `atlas-homes-api-dev`). Repo variables **`PROD_API_URL`** and **`DEV_API_URL`** must be set for the smoke test (e.g. `https://atlas-homes-api.azurewebsites.net`, `https://atlas-homes-api-dev.azurewebsites.net`); if unset, the smoke test URL is empty and the step fails.
 
 ### Verification after deploy
 

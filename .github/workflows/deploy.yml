@@ -128,10 +128,12 @@ jobs:
           $dir = './publish'
           Get-ChildItem -Path $dir -Recurse -Name | ForEach-Object { Write-Host $_ }
           $required = @(
+            (Join-Path $dir 'Atlas.Api.exe'),
             (Join-Path $dir 'Atlas.Api.dll'),
             (Join-Path $dir 'Atlas.Api.deps.json'),
             (Join-Path $dir 'Atlas.Api.runtimeconfig.json'),
-            (Join-Path $dir 'web.config')
+            (Join-Path $dir 'web.config'),
+            (Join-Path $dir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll')
           )
           foreach ($f in $required) {
             if (-not (Test-Path $f)) {
@@ -139,7 +141,9 @@ jobs:
               exit 1
             }
           }
-          Write-Host "All required artifacts present."
+          Write-Host "runtimes/win/lib/net8.0 contents:"
+          Get-ChildItem -Path (Join-Path $dir 'runtimes/win/lib/net8.0') -Name | ForEach-Object { Write-Host $_ }
+          Write-Host "All required artifacts present (including SqlClient runtime)."
 
       - name: Prod deployment disabled message
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'
@@ -203,6 +207,7 @@ jobs:
             'Atlas.Api.deps.json'
             'Atlas.Api.runtimeconfig.json'
             'web.config'
+            'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
           )
 
           $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path $deployDir $_)) }
@@ -218,7 +223,18 @@ jobs:
             exit 1
           }
 
-          Write-Host 'All required deploy artifacts are present.'
+          Write-Host 'runtimes/win/lib/net8.0:'
+          Get-ChildItem -Path (Join-Path $deployDir 'runtimes/win/lib/net8.0') -Name | ForEach-Object { Write-Host $_ }
+          Write-Host 'All required deploy artifacts are present (including runtimes).'
+
+      - name: Create deployment zip (include runtimes subtree)
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
+        shell: pwsh
+        run: |
+          # Zip full ./publish tree so archive root = wwwroot (runtimes/win/lib/net8.0/ etc. included).
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::CreateFromDirectory("$PWD/publish", "$PWD/publish.zip")
+          Write-Host "Zip size (bytes): $((Get-Item ./publish.zip).Length)"
 
       - name: Deploy to Azure Web App
         if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
@@ -226,33 +242,34 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}
-          package: ./publish
+          package: ./publish.zip
 
       - name: Restart Web App
         if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
         shell: pwsh
         env:
           APP_NAME: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}
-          RESOURCE_GROUP: ${{ vars.AZURE_WEBAPP_RG }}
+          # Prod: atlas-homes-api in atlas-prod-rg. Dev: atlas-homes-api-dev in atlas-dev-rg.
+          RESOURCE_GROUP: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-dev-rg' || 'atlas-prod-rg' }}
         run: |
-          $rg = $env:RESOURCE_GROUP
-          if ([string]::IsNullOrWhiteSpace($rg)) { $rg = 'atlas-api-rg' }
-          az webapp restart --name $env:APP_NAME --resource-group $rg
-          Write-Host "Restarted $env:APP_NAME"
+          az webapp restart --name $env:APP_NAME --resource-group $env:RESOURCE_GROUP
+          Write-Host "Restarted $env:APP_NAME in $env:RESOURCE_GROUP"
 
       - name: Smoke test (swagger)
         if: github.event_name != 'push' || github.ref != 'refs/heads/main' || vars.DEPLOY_PROD_ON_MAIN == 'true'
         shell: pwsh
         env:
-          APP_NAME: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}
-          RESOURCE_GROUP: ${{ vars.AZURE_WEBAPP_RG }}
+          # Prod deploy (push to main or workflow_dispatch prod) → PROD_API_URL. Dev deploy → DEV_API_URL.
+          BASE_URL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && vars.DEV_API_URL || vars.PROD_API_URL }}
+          URL_VAR: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'DEV_API_URL' || 'PROD_API_URL' }}
         run: |
-          $rg = $env:RESOURCE_GROUP
-          if ([string]::IsNullOrWhiteSpace($rg)) { $rg = 'atlas-api-rg' }
-          $hostName = az webapp show --name $env:APP_NAME --resource-group $rg --query defaultHostName -o tsv
-          $baseUrl = "https://$hostName"
-          Write-Host "Smoke testing $baseUrl/swagger/v1/swagger.json"
-          $r = Invoke-WebRequest -Uri "$baseUrl/swagger/v1/swagger.json" -UseBasicParsing -TimeoutSec 30
+          if ([string]::IsNullOrWhiteSpace($env:BASE_URL)) {
+            Write-Error "Set repo variable $env:URL_VAR for smoke test (e.g. PROD_API_URL=https://atlas-homes-api.azurewebsites.net, DEV_API_URL=https://atlas-homes-api-dev.azurewebsites.net)."
+            exit 1
+          }
+          $url = $env:BASE_URL.TrimEnd('/') + '/swagger/v1/swagger.json'
+          Write-Host "Smoke testing $url"
+          $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30
           if ($r.StatusCode -ne 200) {
             Write-Error "Smoke test failed: swagger returned $($r.StatusCode)"
             exit 1

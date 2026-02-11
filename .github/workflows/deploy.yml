@@ -1,4 +1,4 @@
-name: Deploy .NET API to Azure
+name: Build and Deploy to Prod
 
 on:
   push:
@@ -119,7 +119,9 @@ jobs:
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
 
       - name: Publish
-        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish
+        # Self-contained so Azure App Service does not need .NET 8 runtime installed (avoids 500.31 ANCM).
+        # win-x64 for Windows App Service.
+        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
 
       - name: Prod deployment disabled message
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'

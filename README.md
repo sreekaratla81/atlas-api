@@ -73,23 +73,23 @@ dotnet run --project Atlas.DbMigrator -- --connection "Server=(localdb)\\MSSQLLo
 
 ```bash
 # check-only (fails with exit code 2 if pending migrations exist)
-dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DEV_SQL_CONNECTION}" --check-only
+dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DEV_SQL_CONNECTION_STRING}" --check-only
 
 # apply migrations
-dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DEV_SQL_CONNECTION}"
+dotnet run --project Atlas.DbMigrator -- --connection "${ATLAS_DEV_SQL_CONNECTION_STRING}"
 ```
 
 **Visual Studio launch profile (Windows):**
 
-If you set `ATLAS_DEV_SQL_CONNECTION` in the launch profile environment variables,
-pass `%ATLAS_DEV_SQL_CONNECTION%` in the command line arguments so the migrator
+If you set `ATLAS_DEV_SQL_CONNECTION_STRING` in the launch profile environment variables,
+pass `%ATLAS_DEV_SQL_CONNECTION_STRING%` in the command line arguments so the migrator
 expands it at runtime.
 
 ```
---connection "%ATLAS_DEV_SQL_CONNECTION%" --check-only
+--connection "%ATLAS_DEV_SQL_CONNECTION_STRING%" --check-only
 ```
 
-Set `ATLAS_DEV_SQL_CONNECTION` (and `ATLAS_PROD_SQL_CONNECTION` when added) via
+Set `ATLAS_DEV_SQL_CONNECTION_STRING` and `ATLAS_PROD_SQL_CONNECTION_STRING` via
 your secret manager, GitHub Actions secrets, or Azure App Service configuration.
 Logs are redacted and should not include connection string secrets.
 
@@ -137,32 +137,29 @@ add explicit domains to the allowlist instead.
 
 ## Deployment
 
-Production deploys are automated through the GitHub Actions workflow at
-`.github/workflows/deploy.yml`.
+Production deploys are automated through the GitHub Actions workflows at
+`.github/workflows/deploy.yml` and `.github/workflows/dev_atlas-homes-api-dev.yml`.
 
-- **Triggers:** Pushes to `main` automatically build, test, publish, and deploy
-  to Azure App Service. You can also trigger a manual run from the GitHub UI
-  via **Actions → Deploy .NET API to Azure → Run workflow**.
-- **Required secret:** `AZURE_WEBAPP_PUBLISH_PROFILE` (App Service publish
-  profile XML from Azure Portal → App Service **atlas-homes-api** → Get publish
-  profile → paste into repository secret).
-- **Required DB secrets:** `ATLAS_DEV_SQL_CONNECTION` (and
-  `ATLAS_PROD_SQL_CONNECTION` when added). These are the SQL Server connection
-  strings consumed by `Atlas.DbMigrator`. Keep them in GitHub Secrets or App
-  Service configuration and never log them.
-- **Migration/deploy flow:** Check pending migrations → Apply migrations →
-  Deploy (dev only). The deploy workflow keeps the `--check-only` gate but no
-  longer auto-applies **production** migrations on `main` deploys. Production
-  migrations must be executed manually through the `prod-migrate.yml` workflow
-  with explicit confirmation before deploying.
+- **Triggers:** Pushes to `main` (prod) and `dev` (dev) automatically build,
+  test, publish, and deploy to Azure App Service. You can also trigger manual
+  runs from the GitHub UI.
+- **Migration/deploy flow:** Both workflows validate DbMigrator connection
+  secrets and run a migration check gate. Dev deploy paths can apply pending
+  migrations before deployment. Production migration application is gated to
+  explicit manual flow.
 - **What it does:** Checks out code, installs .NET 8 SDK, restores packages,
-  builds Release, runs unit + integration tests, runs the `--check-only`
-  migration gate, applies **dev** database migrations via `Atlas.DbMigrator`,
-  publishes to `./publish`, and deploys using the publish profile.
-- **Troubleshooting:** YAML indentation errors or malformed keys will cause the
-  workflow to be rejected by GitHub. Verify the workflow YAML structure matches
-  the example in `.github/workflows/deploy.yml`. Ensure the publish profile
-  secret is present and valid if deployment fails.
+  builds Release, runs test suites, validates migration state, and deploys to
+  the environment-specific Azure Web App.
+
+### Required secrets by workflow
+
+| Workflow file | Required/used secret identifiers (exact names from workflow YAML) |
+| --- | --- |
+| `.github/workflows/dev_atlas-homes-api-dev.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`, `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`, `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9` |
+| `.github/workflows/deploy.yml` | `AZURE_WEBAPP_PUBLISH_PROFILE_DEV`, `AZURE_WEBAPP_PUBLISH_PROFILE_PROD`, `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD`, `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`, `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`, `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9` |
+
+The `AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*`
+patterns map to `*_DEV` and `*_PROD` variables above.
 
 ### CI/CD troubleshooting
 
@@ -171,10 +168,10 @@ Production deploys are automated through the GitHub Actions workflow at
   invalid argument on GitHub-hosted runners.
 - The deploy pipeline runs unit and integration tests; if LocalDb is unavailable
   on the runner, update the workflow to use a compatible SQL Server target.
-- If you see `Missing value for --connection`, verify the GitHub Actions secret
-  exists (`ATLAS_DEV_SQL_CONNECTION`, and `ATLAS_PROD_SQL_CONNECTION` when
-  added) and that the workflow passes it into the DbMigrator step as an
-  environment variable or argument.
+- If you see `Missing value for --connection`, verify the GitHub Actions
+  secrets exist (`ATLAS_DEV_SQL_CONNECTION_STRING` and
+  `ATLAS_PROD_SQL_CONNECTION_STRING`) and that the workflow passes the correct
+  value into the DbMigrator step as an environment variable or argument.
 
 ## Unit test coverage workflow
 

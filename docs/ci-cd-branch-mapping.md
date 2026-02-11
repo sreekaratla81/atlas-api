@@ -15,9 +15,18 @@ Main branch
 
 | Workflow file | Trigger(s) | Azure app name (`with.app-name`) | Auth method | DbMigrator usage |
 | --- | --- | --- | --- | --- |
-| `.github/workflows/dev_atlas-homes-api-dev.yml` | `on.push.branches: [dev]`, `workflow_dispatch` | `atlas-homes-api-dev` | `azure/login@v2` with `client-id`, `tenant-id`, `subscription-id` secrets | Validates dev connection, checks pending migrations, applies migrations using `ATLAS_DEV_SQL_CONNECTION_STRING`. |
-| `.github/workflows/deploy.yml` | `on.push.branches: [main]`, `workflow_dispatch` | `atlas-homes-api` | `azure/webapps-deploy@v3` with publish profile secret `AZURE_WEBAPP_PUBLISH_PROFILE` | Validates connection + checks pending migrations on `main` (or `release/*`); applies migrations only for `workflow_dispatch` + `inputs.environment == dev` (prod migrations gated). |
+| `.github/workflows/dev_atlas-homes-api-dev.yml` | `on.push.branches: [dev]`, `workflow_dispatch` | `atlas-homes-api-dev` | `azure/login@v2` with Azure App Service OIDC secrets | Validates dev connection, checks pending migrations, applies migrations using `ATLAS_DEV_SQL_CONNECTION_STRING`. |
+| `.github/workflows/deploy.yml` | `on.push.branches: [main]`, `workflow_dispatch` | `atlas-homes-api` | `azure/webapps-deploy@v3` with publish profile or `azure/login@v2` with OIDC secrets | Validates connection + checks pending migrations on `main` (or `release/*`); applies migrations only for `workflow_dispatch` + `inputs.environment == dev` (prod migrations gated). |
 | `.github/workflows/prod-migrate.yml` | `workflow_dispatch` only | _N/A_ (no app deploy) | _N/A_ | Validates prod connection, checks pending migrations, applies migrations only when `inputs.confirm == 'APPLY_PROD_MIGRATIONS'` using `ATLAS_PROD_SQL_CONNECTION_STRING`. |
+
+## Required secrets by workflow
+
+| Workflow file | Required/used secret identifiers (exact names from workflow YAML) |
+| --- | --- |
+| `.github/workflows/dev_atlas-homes-api-dev.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`, `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`, `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9` |
+| `.github/workflows/deploy.yml` | `AZURE_WEBAPP_PUBLISH_PROFILE_DEV`, `AZURE_WEBAPP_PUBLISH_PROFILE_PROD`, `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD`, `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`, `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`, `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9` |
+
+`AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*` correspond to `*_DEV` and `*_PROD` variants shown above.
 
 ## Checklist for Verification
 
@@ -35,8 +44,8 @@ Main branch
 
 - **Same app name in both workflows**: `atlas-homes-api` and `atlas-homes-api-dev` must remain distinct to prevent deploys from overwriting the wrong environment.
 - **Wrong auth secret type**:
-  - `dev_atlas-homes-api-dev.yml` expects `azure/login` secrets (client/tenant/subscription IDs).
-  - `deploy.yml` expects `AZURE_WEBAPP_PUBLISH_PROFILE` for publish-profile deployments.
+  - `dev_atlas-homes-api-dev.yml` expects Azure App Service OIDC secrets.
+  - `deploy.yml` supports publish profile and OIDC secret sets.
 - **Missing/typo secrets**:
   - `ATLAS_DEV_SQL_CONNECTION_STRING` and `ATLAS_PROD_SQL_CONNECTION_STRING` must match the workflow references exactly.
   - Ensure secrets are present in the repo/organization for the relevant environment.

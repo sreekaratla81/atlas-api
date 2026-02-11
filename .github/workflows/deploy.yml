@@ -59,7 +59,7 @@ jobs:
       # - AZURE_WEBAPP_PUBLISH_PROFILE_DEV (dev)
       # - AZURE_WEBAPP_PUBLISH_PROFILE_PROD (prod)
       - name: Validate migrator connection
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
         env:
           MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
         run: |
@@ -67,14 +67,34 @@ jobs:
             Write-Error "Missing database connection string. Ensure the environment connection string secret is configured."
             exit 1
           }
-      - name: Check for pending migrations
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+
+      - name: Check for pending migrations (strict)
+        if: github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
         env:
           MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
 
+      - name: Check for pending migrations (manual apply mode)
+        if: github.event_name == 'workflow_dispatch' && (inputs.environment == 'dev' || inputs.environment == 'prod')
+        id: check_migrations
+        shell: pwsh
+        env:
+          MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
+        run: |
+          dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION" --check-only
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -eq 2) {
+            "pending=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          if ($exitCode -eq 0) {
+            "pending=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          exit $exitCode
+
       - name: Apply migrations
-        if: github.event_name == 'workflow_dispatch' && inputs.environment == 'dev'
+        if: github.event_name == 'workflow_dispatch' && (inputs.environment == 'dev' || inputs.environment == 'prod') && steps.check_migrations.outputs.pending == 'true'
         env:
           MIGRATOR_CONNECTION: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && secrets.ATLAS_DEV_SQL_CONNECTION_STRING || secrets.ATLAS_PROD_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"

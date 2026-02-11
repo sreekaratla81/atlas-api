@@ -1,12 +1,9 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and Deploy to Dev
 
 on:
   push:
     branches:
-      - dev # dev branch deploys to atlas-homes-api-dev
+      - dev
   workflow_dispatch:
     inputs:
       run_integration_tests:
@@ -19,7 +16,7 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -46,8 +43,8 @@ jobs:
     runs-on: windows-latest
     needs: build
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -151,7 +148,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'atlas-homes-api-dev' # dev app
+          app-name: 'atlas-homes-api-dev'
           slot-name: 'Production'
           package: ./net-app
           

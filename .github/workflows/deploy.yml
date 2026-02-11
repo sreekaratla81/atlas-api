@@ -3,7 +3,7 @@ name: Build and Deploy to Prod
 on:
   push:
     branches:
-      - main # prod branch deploys to atlas-homes-api
+      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -71,18 +71,6 @@ jobs:
         if: vars.ENABLE_INTEGRATION_TESTS == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true'
         run: dotnet test ./Atlas.DbMigrator.IntegrationTests/Atlas.DbMigrator.IntegrationTests.csproj --configuration Release
 
-      # Optional follow-up: move integration suites to a dedicated manual/scheduled workflow
-      # so long-running validation does not block deployment feedback.
-
-      # Required secrets:
-      # - ATLAS_DEV_SQL_CONNECTION_STRING (dev)
-      # - ATLAS_PROD_SQL_CONNECTION_STRING (prod)
-      # Deployment auth (OIDC for both environments):
-      # - AZURE_CLIENT_ID_DEV / AZURE_TENANT_ID_DEV / AZURE_SUBSCRIPTION_ID_DEV
-      # - AZURE_CLIENT_ID_PROD / AZURE_TENANT_ID_PROD / AZURE_SUBSCRIPTION_ID_PROD
-      # Optional repository variable:
-      # - DEPLOY_PROD_ON_MAIN (set to 'true' to enable prod deploy steps on push to main)
-      # - ENABLE_INTEGRATION_TESTS (set to 'true' to re-enable integration test steps)
       - name: Validate migrator connection
         if: env.SHOULD_DEPLOY == 'true'
         run: |
@@ -120,18 +108,6 @@ jobs:
         shell: pwsh
         run: |
           $dir = './publish'
-          Write-Host "=== All published files ==="
-          Get-ChildItem -Path $dir -Recurse -Name | ForEach-Object { Write-Host $_ }
-          
-          Write-Host "`n=== Checking runtimes directory ==="
-          $runtimesPath = Join-Path $dir 'runtimes'
-          if (Test-Path $runtimesPath) {
-            Write-Host "runtimes directory exists"
-            Get-ChildItem -Path $runtimesPath -Recurse | ForEach-Object { Write-Host $_.FullName }
-          } else {
-            Write-Warning "runtimes directory does not exist!"
-          }
-          
           $required = @(
             (Join-Path $dir 'Atlas.Api.exe'),
             (Join-Path $dir 'Atlas.Api.dll'),
@@ -150,8 +126,7 @@ jobs:
             Write-Warning "SqlClient runtime DLL not found at expected path: $sqlClientDll"
             Write-Warning "Continuing because build validation should not fail on optional runtime layout differences."
           }
-          Write-Host "`n=== Validation passed ==="
-          Write-Host "All required artifacts present (including SqlClient runtime)."
+          Write-Host "All required publish artifacts are present."
 
       - name: Prod deployment disabled message
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'
@@ -207,13 +182,6 @@ jobs:
 
           $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path $deployDir $_)) }
           if ($missingFiles.Count -gt 0) {
-            Write-Host 'Deploy directory listing:'
-            if (Test-Path $deployDir) {
-              Get-ChildItem $deployDir -Force
-            }
-            else {
-              Write-Host "Deploy directory does not exist: $deployDir"
-            }
             Write-Error ("Missing required deploy artifacts: {0}" -f ($missingFiles -join ', '))
             exit 1
           }
@@ -270,7 +238,7 @@ jobs:
             Write-Error "Unable to resolve host name for app '$env:APP_NAME' in resource group '$rg'."
             exit 1
           }
-          $baseUrl = "https://$hostName"
+optimi          $baseUrl = "https://$hostName"
           $swaggerUrl = "$baseUrl/swagger/v1/swagger.json"
           $delays = @(5, 10, 15, 20, 30, 30)
 

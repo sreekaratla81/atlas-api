@@ -119,17 +119,38 @@ namespace Atlas.Api
 
             var app = builder.Build();
 
+            // Exception handler for production: return JSON (not HTML) and add CORS headers
+            // so the browser doesn't block error responses and clients don't get "Unexpected token '<'"
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseExceptionHandler(exceptionHandlerApp =>
+                {
+                    exceptionHandlerApp.Run(async context =>
+                    {
+                        var allowedOrigins = BuildAllowedOrigins(context.RequestServices.GetRequiredService<IConfiguration>(), context.RequestServices.GetRequiredService<IWebHostEnvironment>());
+                        var origin = context.Request.Headers.Origin.ToString();
+                        if (!string.IsNullOrEmpty(origin) && allowedOrigins.Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            context.Response.Headers.Append("Access-Control-Allow-Origin", origin);
+                            context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+                        }
+                        context.Response.StatusCode = 500;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsJsonAsync(new { error = "An error occurred. Please try again later." });
+                    });
+                });
+            }
+            else
+            {
+                app.UseDeveloperExceptionPage();
+            }
+
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Atlas API v1");
                 c.RoutePrefix = "swagger";
             });
-
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
 
             app.UseRouting();
 

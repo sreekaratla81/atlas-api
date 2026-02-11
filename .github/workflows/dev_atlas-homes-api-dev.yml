@@ -134,6 +134,7 @@ jobs:
         run: |
           $deployDir = './net-app'
           $requiredFiles = @(
+            'Atlas.Api.exe'
             'Atlas.Api.dll'
             'Atlas.Api.deps.json'
             'Atlas.Api.runtimeconfig.json'

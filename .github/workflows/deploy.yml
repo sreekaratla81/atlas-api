@@ -120,8 +120,26 @@ jobs:
 
       - name: Publish
         # Self-contained so Azure App Service does not need .NET 8 runtime installed (avoids 500.31 ANCM).
-        # win-x64 for Windows App Service.
-        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
+        # win-x86 for Windows App Service.
+        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
+
+      - name: Verify published artifacts
+        shell: pwsh
+        run: |
+          $requiredFiles = @(
+            'Atlas.Api.dll'
+            'Atlas.Api.deps.json'
+            'Atlas.Api.runtimeconfig.json'
+            'web.config'
+          )
+
+          $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path './publish' $_)) }
+          if ($missingFiles.Count -gt 0) {
+            Write-Error ("Missing required publish artifacts: {0}" -f ($missingFiles -join ', '))
+            exit 1
+          }
+
+          Write-Host 'All required publish artifacts are present.'
 
       - name: Prod deployment disabled message
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'

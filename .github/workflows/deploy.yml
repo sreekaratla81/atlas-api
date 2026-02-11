@@ -66,6 +66,26 @@ jobs:
             Remove-Item $sqlClientCachePath -Recurse -Force
           }
           dotnet restore --force
+          #region agent log
+          $debugLogPath = 'c:\AtlasHomestays\code\.cursor\debug.log'
+          $sqlClientVersionPath = Join-Path $sqlClientCachePath '6.1.4'
+          $packageDllCount = 0
+          if (Test-Path $sqlClientVersionPath) {
+            $packageDllCount = @(Get-ChildItem -Path $sqlClientVersionPath -Recurse -Filter 'Microsoft.Data.SqlClient.dll' -File -ErrorAction SilentlyContinue).Count
+          }
+          Add-Content -Path $debugLogPath -Value ((@{
+            id = "log_$([guid]::NewGuid().ToString('N'))"
+            timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+            runId = "pre-fix"
+            hypothesisId = "H3"
+            location = ".github/workflows/deploy.yml:Restore dependencies"
+            message = "NuGet SqlClient package assets"
+            data = @{
+              sqlClientVersionPathExists = (Test-Path $sqlClientVersionPath)
+              packageDllCount = $packageDllCount
+            }
+          } | ConvertTo-Json -Compress))
+          #endregion
 
       - name: Unit tests paused
         if: env.RUN_UNIT_TESTS != 'true'
@@ -128,10 +148,71 @@ jobs:
         # Self-contained win-x86 for 32-bit Free/Shared tier (avoids 500.31 ANCM + 500.32 load failure).
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
+      - name: Normalize SqlClient runtime layout
+        shell: pwsh
+        run: |
+          $dir = './publish'
+          $rootSqlClient = Join-Path $dir 'Microsoft.Data.SqlClient.dll'
+          $expectedSqlClient = Join-Path $dir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
+          if ((-not (Test-Path $expectedSqlClient)) -and (Test-Path $rootSqlClient)) {
+            $targetDir = Split-Path $expectedSqlClient -Parent
+            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+            Copy-Item -Path $rootSqlClient -Destination $expectedSqlClient -Force
+          }
+          #region agent log
+          $debugLogPath = 'c:\AtlasHomestays\code\.cursor\debug.log'
+          Add-Content -Path $debugLogPath -Value ((@{
+            id = "log_$([guid]::NewGuid().ToString('N'))"
+            timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+            runId = "post-fix"
+            hypothesisId = "H6"
+            location = ".github/workflows/deploy.yml:Normalize SqlClient runtime layout"
+            message = "SqlClient runtime normalization result"
+            data = @{
+              rootPathExists = (Test-Path $rootSqlClient)
+              expectedPathExists = (Test-Path $expectedSqlClient)
+            }
+          } | ConvertTo-Json -Compress))
+          #endregion
+
       - name: Validate publish artifacts
         shell: pwsh
         run: |
           $dir = './publish'
+          #region agent log
+          $debugLogPath = 'c:\AtlasHomestays\code\.cursor\debug.log'
+          $expectedSqlClient = Join-Path $dir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
+          $rootSqlClient = Join-Path $dir 'Microsoft.Data.SqlClient.dll'
+          $depsPath = Join-Path $dir 'Atlas.Api.deps.json'
+          $depsHasSqlClientRuntimePath = $false
+          if (Test-Path $depsPath) {
+            $depsHasSqlClientRuntimePath = Select-String -Path $depsPath -Pattern 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll' -SimpleMatch -Quiet
+          }
+          Add-Content -Path $debugLogPath -Value ((@{
+            id = "log_$([guid]::NewGuid().ToString('N'))"
+            timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+            runId = "pre-fix"
+            hypothesisId = "H1"
+            location = ".github/workflows/deploy.yml:Validate publish artifacts"
+            message = "SqlClient publish paths"
+            data = @{
+              expectedPathExists = (Test-Path $expectedSqlClient)
+              rootPathExists = (Test-Path $rootSqlClient)
+            }
+          } | ConvertTo-Json -Compress))
+          Add-Content -Path $debugLogPath -Value ((@{
+            id = "log_$([guid]::NewGuid().ToString('N'))"
+            timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+            runId = "pre-fix"
+            hypothesisId = "H2"
+            location = ".github/workflows/deploy.yml:Validate publish artifacts"
+            message = "Deps runtime path expectation"
+            data = @{
+              depsExists = (Test-Path $depsPath)
+              depsHasSqlClientRuntimePath = $depsHasSqlClientRuntimePath
+            }
+          } | ConvertTo-Json -Compress))
+          #endregion
           $required = @(
             (Join-Path $dir 'Atlas.Api.exe'),
             (Join-Path $dir 'Atlas.Api.dll'),

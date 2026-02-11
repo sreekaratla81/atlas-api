@@ -117,10 +117,61 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
+      - name: Normalize SqlClient runtime layout
+        shell: pwsh
+        run: |
+          $deployDir = './net-app'
+          $rootSqlClient = Join-Path $deployDir 'Microsoft.Data.SqlClient.dll'
+          $expectedSqlClient = Join-Path $deployDir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
+          if ((-not (Test-Path $expectedSqlClient)) -and (Test-Path $rootSqlClient)) {
+            $targetDir = Split-Path $expectedSqlClient -Parent
+            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+            Copy-Item -Path $rootSqlClient -Destination $expectedSqlClient -Force
+          }
+          #region agent log
+          $debugLogPath = 'c:\AtlasHomestays\code\.cursor\debug.log'
+          Add-Content -Path $debugLogPath -Value ((@{
+            id = "log_$([guid]::NewGuid().ToString('N'))"
+            timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+            runId = "post-fix"
+            hypothesisId = "H7"
+            location = ".github/workflows/dev_atlas-homes-api-dev.yml:Normalize SqlClient runtime layout"
+            message = "Dev SqlClient runtime normalization result"
+            data = @{
+              rootPathExists = (Test-Path $rootSqlClient)
+              expectedPathExists = (Test-Path $expectedSqlClient)
+            }
+          } | ConvertTo-Json -Compress))
+          #endregion
+
       - name: Validate deploy artifacts
         shell: pwsh
         run: |
           $deployDir = './net-app'
+          #region agent log
+          $debugLogPath = 'c:\AtlasHomestays\code\.cursor\debug.log'
+          $expectedSqlClient = Join-Path $deployDir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
+          $rootSqlClient = Join-Path $deployDir 'Microsoft.Data.SqlClient.dll'
+          $depsPath = Join-Path $deployDir 'Atlas.Api.deps.json'
+          $depsHasSqlClientRuntimePath = $false
+          if (Test-Path $depsPath) {
+            $depsHasSqlClientRuntimePath = Select-String -Path $depsPath -Pattern 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll' -SimpleMatch -Quiet
+          }
+          Add-Content -Path $debugLogPath -Value ((@{
+            id = "log_$([guid]::NewGuid().ToString('N'))"
+            timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+            runId = "pre-fix"
+            hypothesisId = "H5"
+            location = ".github/workflows/dev_atlas-homes-api-dev.yml:Validate deploy artifacts"
+            message = "Dev SqlClient publish paths"
+            data = @{
+              expectedPathExists = (Test-Path $expectedSqlClient)
+              rootPathExists = (Test-Path $rootSqlClient)
+              depsExists = (Test-Path $depsPath)
+              depsHasSqlClientRuntimePath = $depsHasSqlClientRuntimePath
+            }
+          } | ConvertTo-Json -Compress))
+          #endregion
           $requiredFiles = @(
             'Atlas.Api.exe'
             'Atlas.Api.dll'

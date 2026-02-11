@@ -34,7 +34,25 @@ namespace Atlas.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving listings");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { error = "Internal server error" });
+            }
+        }
+
+        [HttpGet("public")]
+        public async Task<ActionResult<IEnumerable<Listing>>> GetPublicListings()
+        {
+            try
+            {
+                var listings = await _context.Listings
+                    .Include(l => l.Property)
+                    .Where(l => l.Status == "Active")
+                    .ToListAsync();
+                return Ok(listings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving public listings");
+                return StatusCode(500, new { error = "Internal server error" });
             }
         }
 
@@ -51,7 +69,7 @@ namespace Atlas.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving listing {ListingId}", id);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { error = "Internal server error" });
             }
         }
 
@@ -77,7 +95,7 @@ namespace Atlas.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating listing");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { error = "Internal server error" });
             }
         }
 
@@ -94,7 +112,7 @@ namespace Atlas.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating listing {ListingId}", id);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { error = "Internal server error" });
             }
         }
 
@@ -112,7 +130,7 @@ namespace Atlas.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting listing {ListingId}", id);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { error = "Internal server error" });
             }
         }
     }

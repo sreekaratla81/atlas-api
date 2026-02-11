@@ -138,8 +138,18 @@ jobs:
 
       - name: Login to Azure (OIDC)
         if: >-
-          (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && (secrets.AZURE_CLIENT_ID_DEV != '' || secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED != '') && (secrets.AZURE_TENANT_ID_DEV != '' || secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 != '') && (secrets.AZURE_SUBSCRIPTION_ID_DEV != '' || secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 != '')) ||
-          ((github.event_name != 'workflow_dispatch' || inputs.environment == 'prod') && secrets.AZURE_CLIENT_ID_PROD != '' && secrets.AZURE_TENANT_ID_PROD != '' && secrets.AZURE_SUBSCRIPTION_ID_PROD != '')
+          (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && (env.AZURE_CLIENT_ID_DEV != '' || env.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED != '') && (env.AZURE_TENANT_ID_DEV != '' || env.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 != '') && (env.AZURE_SUBSCRIPTION_ID_DEV != '' || env.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 != '')) ||
+          ((github.event_name != 'workflow_dispatch' || inputs.environment == 'prod') && env.AZURE_CLIENT_ID_PROD != '' && env.AZURE_TENANT_ID_PROD != '' && env.AZURE_SUBSCRIPTION_ID_PROD != '')
+        env:
+          AZURE_CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+          AZURE_TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV }}
+          AZURE_SUBSCRIPTION_ID_DEV: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
+          AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED: ${{ secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED }}
+          AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707: ${{ secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 }}
+          AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 }}
+          AZURE_CLIENT_ID_PROD: ${{ secrets.AZURE_CLIENT_ID_PROD }}
+          AZURE_TENANT_ID_PROD: ${{ secrets.AZURE_TENANT_ID_PROD }}
+          AZURE_SUBSCRIPTION_ID_PROD: ${{ secrets.AZURE_SUBSCRIPTION_ID_PROD }}
         uses: azure/login@v2
         with:
           client-id: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' && (secrets.AZURE_CLIENT_ID_DEV || secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED) || secrets.AZURE_CLIENT_ID_PROD }}

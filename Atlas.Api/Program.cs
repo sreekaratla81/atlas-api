@@ -186,6 +186,7 @@ namespace Atlas.Api
 
         internal static string[] BuildAllowedOrigins(IConfiguration config, IWebHostEnvironment env)
         {
+            // Guest portal (Razorpay/order) calls from www and apex; both must be allowed for prod.
             var requiredOrigins = new[]
             {
                 "http://localhost:5173",

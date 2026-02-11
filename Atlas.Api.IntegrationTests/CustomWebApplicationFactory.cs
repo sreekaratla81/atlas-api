@@ -19,7 +19,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         ConnectionString = connectionString;
     }
 
-    public PathString PathBase { get; } = new("/api");
+    public PathString PathBase { get; } = new("/");
     public string? ConnectionString { get; set; }
 
     public string ApiRoute(string relativePath)

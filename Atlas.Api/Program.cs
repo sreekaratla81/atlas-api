@@ -178,9 +178,7 @@ namespace Atlas.Api
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
 
-            // Always use /api path base for consistency (frontend calls /api/listings/public, etc.)
-            app.UsePathBase("/api");
-
+            // No path base: match dev URLs exactly — /listings/5, /availability/listing-availability, /api/Razorpay/order (only base URL differs between dev and prod).
             app.MapControllers();
 
             app.Run();

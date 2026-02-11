@@ -100,8 +100,7 @@ jobs:
           MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
       
-      - name: Select deployment authentication mode
-        id: select_auth
+      - name: Validate Azure OIDC secrets
         shell: pwsh
         env:
           CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
@@ -113,14 +112,6 @@ jobs:
             Write-Error 'Missing OIDC secrets for dev. Configure AZURE_CLIENT_ID_DEV, AZURE_TENANT_ID_DEV, and AZURE_SUBSCRIPTION_ID_DEV.'
             exit 1
           }
-
-          'auth_mode=oidc' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
-      - name: Show selected auth mode
-        shell: pwsh
-        env:
-          AUTH_MODE: ${{ steps.select_auth.outputs.auth_mode }}
-        run: Write-Host "Deployment target dev, auth mode $env:AUTH_MODE"
 
       - name: Login to Azure (OIDC)
         uses: azure/login@v2

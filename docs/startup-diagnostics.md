@@ -4,9 +4,10 @@
 
 This repo now uses transform-based behavior so diagnostics are only enabled for Development deployments.
 
-- `Atlas.Api/web.config` (baseline / production-safe defaults)
+- `Atlas.Api/web.config` (baseline / production)
   - `processPath=".\\Atlas.Api.exe"` for self-contained `win-x86` deployment on 32-bit App Service
-  - `stdoutLogEnabled="false"`
+  - `stdoutLogEnabled="true"` so ANCM writes startup logs to `%home%\LogFiles\stdout` (avoids blind 500.31/500.32 failures)
+  - `stdoutLogFile="\\?\%home%\\LogFiles\\stdout"`
   - `ASPNETCORE_DETAILEDERRORS=false`
 - `Atlas.Api/web.Development.config` and `Atlas.Api/web.Debug.config` (diagnostic toggle ON)
   - `stdoutLogEnabled="true"`

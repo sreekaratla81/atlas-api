@@ -88,13 +88,32 @@ jobs:
         env:
           MIGRATOR_CONNECTION: ${{ secrets.ATLAS_DEV_SQL_CONNECTION_STRING }}
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
+
+      - name: Validate deployment authentication
+        shell: pwsh
+        env:
+          CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+          TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV }}
+          SUBSCRIPTION_ID_DEV: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
+        run: |
+          $hasOidc = (-not [string]::IsNullOrWhiteSpace($env:CLIENT_ID_DEV)) -and (-not [string]::IsNullOrWhiteSpace($env:TENANT_ID_DEV)) -and (-not [string]::IsNullOrWhiteSpace($env:SUBSCRIPTION_ID_DEV))
+          if (-not $hasOidc) {
+            Write-Error 'No deployment credentials for dev. Configure OIDC secrets (AZURE_CLIENT_ID_DEV, AZURE_TENANT_ID_DEV, AZURE_SUBSCRIPTION_ID_DEV).'
+            exit 1
+          }
+
+      - name: Print selected deployment auth mode
+        shell: pwsh
+        run: |
+          Write-Host 'Target environment: dev'
+          Write-Host 'Deployment auth mode: OIDC'
       
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
       - name: List deployment contents
         shell: pwsh

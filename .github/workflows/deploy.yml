@@ -57,11 +57,9 @@ jobs:
       # Required secrets:
       # - ATLAS_DEV_SQL_CONNECTION_STRING (dev)
       # - ATLAS_PROD_SQL_CONNECTION_STRING (prod)
-      # Deployment auth (configure either publish profile OR OIDC service principal per environment):
-      # - AZURE_WEBAPP_PUBLISH_PROFILE_DEV (optional for dev)
-      # - AZURE_WEBAPP_PUBLISH_PROFILE_PROD (optional for prod)
-      # - AZURE_CLIENT_ID_DEV / AZURE_TENANT_ID_DEV / AZURE_SUBSCRIPTION_ID_DEV (optional for dev)
-      # - AZURE_CLIENT_ID_PROD / AZURE_TENANT_ID_PROD / AZURE_SUBSCRIPTION_ID_PROD (optional for prod)
+      # Deployment auth (OIDC service principal per environment):
+      # - AZURE_CLIENT_ID_DEV / AZURE_TENANT_ID_DEV / AZURE_SUBSCRIPTION_ID_DEV
+      # - AZURE_CLIENT_ID_PROD / AZURE_TENANT_ID_PROD / AZURE_SUBSCRIPTION_ID_PROD
       - name: Validate migrator connection
         if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
         env:
@@ -110,55 +108,52 @@ jobs:
         shell: pwsh
         env:
           TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'prod' }}
-          PUBLISH_PROFILE_DEV: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV }}
-          PUBLISH_PROFILE_PROD: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
-          CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV || secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED }}
-          TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV || secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 }}
-          SUBSCRIPTION_ID_DEV: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 }}
+          CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+          TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV }}
+          SUBSCRIPTION_ID_DEV: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
           CLIENT_ID_PROD: ${{ secrets.AZURE_CLIENT_ID_PROD }}
           TENANT_ID_PROD: ${{ secrets.AZURE_TENANT_ID_PROD }}
           SUBSCRIPTION_ID_PROD: ${{ secrets.AZURE_SUBSCRIPTION_ID_PROD }}
         run: |
           if ($env:TARGET_ENV -eq 'dev') {
-            $hasPublishProfile = -not [string]::IsNullOrWhiteSpace($env:PUBLISH_PROFILE_DEV)
             $hasOidc = (-not [string]::IsNullOrWhiteSpace($env:CLIENT_ID_DEV)) -and (-not [string]::IsNullOrWhiteSpace($env:TENANT_ID_DEV)) -and (-not [string]::IsNullOrWhiteSpace($env:SUBSCRIPTION_ID_DEV))
-            if (-not $hasPublishProfile -and -not $hasOidc) {
-              Write-Error 'No deployment credentials for dev. Configure AZURE_WEBAPP_PUBLISH_PROFILE_DEV or OIDC secrets (AZURE_CLIENT_ID_DEV, AZURE_TENANT_ID_DEV, AZURE_SUBSCRIPTION_ID_DEV).'
+            if (-not $hasOidc) {
+              Write-Error 'No deployment credentials for dev. Configure OIDC secrets (AZURE_CLIENT_ID_DEV, AZURE_TENANT_ID_DEV, AZURE_SUBSCRIPTION_ID_DEV).'
               exit 1
             }
           }
           else {
-            $hasPublishProfile = -not [string]::IsNullOrWhiteSpace($env:PUBLISH_PROFILE_PROD)
             $hasOidc = (-not [string]::IsNullOrWhiteSpace($env:CLIENT_ID_PROD)) -and (-not [string]::IsNullOrWhiteSpace($env:TENANT_ID_PROD)) -and (-not [string]::IsNullOrWhiteSpace($env:SUBSCRIPTION_ID_PROD))
-            if (-not $hasPublishProfile -and -not $hasOidc) {
-              Write-Error 'No deployment credentials for prod. Configure AZURE_WEBAPP_PUBLISH_PROFILE_PROD or OIDC secrets (AZURE_CLIENT_ID_PROD, AZURE_TENANT_ID_PROD, AZURE_SUBSCRIPTION_ID_PROD).'
+            if (-not $hasOidc) {
+              Write-Error 'No deployment credentials for prod. Configure OIDC secrets (AZURE_CLIENT_ID_PROD, AZURE_TENANT_ID_PROD, AZURE_SUBSCRIPTION_ID_PROD).'
               exit 1
             }
           }
 
+      - name: Print selected deployment auth mode
+        shell: pwsh
+        env:
+          TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'prod' }}
+        run: |
+          Write-Host "Target environment: $env:TARGET_ENV"
+          Write-Host 'Deployment auth mode: OIDC'
+
       - name: Login to Azure (OIDC)
-        if: >-
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (env.AZURE_CLIENT_ID_DEV != '' || env.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED != '') && (env.AZURE_TENANT_ID_DEV != '' || env.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 != '') && (env.AZURE_SUBSCRIPTION_ID_DEV != '' || env.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 != '')) ||
-          ((github.event_name != 'workflow_dispatch' || github.event.inputs.environment == 'prod') && env.AZURE_CLIENT_ID_PROD != '' && env.AZURE_TENANT_ID_PROD != '' && env.AZURE_SUBSCRIPTION_ID_PROD != '')
         env:
           AZURE_CLIENT_ID_DEV: ${{ secrets.AZURE_CLIENT_ID_DEV }}
           AZURE_TENANT_ID_DEV: ${{ secrets.AZURE_TENANT_ID_DEV }}
           AZURE_SUBSCRIPTION_ID_DEV: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
-          AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED: ${{ secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED }}
-          AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707: ${{ secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707 }}
-          AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9 }}
           AZURE_CLIENT_ID_PROD: ${{ secrets.AZURE_CLIENT_ID_PROD }}
           AZURE_TENANT_ID_PROD: ${{ secrets.AZURE_TENANT_ID_PROD }}
           AZURE_SUBSCRIPTION_ID_PROD: ${{ secrets.AZURE_SUBSCRIPTION_ID_PROD }}
         uses: azure/login@v2
         with:
-          client-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (secrets.AZURE_CLIENT_ID_DEV || secrets.AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED) || secrets.AZURE_CLIENT_ID_PROD }}
-          tenant-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (secrets.AZURE_TENANT_ID_DEV || secrets.AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707) || secrets.AZURE_TENANT_ID_PROD }}
-          subscription-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && (secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9) || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
+          client-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_CLIENT_ID_DEV || secrets.AZURE_CLIENT_ID_PROD }}
+          tenant-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_TENANT_ID_DEV || secrets.AZURE_TENANT_ID_PROD }}
+          subscription-id: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && 'atlas-homes-api-dev' || 'atlas-homes-api' }}
-          publish-profile: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV || secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
           package: ./publish

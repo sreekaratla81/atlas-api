@@ -226,6 +226,15 @@ namespace Atlas.Api
                     "JWT signing key 'Jwt:Key' is not configured. " +
                     "Set it via environment variables or Azure App Service settings.");
             }
+
+            var razorpayKeyId = config["Razorpay:KeyId"];
+            var razorpayKeySecret = config["Razorpay:KeySecret"];
+            if (IsPlaceholderValue(razorpayKeyId) || IsPlaceholderValue(razorpayKeySecret))
+            {
+                throw new InvalidOperationException(
+                    "Razorpay configuration 'Razorpay:KeyId' and 'Razorpay:KeySecret' are not configured. " +
+                    "Set them via environment variables or Azure App Service settings.");
+            }
         }
 
         private static bool ShouldSkipRequiredConfigValidation(IWebHostEnvironment env)

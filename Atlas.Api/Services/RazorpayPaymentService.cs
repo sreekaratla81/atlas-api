@@ -9,6 +9,7 @@ using System.Linq;
 using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Atlas.Api.Models.Dtos.Razorpay;
+using Atlas.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -28,18 +29,21 @@ namespace Atlas.Api.Services
         private readonly string _keyId;
         private readonly string _keySecret;
         private readonly ILogger<RazorpayPaymentService> _logger;
+        private readonly IEmailService _emailService;
 
         public RazorpayPaymentService(
             AppDbContext context, 
             IOptions<RazorpayConfig> config,
             IHttpClientFactory httpClientFactory,
-            ILogger<RazorpayPaymentService> logger)
+            ILogger<RazorpayPaymentService> logger,
+            IEmailService emailService)
         {
             _context = context;
             _keyId = config.Value.KeyId ?? throw new ArgumentNullException(nameof(config.Value.KeyId));
             _keySecret = config.Value.KeySecret ?? throw new ArgumentNullException(nameof(config.Value.KeySecret));
             _httpClient = httpClientFactory.CreateClient("Razorpay");
             _logger = logger;
+            _emailService = emailService;
             
             // Set up basic auth for Razorpay
             var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_keyId}:{_keySecret}"));
@@ -295,6 +299,30 @@ namespace Atlas.Api.Services
             await _context.SaveChangesAsync();
             _logger.LogInformation("Successfully saved changes: payment status=completed, booking status={BookingStatus}, blocks updated={BlockCount} for booking ID: {BookingId}", 
                 booking.BookingStatus, temporaryBlocks.Count, request.BookingId);
+
+            // Send booking confirmation email after successful payment verification and database update
+            // Email sending is wrapped in try-catch to ensure payment success is not affected if email fails
+            try
+            {
+                var emailSent = await _emailService.SendBookingConfirmationEmailAsync(booking, request.RazorpayPaymentId);
+                if (emailSent)
+                {
+                    _logger.LogInformation("Booking confirmation email sent successfully for booking ID: {BookingId}", request.BookingId);
+                    
+                    // Update ConfirmationSentAtUtc timestamp
+                    booking.ConfirmationSentAtUtc = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to send booking confirmation email for booking ID: {BookingId}", request.BookingId);
+                }
+            }
+            catch (Exception emailEx)
+            {
+                // Log email error but don't fail the payment verification
+                _logger.LogError(emailEx, "Error sending booking confirmation email for booking ID: {BookingId}. Payment verification succeeded.", request.BookingId);
+            }
 
             return true;
         }

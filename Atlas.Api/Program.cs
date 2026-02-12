@@ -64,6 +64,9 @@ namespace Atlas.Api
             // Configure Razorpay
             builder.Services.Configure<RazorpayConfig>(builder.Configuration.GetSection("Razorpay"));
             
+            // Configure SMTP for email service
+            builder.Services.Configure<Atlas.Api.Services.SmtpConfig>(builder.Configuration.GetSection("Smtp"));
+            
             // Add HttpClient for Razorpay
             builder.Services.AddHttpClient("Razorpay", client =>
             {
@@ -71,6 +74,7 @@ namespace Atlas.Api
             });
             
             builder.Services.AddScoped<IRazorpayPaymentService, RazorpayPaymentService>();
+            builder.Services.AddScoped<Atlas.Api.Services.IEmailService, Atlas.Api.Services.EmailService>();
             
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();

@@ -620,7 +620,10 @@ namespace Atlas.Api.Migrations
                     b.HasIndex("TenantId", "ListingId", "Date")
                         .IsUnique();
 
-                    b.ToTable("ListingDailyInventory", (string)null);
+                    b.ToTable("ListingDailyInventory", tb =>
+                        {
+                            tb.HasCheckConstraint("CK_ListingDailyInventory_RoomsAvailable_NonNegative", "[RoomsAvailable] >= 0");
+                        });
                 });
             modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
                 {

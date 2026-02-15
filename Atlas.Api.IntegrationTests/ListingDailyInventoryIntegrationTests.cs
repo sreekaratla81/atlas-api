@@ -66,4 +66,50 @@ public class ListingDailyInventoryIntegrationTests : IntegrationTestBase
 
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
     }
+
+    [Fact]
+    public async Task SaveChanges_NegativeRoomsAvailable_ThrowsDbUpdateException()
+    {
+        var db = GetService<AppDbContext>();
+
+        var property = new Property
+        {
+            Name = "Constraint Property",
+            Address = "Test Address",
+            Type = "Apartment",
+            OwnerName = "Owner",
+            ContactPhone = "1234567890",
+            Status = "Active"
+        };
+
+        db.Properties.Add(property);
+        await db.SaveChangesAsync();
+
+        var listing = new Listing
+        {
+            PropertyId = property.Id,
+            Property = property,
+            Name = "Constraint Listing",
+            Floor = 2,
+            Type = "Studio",
+            Status = "Active",
+            WifiName = "wifi",
+            WifiPassword = "password",
+            MaxGuests = 2
+        };
+
+        db.Listings.Add(listing);
+        await db.SaveChangesAsync();
+
+        db.ListingDailyInventories.Add(new ListingDailyInventory
+        {
+            ListingId = listing.Id,
+            Date = new DateTime(2026, 1, 6),
+            RoomsAvailable = -1,
+            Source = "Manual"
+        });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+    }
+
 }

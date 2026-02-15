@@ -1,5 +1,9 @@
-@baseUrl = https://localhost:5001/api
+# Atlas API examples — use with REST Client (VS Code) or similar.
+# Base URL: no path base; most routes are at root. Payments/Incidents/Users/Razorpay use /api prefix.
+@baseUrl = https://localhost:5001
 @token = <paste-jwt-here-if-needed>
+# Optional: for tenant-scoped endpoints (multi-tenant)
+# X-Tenant-Slug: atlas
 
 ### Create Property
 POST {{baseUrl}}/properties
@@ -126,7 +130,7 @@ Content-Type: application/json
 ### Delete Guest
 DELETE {{baseUrl}}/guests/1
 
-### Create Booking
+### Create Booking (required: listingId, guestId, checkinDate, checkoutDate, bookingSource, amountReceived, guestsPlanned, guestsActual, extraGuestCharge, paymentStatus)
 POST {{baseUrl}}/bookings
 Content-Type: application/json
 
@@ -189,3 +193,29 @@ DELETE {{baseUrl}}/bookings/1
 
 ### Admin Report: Monthly Earnings
 GET {{baseUrl}}/admin/reports/earnings/monthly
+
+### Ops: DB info
+GET {{baseUrl}}/ops/db-info
+
+### Availability (property, date range, guests)
+GET {{baseUrl}}/availability?propertyId=1&checkIn=2025-06-01&checkOut=2025-06-05&guests=2
+
+### Listings (public)
+GET {{baseUrl}}/listings/public
+
+### Tenant pricing settings (tenant-scoped; set X-Tenant-Slug if multi-tenant)
+GET {{baseUrl}}/tenant/settings/pricing
+
+### Pricing breakdown (query: listingId, checkIn, checkOut)
+GET {{baseUrl}}/pricing/breakdown?listingId=1&checkIn=2025-06-01&checkOut=2025-06-05
+
+### Payments (route has /api prefix)
+GET {{baseUrl}}/api/payments
+GET {{baseUrl}}/api/payments/1
+
+### Bank accounts
+GET {{baseUrl}}/bankaccounts
+GET {{baseUrl}}/bankaccounts/1
+
+### Admin calendar availability (query: propertyId, from, days, optional listingId)
+GET {{baseUrl}}/admin/calendar/availability?propertyId=1&from=2025-06-01&days=30

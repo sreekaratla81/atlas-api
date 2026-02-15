@@ -1,10 +1,12 @@
 # Atlas API Contract
 
+This document is derived from the codebase and is maintained for use as **AI context** (e.g. ChatGPT, Cursor). Keep it in sync when adding or changing controllers or DTOs.
+
 ## Base URL
 - **Production**: `https://atlas-homes-api-gxdqfjc2btc0atbv.centralus-01.azurewebsites.net`
-- **Local (placeholder)**: `https://localhost:<port>`
+- **Local**: `https://localhost:<port>` (e.g. 5001)
 
-**Non-production path base:** In non-production environments, the application uses `UsePathBase("/api")` (see `Atlas.Api/Program.cs`). This means local base URLs should include `/api` (for example: `https://localhost:<port>/api`). Endpoints that already include an `api/` route prefix will therefore be reachable at `/api/api/...` locally. Use the `ApiRoute` helper when constructing URLs (for example in integration tests or API clients) so the path base is applied only once regardless of environment. Avoid adding new `api/` prefixes to controller routes; prefer bare resource names unless there is a strong compatibility reason otherwise.
+**Path conventions:** The app does **not** use a global path base. Most routes are under the root (e.g. `/properties`, `/listings`, `/bookings`, `/availability`, `/admin/reports`). A few controllers use the `api/` prefix in their route: **Payments** (`/api/payments`), **Incidents** (`/api/incidents`), **Users** (`/api/users`), **Razorpay** (`/api/Razorpay`). When calling locally, use base `https://localhost:<port>` and append the path (e.g. `GET /properties`, `GET /api/payments`).
 
 ## Authentication / Authorization
 - JWT authentication middleware is present in `Atlas.Api/Program.cs` but **commented out**, and `UseAuthentication()`/`UseAuthorization()` are not enabled. As coded, endpoints do **not** require authentication.
@@ -38,6 +40,23 @@
 - **Request body**: none
 - **Response**: `ActionResult<AvailabilityResponseDto>` (availability summary with listings and nightly rates)
 - **Status codes**: 200, 400, 404, 500 (not explicitly annotated; inferred from code paths)
+
+#### `GET /availability/listing-availability`
+- **Purpose**: Get listing availability for a date range (e.g. for calendar UI).
+- **Query params**: `listingId` (int, required), `startDate` (DateTime, required), `months` (int, optional, default 2, 1–12)
+- **Request body**: none
+- **Response**: `ActionResult<ListingAvailabilityResponseDto>`
+- **Status codes**: 200, 400, 500
+
+#### `POST /availability/blocks`
+- **Purpose**: Block availability for a listing in a date range (creates/removes blocks; overlapping blocked periods return 422).
+- **Request body**: `AvailabilityBlockRequestDto` with `ListingId`, `StartDate`, `EndDate`
+- **Response**: 200 with `{ message, blockedDates }` or 422 on conflict, 500 on error
+
+#### `PATCH /availability/update-inventory`
+- **Purpose**: Set inventory (available/blocked) for a single listing date.
+- **Query params**: `listingId` (int), `date` (DateTime), `inventory` (bool)
+- **Response**: 200 OK or 400/404/500
 
 ### Properties (`Atlas.Api/Controllers/PropertiesController.cs`)
 
@@ -88,6 +107,12 @@
 - **Request body**: none
 - **Response**: `ActionResult<Listing>` (listing)
 - **Status codes**: 200, 404, 500 (not explicitly annotated)
+
+#### `GET /listings/public`
+- **Purpose**: List listings for public/guest-facing use (tenant-scoped; may exclude internal-only data).
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<Listing>>` (listing list)
+- **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `POST /listings`
 - **Purpose**: Create a listing.
@@ -164,14 +189,16 @@
 #### `POST /bookings`
 - **Purpose**: Create a booking.
 - **Request body**: `CreateBookingRequest`
-  - **Required fields**: `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `AmountReceived`, `GuestsPlanned`, `GuestsActual`, `ExtraGuestCharge`, `PaymentStatus` (non-nullable or `[Required]` in `Atlas.Api/DTOs/CreateBookingRequest.cs`)
+  - **Required**: `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `AmountReceived`, `GuestsPlanned`, `GuestsActual`, `ExtraGuestCharge`, `PaymentStatus`
+  - **Optional**: `BookingStatus`, `TotalAmount`, `Currency`, `ExternalReservationId`, `ConfirmationSentAtUtc`, `RefundFreeUntilUtc`, `BankAccountId`, `Notes`, and other datetime fields
 - **Response**: `ActionResult<BookingDto>` (created booking)
 - **Status codes**: 201, 400, 404, 500 (not explicitly annotated)
 
 #### `PUT /bookings/{id}`
 - **Purpose**: Update a booking.
 - **Request body**: `UpdateBookingRequest`
-  - **Required fields**: `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `PaymentStatus`, `AmountReceived` (non-nullable or `[Required]` in `Atlas.Api/DTOs/UpdateBookingRequest.cs`)
+  - **Required**: `Id` (match route), `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `PaymentStatus`, `AmountReceived`
+  - **Optional**: `BookingStatus`, `TotalAmount`, `Currency`, `BankAccountId`, `GuestsPlanned`, `GuestsActual`, `ExtraGuestCharge`, `CommissionAmount`, `Notes`, and other datetime fields
 - **Response**: `IActionResult`
 - **Status codes**: 204, 400, 404, 500 (not explicitly annotated)
 
@@ -250,14 +277,16 @@
 #### `POST /api/payments`
 - **Purpose**: Create a payment.
 - **Request body**: `Payment`
-  - **Required fields**: `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`, `Note` (non-nullable/required in `Atlas.Api/Models/Payment.cs`)
+  - **Required**: `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`
+  - **Optional**: `Note`, `RazorpayOrderId`, `RazorpayPaymentId`, `RazorpaySignature`, `Status` (default `pending`). `TenantId` is set server-side from tenant context.
 - **Response**: `ActionResult<Payment>` (created payment)
 - **Status codes**: 201, 400 (not explicitly annotated)
 
 #### `PUT /api/payments/{id}`
 - **Purpose**: Update a payment.
 - **Request body**: `Payment`
-  - **Required fields**: `Id` (route/body must match), `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`, `Note`
+  - **Required**: `Id` (route/body must match), `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`
+  - **Optional**: `Note`, Razorpay fields, `Status`
 - **Response**: `IActionResult`
 - **Status codes**: 204, 400, 404 (not explicitly annotated)
 

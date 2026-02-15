@@ -209,7 +209,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Foreign Keys**
-- TenantId → Tenant.Id
+- TenantId → Tenants.Id
 - ListingId → Listings.Id
 
 **Indexes**
@@ -236,7 +236,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - ListingId
 
 **Foreign Keys**
-- TenantId → Tenant.Id
+- TenantId → Tenants.Id
 - ListingId → Listings.Id
 
 **Indexes**
@@ -266,7 +266,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Foreign Keys**
-- TenantId → Tenant.Id
+- TenantId → Tenants.Id
 - PropertyId → Properties.Id
 
 **Indexes**
@@ -419,7 +419,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - `TenantId` is automatically populated on insert and validated on update in `SaveChanges`/`SaveChangesAsync`.
 - `TenantId` is used in uniqueness constraints where tenant-scoped uniqueness is required to prevent cross-tenant collisions.
 
-## Tenant
+## Tenants
 **Columns**
 | Column | Type | Nullable |
 | --- | --- | --- |
@@ -433,10 +433,10 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Unique Indexes**
-- `UX_Tenant_Slug` (Slug)
+- `IX_Tenants_Slug` (Slug)
 
 **Relationships**
-- One tenant has many rows across tenant-owned domain tables through `TenantId`.
+- One tenant has many rows across tenant-owned domain tables through `TenantId` (canonical table name: `Tenants`).
 
 ## ListingDailyInventory
 **Columns**
@@ -456,7 +456,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Foreign Keys**
-- TenantId → Tenant.Id
+- TenantId → Tenants.Id
 - ListingId → Listings.Id
 
 **Unique Indexes**

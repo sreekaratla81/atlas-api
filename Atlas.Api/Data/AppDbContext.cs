@@ -465,7 +465,8 @@ namespace Atlas.Api.Data
                 .HasColumnType("datetime");
 
             modelBuilder.Entity<CommunicationLog>()
-                .HasIndex(cl => cl.IdempotencyKey)
+                .HasIndex(cl => new { cl.TenantId, cl.IdempotencyKey })
+                .HasDatabaseName("IX_CommunicationLog_TenantId_IdempotencyKey")
                 .IsUnique();
 
             modelBuilder.Entity<CommunicationLog>()

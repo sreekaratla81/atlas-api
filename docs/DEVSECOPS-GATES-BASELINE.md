@@ -1,7 +1,8 @@
 # DevSecOps Gates Baseline — Workspace Sanity Run
 
 **Run date:** 2026-02-09 (re-run)  
-**Runbook:** `DEVSECOPS-WORKSPACE-SANITY-PROMPT.md`
+**Runbook:** `DEVSECOPS-WORKSPACE-SANITY-PROMPT.md`  
+*(This file is the versioned copy in atlas-api; a mirror may exist at workspace root.)*
 
 ---
 
@@ -103,3 +104,6 @@ npm test
    When all three are green: update this file, then single commit with message:
    `chore: workspace sanity pass (api tests green, portals build green)`
    and push. If not all green, do not commit; document failures here and fix environment/code before re-run.
+
+5. **Verify gates in CI**
+   After pushing to `dev` (or opening a PR to `main`/`dev`), the Gate or CI workflow runs in GitHub Actions. Check the Actions tab to confirm the run completes successfully. Optionally enable branch protection to require the gate to pass before merging.

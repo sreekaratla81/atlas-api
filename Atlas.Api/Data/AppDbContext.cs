@@ -616,6 +616,12 @@ namespace Atlas.Api.Data
                 .Property(a => a.LastError)
                 .HasColumnType("text");
 
+            modelBuilder.Entity<AutomationSchedule>()
+                .HasOne(a => a.Booking)
+                .WithMany()
+                .HasForeignKey(a => a.BookingId)
+                .OnDelete(deleteBehavior);
+
             modelBuilder.Entity<TenantPricingSetting>()
                 .ToTable("TenantPricingSettings");
 
@@ -697,7 +703,7 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<AvailabilityBlock>().HasIndex(x => new { x.TenantId, x.ListingId, x.StartDate, x.EndDate });
             modelBuilder.Entity<MessageTemplate>().HasIndex(x => new { x.TenantId, x.EventType, x.Channel });
             modelBuilder.Entity<CommunicationLog>().HasIndex(x => new { x.TenantId, x.BookingId });
-            modelBuilder.Entity<AutomationSchedule>().HasIndex(x => new { x.TenantId, x.BookingId, x.DueAtUtc });
+            modelBuilder.Entity<AutomationSchedule>().HasIndex(x => new { x.TenantId, x.BookingId, x.EventType, x.DueAtUtc }).IsUnique();
             modelBuilder.Entity<BankAccount>().HasIndex(x => new { x.TenantId, x.AccountNumber });
             modelBuilder.Entity<TenantPricingSetting>().HasIndex(x => x.TenantId).IsUnique();
             modelBuilder.Entity<QuoteRedemption>().HasIndex(x => new { x.TenantId, x.Nonce }).IsUnique();

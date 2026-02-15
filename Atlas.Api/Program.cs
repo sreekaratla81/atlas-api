@@ -10,6 +10,7 @@ using System.Linq;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Atlas.Api.Models.Dtos.Razorpay;
+using Atlas.Api.Services.Tenancy;
 
 namespace Atlas.Api
 {
@@ -79,6 +80,8 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
+            builder.Services.AddScoped<ITenantProvider, TenantProvider>();
+            builder.Services.AddScoped<TenantResolutionMiddleware>();
 
             ValidateRequiredConfiguration(builder.Configuration, env);
 
@@ -173,6 +176,8 @@ namespace Atlas.Api
             }
 
             app.UseCors(CorsPolicy);
+
+            app.UseMiddleware<TenantResolutionMiddleware>();
 
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();

@@ -36,6 +36,29 @@ namespace Atlas.Api.Models
         public string BookingStatus { get; set; } = "Lead";
         [Column(TypeName = "decimal(18,2)")]
         public decimal? TotalAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? BaseAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? DiscountAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? ConvenienceFeeAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? FinalAmount { get; set; }
+
+        [Required]
+        [MaxLength(30)]
+        [Column(TypeName = "varchar(30)")]
+        public string PricingSource { get; set; } = "Public";
+
+        [MaxLength(50)]
+        [Column(TypeName = "varchar(50)")]
+        public string? QuoteTokenNonce { get; set; }
+
+        public DateTime? QuoteExpiresAtUtc { get; set; }
         [Required]
         [MaxLength(10)]
         [Column(TypeName = "varchar(10)")]

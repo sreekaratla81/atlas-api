@@ -1,4 +1,5 @@
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -63,7 +64,7 @@ public class PricingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new PricingService(context);
+        var service = new PricingService(context, new StubTenantPricingSettingsService());
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 3), new DateTime(2025, 1, 5));
 
@@ -119,7 +120,7 @@ public class PricingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new PricingService(context);
+        var service = new PricingService(context, new StubTenantPricingSettingsService());
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 2), new DateTime(2025, 1, 5));
 
@@ -184,11 +185,23 @@ public class PricingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new PricingService(context);
+        var service = new PricingService(context, new StubTenantPricingSettingsService());
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 3), new DateTime(2025, 1, 6));
 
         Assert.Equal(new[] { 100m, 150m, 200m }, result.NightlyRates.Select(r => r.Rate));
         Assert.Equal(450m, result.TotalPrice);
     }
+}
+
+
+internal sealed class StubTenantPricingSettingsService : ITenantPricingSettingsService
+{
+    public Task<TenantPricingSetting> GetCurrentAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(new TenantPricingSetting { ConvenienceFeePercent = 3m, GlobalDiscountPercent = 0m });
+
+    public void Invalidate(int tenantId) { }
+
+    public Task<TenantPricingSetting> UpdateCurrentAsync(UpdateTenantPricingSettingsDto request, CancellationToken cancellationToken = default)
+        => Task.FromResult(new TenantPricingSetting { ConvenienceFeePercent = request.ConvenienceFeePercent, GlobalDiscountPercent = request.GlobalDiscountPercent });
 }

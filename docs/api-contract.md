@@ -484,3 +484,74 @@
   - `404` when one or more referenced listings are not visible to the current tenant
   - `409` when an `Idempotency-Key` is reused with a different payload hash
 
+
+## Tenant Pricing Settings API
+
+### GET `/tenant/settings/pricing`
+Returns current tenant pricing configuration.
+
+Response:
+```json
+{
+  "convenienceFeePercent": 3.0,
+  "globalDiscountPercent": 0.0,
+  "updatedAtUtc": "2026-02-20T10:00:00Z",
+  "updatedBy": "ops-user"
+}
+```
+
+### PUT `/tenant/settings/pricing`
+Updates tenant pricing configuration.
+
+Request:
+```json
+{
+  "convenienceFeePercent": 5,
+  "globalDiscountPercent": 10,
+  "updatedBy": "ops-user"
+}
+```
+
+Validation: both percentages must be in `0..100`.
+
+## Pricing API
+
+### GET `/pricing/breakdown`
+Query params: `listingId`, `checkIn`, `checkOut`.
+
+Returns server-computed breakdown:
+- `BaseAmount`
+- `DiscountAmount = BaseAmount * GlobalDiscountPercent / 100`
+- `ConvenienceFeeAmount = (BaseAmount - DiscountAmount) * ConvenienceFeePercent / 100` when `FeeMode=CustomerPays`
+- `FinalAmount = BaseAmount - DiscountAmount + ConvenienceFeeAmount`
+
+Rounding strategy: amount components are rounded to 2 decimal places using midpoint-away-from-zero. Razorpay order amount uses paise conversion from `FinalAmount * 100`.
+
+## Quotes API
+
+### POST `/quotes`
+Issues signed HMAC-SHA256 quote token.
+
+Request payload includes:
+- tenant identity (resolved server-side)
+- `listingId`, `checkIn`, `checkOut`, `guests`
+- `quotedBaseAmount`
+- `feeMode` (`CustomerPays`/`Absorb`)
+- `expiresAtUtc`
+- nonce (generated server-side)
+
+### GET `/quotes/validate?token=...`
+Validates signature, expiry, and tenant match.
+Returns breakdown if valid.
+
+Policy: global discount is **not** applied to quoted bookings by default unless quote is explicitly issued with `applyGlobalDiscount=true`.
+
+## Razorpay contract changes
+
+### POST `/api/Razorpay/order`
+- Client must send booking draft or quote token.
+- Client amount is ignored for pricing decisions (backward-compatible field retained).
+- Server computes final amount from public pricing or validated quote.
+
+### POST `/api/Razorpay/verify`
+On successful verification, booking/payment pricing breakdown fields are persisted for audit + reconciliation.

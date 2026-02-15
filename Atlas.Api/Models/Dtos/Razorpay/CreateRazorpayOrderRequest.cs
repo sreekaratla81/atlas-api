@@ -6,12 +6,17 @@ namespace Atlas.Api.Models.Dtos.Razorpay
     {
         public int? BookingId { get; set; }
         public BookingDraftDto? BookingDraft { get; set; }
-        [Required]
-        public decimal Amount { get; set; }
+
+        // Deprecated client-provided amount kept for backward compatibility only.
+        public decimal? Amount { get; set; }
+
         [Required]
         public string Currency { get; set; } = "INR";
+
         [Required]
         public GuestInfoDto GuestInfo { get; set; } = null!;
+
+        public string? QuoteToken { get; set; }
     }
 
     public class BookingDraftDto

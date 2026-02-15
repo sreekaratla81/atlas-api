@@ -473,3 +473,55 @@ The admin calendar endpoints rely on tenant-scoped predicates and date windows. 
 - `ListingDailyRate`: unique (`TenantId`, `ListingId`, `Date`) for per-day price overrides.
 - `ListingDailyInventory`: unique (`TenantId`, `ListingId`, `Date`) for per-day inventory overrides.
 - `AvailabilityBlock`: (`TenantId`, `ListingId`, `StartDate`, `EndDate`) for overlap checks against requested date ranges.
+
+## TenantPricingSettings
+
+Tenant-scoped pricing knobs used by public pricing and quoted bookings.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| TenantId | int | No | PK/FK to `Tenants.Id` (one row per tenant) |
+| ConvenienceFeePercent | decimal(5,2) | No | Default `3.00` |
+| GlobalDiscountPercent | decimal(5,2) | No | Default `0.00` |
+| UpdatedAtUtc | datetime | No | Default `GETUTCDATE()` |
+| UpdatedBy | varchar(100) | Yes | Audit field |
+
+## QuoteRedemption
+
+One-time quote nonce redemption table with tenant-safe replay protection.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| Id | bigint | No | PK identity |
+| TenantId | int | No | Tenant scope |
+| Nonce | varchar(50) | No | Unique with TenantId (`UNIQUE (TenantId, Nonce)`) |
+| RedeemedAtUtc | datetime | No | Redemption timestamp |
+| BookingId | int | Yes | Optional link to booking |
+
+## Booking pricing breakdown fields
+
+`Booking` now stores server-calculated audit fields:
+- `BaseAmount`
+- `DiscountAmount`
+- `ConvenienceFeeAmount`
+- `FinalAmount`
+- `PricingSource` (`Public`, `Quoted`, `Promo`, `Manual`)
+- `QuoteTokenNonce`
+- `QuoteExpiresAtUtc`
+
+`TotalAmount` remains for backward compatibility. Prefer `FinalAmount` for new reporting.
+
+## Payment pricing breakdown fields
+
+`Payment` now stores:
+- `BaseAmount`
+- `DiscountAmount`
+- `ConvenienceFeeAmount`
+
+These mirror booking-side values for reconciliation and settlement auditing.
+
+## Multi-tenant safety notes
+
+- Quote issue/validate/redeem is tenant-scoped through tenant resolution + EF tenant filters.
+- Quote replay protection is scoped by `(TenantId, Nonce)`.
+- A quote token issued in one tenant cannot validate/redeem in another tenant.

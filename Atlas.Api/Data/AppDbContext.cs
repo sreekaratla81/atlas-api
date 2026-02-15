@@ -42,6 +42,8 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<OutboxMessage>(modelBuilder);
             ApplyTenantQueryFilter<AutomationSchedule>(modelBuilder);
             ApplyTenantQueryFilter<BankAccount>(modelBuilder);
+            ApplyTenantQueryFilter<TenantPricingSetting>(modelBuilder);
+            ApplyTenantQueryFilter<QuoteRedemption>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -92,10 +94,44 @@ namespace Atlas.Api.Data
                 .Property(b => b.BookingSource)
                 .HasColumnType("varchar(50)")
                 .HasMaxLength(50);
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.BaseAmount)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.DiscountAmount)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.ConvenienceFeeAmount)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.FinalAmount)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.PricingSource)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30)
+                .HasDefaultValue("Public")
+                .IsRequired();
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.QuoteTokenNonce)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50);
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.QuoteExpiresAtUtc)
+                .HasColumnType("datetime");
 
             modelBuilder.Entity<Payment>(entity =>
             {
                 entity.Property(p => p.Amount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(p => p.BaseAmount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(p => p.DiscountAmount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(p => p.ConvenienceFeeAmount)
                     .HasPrecision(18, 2);
 
                 entity.Property(p => p.Method)
@@ -579,6 +615,55 @@ namespace Atlas.Api.Data
                 .Property(a => a.LastError)
                 .HasColumnType("text");
 
+            modelBuilder.Entity<TenantPricingSetting>()
+                .ToTable("TenantPricingSettings");
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .HasKey(x => x.TenantId);
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .Property(x => x.ConvenienceFeePercent)
+                .HasColumnType("decimal(5,2)")
+                .HasDefaultValue(3.00m);
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .Property(x => x.GlobalDiscountPercent)
+                .HasColumnType("decimal(5,2)")
+                .HasDefaultValue(0.00m);
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .Property(x => x.UpdatedAtUtc)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .Property(x => x.UpdatedBy)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .ToTable("QuoteRedemption");
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .Property(x => x.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .Property(x => x.Nonce)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .Property(x => x.RedeemedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .HasOne(x => x.Booking)
+                .WithMany()
+                .HasForeignKey(x => x.BookingId)
+                .OnDelete(deleteBehavior);
+
             ConfigureTenantOwnership(modelBuilder, deleteBehavior);
         }
 
@@ -599,6 +684,8 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<OutboxMessage>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<AutomationSchedule>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<BankAccount>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<TenantPricingSetting>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<QuoteRedemption>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -611,6 +698,8 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<CommunicationLog>().HasIndex(x => new { x.TenantId, x.BookingId });
             modelBuilder.Entity<AutomationSchedule>().HasIndex(x => new { x.TenantId, x.BookingId, x.DueAtUtc });
             modelBuilder.Entity<BankAccount>().HasIndex(x => new { x.TenantId, x.AccountNumber });
+            modelBuilder.Entity<TenantPricingSetting>().HasIndex(x => x.TenantId).IsUnique();
+            modelBuilder.Entity<QuoteRedemption>().HasIndex(x => new { x.TenantId, x.Nonce }).IsUnique();
         }
 
         private static void ConfigureTenantOwnedEntity<TEntity>(ModelBuilder modelBuilder, DeleteBehavior deleteBehavior)
@@ -705,6 +794,8 @@ namespace Atlas.Api.Data
         public DbSet<CommunicationLog> CommunicationLogs { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
         public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
+        public DbSet<TenantPricingSetting> TenantPricingSettings { get; set; }
+        public DbSet<QuoteRedemption> QuoteRedemptions { get; set; }
         public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
     }

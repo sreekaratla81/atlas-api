@@ -1,6 +1,7 @@
 # Ignore build artifacts
 **/bin/
 **/obj/
+TestResults/
 .env.local
 Atlas.Api/.env
 Atlas.Api/appsettings.Development.json

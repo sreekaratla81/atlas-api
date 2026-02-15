@@ -7,6 +7,12 @@ This folder is the single source of truth for API, schema, and operations. **The
 - [API Examples](api-examples.http) — runnable HTTP examples (REST Client / IDE)
 - [DB Schema](db-schema.md) — tables, columns, FKs, indexes (aligned with AppDbContext)
 
+## Gates & feature roadmap
+- [DEVSECOPS-GATES-BASELINE.md](DEVSECOPS-GATES-BASELINE.md) — gate definition, commands per repo, verify in CI, branch protection
+- [ATLAS-HIGH-VALUE-BACKLOG.md](ATLAS-HIGH-VALUE-BACKLOG.md) — prioritized feature roadmap and implementation status
+- [ATLAS-FEATURE-EXECUTION-PROMPT.md](ATLAS-FEATURE-EXECUTION-PROMPT.md) — workflow for implementing the next feature from the backlog
+- [ATLAS-BACKLOG-ANALYSIS.md](ATLAS-BACKLOG-ANALYSIS.md) — how the backlog was derived and what’s already implemented
+
 ## Runbooks & Ops
 - [Quoted pricing runbook](quoted-pricing-runbook.md)
 - [Migrations troubleshooting](migrations-troubleshooting.md), [Migrations audit](migrations-audit.md)

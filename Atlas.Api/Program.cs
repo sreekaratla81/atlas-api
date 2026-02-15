@@ -195,6 +195,7 @@ namespace Atlas.Api
             // app.UseAuthorization();
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
+            app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
             // No path base: match dev URLs exactly — /listings/5, /availability/listing-availability, /api/Razorpay/order (only base URL differs between dev and prod).
             app.MapControllers();

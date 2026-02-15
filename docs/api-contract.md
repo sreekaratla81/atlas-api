@@ -15,9 +15,12 @@ This document is derived from the codebase and is maintained for use as **AI con
 ## Conventions
 - **Validation errors**: Several endpoints call `ValidationProblem(ModelState)` which produces `ProblemDetails` responses (usually `application/problem+json`) when model or business rules fail. Other errors sometimes return plain strings (see multiple controllers).
 - **Filtering**: No global pagination/sorting. Endpoint-specific filters are documented under each endpoint.
-- **Swagger**: Swagger UI is enabled at `/swagger` (per `Atlas.Api/Program.cs`), but this document is derived directly from code.
+- **Swagger**: Swagger UI is enabled at `/swagger` only when **not** running in Production (per `Atlas.Api/Program.cs`). This document is derived directly from code.
 
 ## Endpoints
+
+### Health
+- **`GET /health`** — Liveness probe; returns 200 with `{ "status": "healthy" }`. No authentication. Use for load balancer or platform health checks.
 
 ### Operations (`Atlas.Api/Controllers/OpsController.cs`)
 

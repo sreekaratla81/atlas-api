@@ -106,4 +106,4 @@ npm test
    and push. If not all green, do not commit; document failures here and fix environment/code before re-run.
 
 5. **Verify gates in CI**
-   After pushing to `dev` (or opening a PR to `main`/`dev`), the Gate or CI workflow runs in GitHub Actions. Check the Actions tab to confirm the run completes successfully. Optionally enable branch protection to require the gate to pass before merging.
+   After pushing to `dev` (or opening a PR to `main`/`dev`), the Gate or CI workflow runs in GitHub Actions. Check the Actions tab to confirm the run completes successfully. To require the gate before merge: repo **Settings → Branches → Add rule** for `main` (and optionally `dev`) → **Require status checks to pass before merging** → select the workflow’s job name (e.g. **Gate** or **build**).

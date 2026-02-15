@@ -309,6 +309,25 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 **Relationships**
 - None
 
+## EnvironmentMarker
+**Columns**
+| Column | Type | Nullable |
+| --- | --- | --- |
+| Id | int | No |
+| Marker | varchar(10) | No |
+
+**Primary Key**
+- Id
+
+**Indexes**
+- Unique index on Marker
+
+**Foreign Keys**
+- None
+
+**Relationships**
+- None
+
 ## Payments
 **Columns**
 | Column | Type | Nullable |
@@ -316,8 +335,8 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | Id | int | No |
 | BookingId | int | No |
 | Amount | decimal(18,2) | No |
-| Method | nvarchar(max) | No |
-| Type | nvarchar(max) | No |
+| Method | nvarchar(50) | No |
+| Type | nvarchar(20) | No |
 | ReceivedOn | datetime2 | No |
 | Note | nvarchar(500) | No |
 | RazorpayOrderId | nvarchar(100) | Yes |
@@ -329,10 +348,10 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Foreign Keys**
-- None
+- BookingId → Bookings.Id
 
 **Relationships**
-- None
+- Many payments belong to one booking.
 
 ## Properties
 **Columns**

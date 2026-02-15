@@ -11,7 +11,7 @@ namespace Atlas.Api.Tests;
 public class TenantProviderTests
 {
     [Fact]
-    public async Task ResolveTenantAsync_PrefersHeaderSlugOverHost()
+    public async Task ResolveTenantAsync_PrefersHeaderSlug()
     {
         await using var dbContext = CreateDbContext();
         dbContext.Tenants.AddRange(
@@ -22,29 +22,11 @@ public class TenantProviderTests
         var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
         var context = new DefaultHttpContext();
         context.Request.Headers[TenantProvider.TenantSlugHeaderName] = "atlas";
-        context.Request.Host = new HostString("contoso.atlashomestays.com");
 
         var tenant = await provider.ResolveTenantAsync(context);
 
         Assert.NotNull(tenant);
         Assert.Equal("atlas", tenant!.Slug);
-    }
-
-    [Fact]
-    public async Task ResolveTenantAsync_UsesHostSubdomainWhenHeaderMissing()
-    {
-        await using var dbContext = CreateDbContext();
-        dbContext.Tenants.Add(new Tenant { Name = "Contoso", Slug = "contoso", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
-        await dbContext.SaveChangesAsync();
-
-        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
-        var context = new DefaultHttpContext();
-        context.Request.Host = new HostString("contoso.atlashomestays.com");
-
-        var tenant = await provider.ResolveTenantAsync(context);
-
-        Assert.NotNull(tenant);
-        Assert.Equal("contoso", tenant!.Slug);
     }
 
     [Fact]
@@ -94,32 +76,28 @@ public class TenantProviderTests
     }
 
     [Fact]
-    public async Task ResolveTenantAsync_UsesResolutionOrder_HeaderThenSubdomainThenDefaultInDevelopment()
+    public async Task ResolveTenantAsync_UsesResolutionOrder_HeaderThenDevHostThenDefaultInDevelopment()
     {
         await using var dbContext = CreateDbContext();
-        dbContext.Tenants.AddRange(
-            new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow },
-            new Tenant { Name = "Contoso", Slug = "contoso", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
         await dbContext.SaveChangesAsync();
 
         var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Development"));
 
         var headerContext = new DefaultHttpContext();
         headerContext.Request.Headers[TenantProvider.TenantSlugHeaderName] = "atlas";
-        headerContext.Request.Host = new HostString("contoso.atlashomestays.com");
-
         var headerTenant = await provider.ResolveTenantAsync(headerContext);
         Assert.NotNull(headerTenant);
         Assert.Equal("atlas", headerTenant!.Slug);
 
-        var subdomainContext = new DefaultHttpContext();
-        subdomainContext.Request.Host = new HostString("contoso.atlashomestays.com");
+        var devHostContext = new DefaultHttpContext();
+        devHostContext.Request.Host = new HostString("atlas-homes-api-dev-xxx.azurewebsites.net");
+        var devHostTenant = await provider.ResolveTenantAsync(devHostContext);
+        Assert.NotNull(devHostTenant);
+        Assert.Equal("atlas", devHostTenant!.Slug);
 
-        var subdomainTenant = await provider.ResolveTenantAsync(subdomainContext);
-        Assert.NotNull(subdomainTenant);
-        Assert.Equal("contoso", subdomainTenant!.Slug);
-
-        var fallbackTenant = await provider.ResolveTenantAsync(new DefaultHttpContext());
+        var fallbackContext = new DefaultHttpContext();
+        var fallbackTenant = await provider.ResolveTenantAsync(fallbackContext);
         Assert.NotNull(fallbackTenant);
         Assert.Equal(TenantProvider.DefaultTenantSlug, fallbackTenant!.Slug);
     }

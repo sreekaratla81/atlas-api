@@ -1,7 +1,7 @@
 # Quoted Pricing Runbook
 
 ## Generate a tenant-scoped quote link
-1. Resolve tenant (host/subdomain or `X-Tenant-Slug`).
+1. Resolve tenant (`X-Tenant-Slug` header; dev API host fallback for dev only).
 2. Call `POST /quotes` with listing, dates, guests, quoted base amount, fee mode, and expiry.
 3. Copy returned `token` into guest portal URL (for example `...?quoteToken=<token>`).
 

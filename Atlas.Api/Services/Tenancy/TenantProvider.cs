@@ -22,7 +22,6 @@ public class TenantProvider : ITenantProvider
     {
         var host = httpContext.Request.Host.Host ?? "";
         var slug = ResolveTenantSlugFromHeader(httpContext)
-            ?? ResolveTenantSlugFromHost(host)
             ?? ResolveTenantSlugFromDevApiHost(host)
             ?? ResolveDefaultSlug();
 
@@ -45,23 +44,6 @@ public class TenantProvider : ITenantProvider
 
         var headerSlug = headerValues.ToString().Trim().ToLowerInvariant();
         return string.IsNullOrWhiteSpace(headerSlug) ? null : headerSlug;
-    }
-
-    internal static string? ResolveTenantSlugFromHost(string host)
-    {
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            return null;
-        }
-
-        var parts = host.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length < 3)
-        {
-            return null;
-        }
-
-        var subdomain = parts[0].Trim().ToLowerInvariant();
-        return string.IsNullOrWhiteSpace(subdomain) ? null : subdomain;
     }
 
     /// <summary>When the request hits the known dev API host (e.g. atlas-homes-api-dev-xxx.azurewebsites.net), resolve to default tenant so direct browser and clients without X-Tenant-Slug still work.</summary>

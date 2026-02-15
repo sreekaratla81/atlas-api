@@ -536,10 +536,10 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 (not explicitly annotated)
 
 ## Tenant Resolution
-- Requests can provide tenant context using the `X-Tenant-Slug` header.
+- Requests must provide tenant context via the `X-Tenant-Slug` header (no host/subdomain-based resolution).
 - Resolution precedence is:
   1. `X-Tenant-Slug` header
-  2. subdomain from host (for example `contoso.atlashomestays.com` → `contoso`)
+  2. known dev API host (e.g. `atlas-homes-api-dev-*.azurewebsites.net`) → `atlas`
   3. default tenant (`atlas`) only in development/local/test environments
 - In production, requests without a resolvable tenant are rejected before reaching controllers.
 

@@ -74,7 +74,7 @@ For each FE surface, endpoints the FE will need and why:
 
 ## Step 3 – Design rules for new/missing endpoints
 
-- **Tenant scoping:** Enforce via existing tenant resolution (X-Tenant-Slug / subdomain) + EF global filters. Never accept TenantId in request body.
+- **Tenant scoping:** Enforce via existing tenant resolution (X-Tenant-Slug header; dev API host fallback for dev only) + EF global filters. Never accept TenantId in request body.
 - **Responses:** Return DTOs for new endpoints; do not expose internal fields (e.g. WifiPassword on public listings).
 - **Filtering/pagination:** Add date-range, listingId, bookingId where FE grids need them; pagination optional but preferred for logs/lists.
 - **Validation:** Use ProblemDetails/ValidationProblem; use 400/404/409/422 consistently.
@@ -90,7 +90,7 @@ For each FE surface, endpoints the FE will need and why:
 - **Option A (recommended):** New route `GET /listings/public/v2` (or keep `GET /listings/public`) returning a **PublicListingDto** (id, name, propertyId, property name/address, floor, type, status, maxGuests, checkInTime, checkOutTime; **exclude** WifiName, WifiPassword, TenantId, and internal-only fields).
 - **Option B:** Change existing `GET /listings/public` to return PublicListingDto and update api-contract + clients.
 
-**Request:** None (tenant from header/subdomain).  
+**Request:** None (tenant from X-Tenant-Slug header).  
 **Response:** `200` array of PublicListingDto.  
 **Status codes:** 200, 500.
 

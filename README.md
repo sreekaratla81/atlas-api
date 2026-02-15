@@ -117,7 +117,7 @@ repository—use secret managers or platform configuration instead.
 
 The **Gate** workflow (`.github/workflows/gate.yml`) runs on push to `dev` and on pull requests to `main`/`dev`: restore → build (Release) → unit tests (Atlas.Api.Tests, Atlas.DbMigrator.Tests). No SQL Server required in CI; integration tests run in the deploy workflow.
 
-CI expects `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release` (and DbMigrator.Tests) to pass. Run these locally before opening a pull request. See `docs/DEVSECOPS-GATES-BASELINE.md` for the full gate definition.
+CI expects `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release` (and DbMigrator.Tests) to pass. Run these locally before opening a pull request. See `CONTRIBUTING.md` for the PR checklist and `docs/DEVSECOPS-GATES-BASELINE.md` for the full gate definition.
 
 ## CORS allowlist
 
@@ -144,9 +144,7 @@ add explicit domains to the allowlist instead.
 Production deploys are automated through the GitHub Actions workflows at
 `.github/workflows/deploy.yml` and `.github/workflows/dev_atlas-homes-api-dev.yml`.
 
-- **Triggers:** Pushes to `main` (prod) and `dev` (dev) automatically build,
-  test, publish, and deploy to Azure App Service. You can also trigger manual
-  runs from the GitHub UI.
+- **Triggers:** **Prod** — `deploy.yml` runs on push to `main` (when `DEPLOY_PROD_ON_MAIN` is set) or via **workflow_dispatch** (choose prod). **Dev** — `dev_atlas-homes-api-dev.yml` runs on push to `dev`; `deploy.yml` can also deploy to dev via workflow_dispatch. See `docs/ci-cd-branch-mapping.md` for branch → workflow → app mapping.
 - **Migration/deploy flow:** Both workflows validate DbMigrator connection
   secrets and run a migration check gate. Dev deploy paths can apply pending
   migrations before deployment. Production migration application is gated to

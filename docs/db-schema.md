@@ -394,3 +394,54 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 
 **Relationships**
 - None
+
+## Multi-tenant additions
+- Core domain tables include a non-null `TenantId` column and enforce tenant isolation through global query filters in EF Core.
+- Tenant-owned entities include (not exhaustive): `Properties`, `Listings`, `Bookings`, `Guests`, `Payments`, `ListingPricing`, `ListingDailyRate`, `ListingDailyInventory`, `AvailabilityBlock`, `BankAccounts`, `Users`, `MessageTemplate`, `CommunicationLog`, `OutboxMessage`, and `AutomationSchedule`.
+- `TenantId` is used in uniqueness constraints where tenant-scoped uniqueness is required.
+
+## Tenant
+**Columns**
+| Column | Type | Nullable |
+| --- | --- | --- |
+| Id | int | No |
+| Name | varchar(100) | No |
+| Slug | varchar(50) | No |
+| Status | varchar(20) | No |
+| CreatedAtUtc | datetime | No |
+
+**Primary Key**
+- Id
+
+**Unique Indexes**
+- `UX_Tenant_Slug` (Slug)
+
+**Relationships**
+- One tenant has many rows across tenant-owned domain tables through `TenantId`.
+
+## ListingDailyInventory
+**Columns**
+| Column | Type | Nullable |
+| --- | --- | --- |
+| Id | bigint | No |
+| TenantId | int | No |
+| ListingId | int | No |
+| Date | date | No |
+| RoomsAvailable | int | No |
+| Source | varchar(20) | No |
+| Reason | varchar(200) | Yes |
+| UpdatedByUserId | int | Yes |
+| UpdatedAtUtc | datetime | No |
+
+**Primary Key**
+- Id
+
+**Foreign Keys**
+- TenantId → Tenant.Id
+- ListingId → Listings.Id
+
+**Unique Indexes**
+- `UX_ListingDailyInventory_TenantId_ListingId_Date` (`TenantId`, `ListingId`, `Date`)
+
+## ListingDailyRate (tenant uniqueness)
+- In addition to its base schema, tenant-scoped deployments use a unique key on (`TenantId`, `ListingId`, `Date`) to prevent cross-tenant collisions on daily pricing rows.

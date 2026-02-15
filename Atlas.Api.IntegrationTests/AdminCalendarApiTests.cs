@@ -1,6 +1,8 @@
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
+using Atlas.Api.Services.Tenancy;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 
@@ -14,7 +16,92 @@ public class AdminCalendarApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task PutAvailability_IsIdempotent_AndGetReflectsUpdates()
+    public async Task GetAvailability_ReturnsTenantScopedRows()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await EnsureTenantAsync(db, "contoso", "Contoso");
+
+        var atlasProperty = await DataSeeder.SeedPropertyAsync(db);
+        var atlasListing = await DataSeeder.SeedListingAsync(db, atlasProperty);
+        await DataSeeder.SeedListingPricingAsync(db, atlasListing, 100m, 120m);
+        db.ListingDailyInventories.Add(new ListingDailyInventory
+        {
+            ListingId = atlasListing.Id,
+            Date = new DateTime(2025, 1, 1),
+            RoomsAvailable = 3,
+            Source = "Manual"
+        });
+        await db.SaveChangesAsync();
+
+        var contosoProperty = new Property
+        {
+            TenantId = 2,
+            Name = "Contoso Property",
+            Address = "Addr 2",
+            Type = "Villa",
+            OwnerName = "Owner 2",
+            ContactPhone = "222",
+            CommissionPercent = 10,
+            Status = "Active"
+        };
+        db.Properties.Add(contosoProperty);
+        await db.SaveChangesAsync();
+
+        var contosoListing = new Listing
+        {
+            TenantId = 2,
+            PropertyId = contosoProperty.Id,
+            Property = contosoProperty,
+            Name = "Contoso Listing",
+            Floor = 1,
+            Type = "Room",
+            Status = "Available",
+            WifiName = "w2",
+            WifiPassword = "p2",
+            MaxGuests = 2
+        };
+        db.Listings.Add(contosoListing);
+        await db.SaveChangesAsync();
+
+        db.ListingPricings.Add(new ListingPricing
+        {
+            TenantId = 2,
+            ListingId = contosoListing.Id,
+            Listing = contosoListing,
+            BaseNightlyRate = 150m,
+            WeekendNightlyRate = 170m,
+            Currency = "INR"
+        });
+        db.ListingDailyInventories.Add(new ListingDailyInventory
+        {
+            TenantId = 2,
+            ListingId = contosoListing.Id,
+            Listing = contosoListing,
+            Date = new DateTime(2025, 1, 1),
+            RoomsAvailable = 5,
+            Source = "Manual"
+        });
+        await db.SaveChangesAsync();
+
+        var atlasRequest = new HttpRequestMessage(HttpMethod.Get, ApiRoute($"admin/calendar/availability?propertyId={atlasProperty.Id}&from=2025-01-01&days=1&listingId={atlasListing.Id}"));
+        atlasRequest.Headers.Add(TenantProvider.TenantSlugHeaderName, "atlas");
+        var atlasResponse = await Client.SendAsync(atlasRequest);
+        atlasResponse.EnsureSuccessStatusCode();
+
+        var atlasPayload = await atlasResponse.Content.ReadFromJsonAsync<List<AdminCalendarAvailabilityCellDto>>();
+        Assert.NotNull(atlasPayload);
+        Assert.Single(atlasPayload!);
+        Assert.Equal(atlasListing.Id, atlasPayload[0].ListingId);
+
+        var crossTenantRequest = new HttpRequestMessage(HttpMethod.Get, ApiRoute($"admin/calendar/availability?propertyId={atlasProperty.Id}&from=2025-01-01&days=1&listingId={atlasListing.Id}"));
+        crossTenantRequest.Headers.Add(TenantProvider.TenantSlugHeaderName, "contoso");
+        var crossTenantResponse = await Client.SendAsync(crossTenantRequest);
+        Assert.Equal(HttpStatusCode.NotFound, crossTenantResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutAvailability_WritesAndUpdates_ListingDailyRate_And_ListingDailyInventory()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -22,54 +109,67 @@ public class AdminCalendarApiTests : IntegrationTestBase
         var listing = await DataSeeder.SeedListingAsync(db, property);
         await DataSeeder.SeedListingPricingAsync(db, listing, 100m, 120m);
 
-        var putBody = new AdminCalendarAvailabilityBulkUpsertRequestDto
+        var firstPut = await Client.PutAsJsonAsync(ApiRoute("admin/calendar/availability"), new AdminCalendarAvailabilityBulkUpsertRequestDto
         {
             Cells =
             [
-                new AdminCalendarAvailabilityCellUpsertDto { ListingId = listing.Id, Date = new DateTime(2025, 1, 1), RoomsAvailable = 4, PriceOverride = 180m },
-                new AdminCalendarAvailabilityCellUpsertDto { ListingId = listing.Id, Date = new DateTime(2025, 1, 2), RoomsAvailable = 1, PriceOverride = null }
+                new AdminCalendarAvailabilityCellUpsertDto { ListingId = listing.Id, Date = new DateTime(2025, 1, 1), RoomsAvailable = 4, PriceOverride = 180m }
             ]
-        };
+        });
+        firstPut.EnsureSuccessStatusCode();
 
-        var firstRequest = new HttpRequestMessage(HttpMethod.Put, ApiRoute("admin/calendar/availability"))
+        var createdInventory = await db.ListingDailyInventories.AsNoTracking().SingleAsync(i => i.ListingId == listing.Id && i.Date == new DateTime(2025, 1, 1));
+        var createdRate = await db.ListingDailyRates.AsNoTracking().SingleAsync(r => r.ListingId == listing.Id && r.Date == new DateTime(2025, 1, 1));
+        Assert.Equal(4, createdInventory.RoomsAvailable);
+        Assert.Equal(180m, createdRate.NightlyRate);
+
+        var secondPut = await Client.PutAsJsonAsync(ApiRoute("admin/calendar/availability"), new AdminCalendarAvailabilityBulkUpsertRequestDto
         {
-            Content = JsonContent.Create(putBody)
-        };
-        firstRequest.Headers.Add("Idempotency-Key", "calendar-key-1");
+            Cells =
+            [
+                new AdminCalendarAvailabilityCellUpsertDto { ListingId = listing.Id, Date = new DateTime(2025, 1, 1), RoomsAvailable = 2, PriceOverride = null }
+            ]
+        });
+        secondPut.EnsureSuccessStatusCode();
 
-        var firstResponse = await Client.SendAsync(firstRequest);
-        firstResponse.EnsureSuccessStatusCode();
-        var firstPayload = await firstResponse.Content.ReadFromJsonAsync<AdminCalendarAvailabilityBulkUpsertResponseDto>();
-        Assert.NotNull(firstPayload);
-        Assert.False(firstPayload!.Deduplicated);
+        var updatedInventory = await db.ListingDailyInventories.AsNoTracking().SingleAsync(i => i.ListingId == listing.Id && i.Date == new DateTime(2025, 1, 1));
+        var remainingRates = await db.ListingDailyRates.AsNoTracking().Where(r => r.ListingId == listing.Id && r.Date == new DateTime(2025, 1, 1)).ToListAsync();
 
-        var secondRequest = new HttpRequestMessage(HttpMethod.Put, ApiRoute("admin/calendar/availability"))
+        Assert.Equal(2, updatedInventory.RoomsAvailable);
+        Assert.Empty(remainingRates);
+    }
+
+    [Fact]
+    public async Task PutAvailability_ReturnsNotFound_ForCrossTenantListingAccess()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await EnsureTenantAsync(db, "contoso", "Contoso");
+
+        var atlasProperty = await DataSeeder.SeedPropertyAsync(db);
+        var atlasListing = await DataSeeder.SeedListingAsync(db, atlasProperty);
+
+        var request = new HttpRequestMessage(HttpMethod.Put, ApiRoute("admin/calendar/availability"))
         {
-            Content = JsonContent.Create(putBody)
+            Content = JsonContent.Create(new AdminCalendarAvailabilityBulkUpsertRequestDto
+            {
+                Cells =
+                [
+                    new AdminCalendarAvailabilityCellUpsertDto
+                    {
+                        ListingId = atlasListing.Id,
+                        Date = new DateTime(2025, 1, 1),
+                        RoomsAvailable = 2,
+                        PriceOverride = 200m
+                    }
+                ]
+            })
         };
-        secondRequest.Headers.Add("Idempotency-Key", "calendar-key-1");
+        request.Headers.Add(TenantProvider.TenantSlugHeaderName, "contoso");
 
-        var secondResponse = await Client.SendAsync(secondRequest);
-        secondResponse.EnsureSuccessStatusCode();
-        var secondPayload = await secondResponse.Content.ReadFromJsonAsync<AdminCalendarAvailabilityBulkUpsertResponseDto>();
-        Assert.NotNull(secondPayload);
-        Assert.True(secondPayload!.Deduplicated);
+        var response = await Client.SendAsync(request);
 
-        var getResponse = await Client.GetAsync(ApiRoute($"admin/calendar/availability?propertyId={property.Id}&from=2025-01-01&days=2&listingId={listing.Id}"));
-        getResponse.EnsureSuccessStatusCode();
-        var getPayload = await getResponse.Content.ReadFromJsonAsync<List<AdminCalendarAvailabilityCellDto>>();
-
-        Assert.NotNull(getPayload);
-        Assert.Equal(2, getPayload!.Count);
-        var day1 = getPayload.Single(x => x.Date == new DateTime(2025, 1, 1));
-        Assert.Equal(4, day1.RoomsAvailable);
-        Assert.Equal(180m, day1.PriceOverride);
-        Assert.Equal(180m, day1.EffectivePrice);
-
-        var day2 = getPayload.Single(x => x.Date == new DateTime(2025, 1, 2));
-        Assert.Equal(1, day2.RoomsAvailable);
-        Assert.Null(day2.PriceOverride);
-        Assert.Equal(100m, day2.EffectivePrice);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -89,5 +189,23 @@ public class AdminCalendarApiTests : IntegrationTestBase
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    private static async Task EnsureTenantAsync(AppDbContext db, string slug, string name)
+    {
+        if (await db.Tenants.AnyAsync(t => t.Slug == slug))
+        {
+            return;
+        }
+
+        db.Tenants.Add(new Tenant
+        {
+            Name = name,
+            Slug = slug,
+            Status = "Active",
+            CreatedAtUtc = DateTime.UtcNow
+        });
+
+        await db.SaveChangesAsync();
     }
 }

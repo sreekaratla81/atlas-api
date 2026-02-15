@@ -1,19 +1,46 @@
 using Atlas.Api.Models;
+using Atlas.Api.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace Atlas.Api.Data
 {
     public class AppDbContext : DbContext
     {
+        private const int DefaultTenantId = 1;
+        private readonly ITenantContextAccessor? _tenantContextAccessor;
+
         public AppDbContext(DbContextOptions<AppDbContext> options)
+            : this(options, null)
+        {
+        }
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, ITenantContextAccessor? tenantContextAccessor)
             : base(options)
         {
+            _tenantContextAccessor = tenantContextAccessor;
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Strategy: global tenant query filters centralize tenant isolation so all EF queries stay in-tenant by default.
+            ApplyTenantQueryFilter<Property>(modelBuilder);
+            ApplyTenantQueryFilter<Listing>(modelBuilder);
+            ApplyTenantQueryFilter<Booking>(modelBuilder);
+            ApplyTenantQueryFilter<Guest>(modelBuilder);
+            ApplyTenantQueryFilter<Payment>(modelBuilder);
+            ApplyTenantQueryFilter<User>(modelBuilder);
+            ApplyTenantQueryFilter<ListingPricing>(modelBuilder);
+            ApplyTenantQueryFilter<ListingDailyRate>(modelBuilder);
+            ApplyTenantQueryFilter<AvailabilityBlock>(modelBuilder);
+            ApplyTenantQueryFilter<MessageTemplate>(modelBuilder);
+            ApplyTenantQueryFilter<CommunicationLog>(modelBuilder);
+            ApplyTenantQueryFilter<OutboxMessage>(modelBuilder);
+            ApplyTenantQueryFilter<AutomationSchedule>(modelBuilder);
+            ApplyTenantQueryFilter<BankAccount>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -514,6 +541,104 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<AutomationSchedule>()
                 .Property(a => a.LastError)
                 .HasColumnType("text");
+
+            ConfigureTenantOwnership(modelBuilder, deleteBehavior);
+        }
+
+        private static void ConfigureTenantOwnership(ModelBuilder modelBuilder, DeleteBehavior deleteBehavior)
+        {
+            ConfigureTenantOwnedEntity<Property>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<Listing>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<Booking>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<Guest>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<Payment>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<User>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ListingPricing>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ListingDailyRate>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<AvailabilityBlock>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<MessageTemplate>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<CommunicationLog>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<OutboxMessage>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<AutomationSchedule>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<BankAccount>(modelBuilder, deleteBehavior);
+
+            modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
+            modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
+            modelBuilder.Entity<Payment>().HasIndex(x => new { x.TenantId, x.BookingId });
+            modelBuilder.Entity<ListingPricing>().HasIndex(x => new { x.TenantId, x.ListingId }).IsUnique();
+            modelBuilder.Entity<ListingDailyRate>().HasIndex(x => new { x.TenantId, x.ListingId, x.Date }).IsUnique();
+            modelBuilder.Entity<AvailabilityBlock>().HasIndex(x => new { x.TenantId, x.ListingId, x.StartDate, x.EndDate });
+            modelBuilder.Entity<MessageTemplate>().HasIndex(x => new { x.TenantId, x.EventType, x.Channel });
+            modelBuilder.Entity<CommunicationLog>().HasIndex(x => new { x.TenantId, x.BookingId });
+            modelBuilder.Entity<AutomationSchedule>().HasIndex(x => new { x.TenantId, x.BookingId, x.DueAtUtc });
+            modelBuilder.Entity<BankAccount>().HasIndex(x => new { x.TenantId, x.AccountNumber });
+        }
+
+        private static void ConfigureTenantOwnedEntity<TEntity>(ModelBuilder modelBuilder, DeleteBehavior deleteBehavior)
+            where TEntity : class, ITenantOwnedEntity
+        {
+            modelBuilder.Entity<TEntity>()
+                .Property(x => x.TenantId)
+                .IsRequired();
+
+            modelBuilder.Entity<TEntity>()
+                .HasIndex(x => x.TenantId);
+
+            modelBuilder.Entity<TEntity>()
+                .HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(deleteBehavior);
+        }
+
+        public override int SaveChanges()
+        {
+            ApplyTenantOwnershipRules();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyTenantOwnershipRules();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void ApplyTenantOwnershipRules()
+        {
+            var tenantId = GetResolvedTenantId();
+
+            foreach (var entry in ChangeTracker.Entries<ITenantOwnedEntity>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.TenantId = tenantId;
+                    continue;
+                }
+
+                if (entry.Entity.TenantId != tenantId)
+                {
+                    throw new InvalidOperationException("Tenant mismatch detected for a tenant-owned entity.");
+                }
+
+                entry.Property(nameof(ITenantOwnedEntity.TenantId)).IsModified = false;
+            }
+        }
+
+        private int GetResolvedTenantId()
+        {
+            return _tenantContextAccessor?.TenantId ?? DefaultTenantId;
+        }
+
+        private void ApplyTenantQueryFilter<TEntity>(ModelBuilder modelBuilder)
+            where TEntity : class, ITenantOwnedEntity
+        {
+            modelBuilder.Entity<TEntity>().HasQueryFilter(CreateTenantFilterExpression<TEntity>());
+        }
+
+        private Expression<Func<TEntity, bool>> CreateTenantFilterExpression<TEntity>()
+            where TEntity : class, ITenantOwnedEntity
+        {
+            return entity => entity.TenantId == GetResolvedTenantId();
         }
 
         private static DeleteBehavior ResolveDeleteBehavior()

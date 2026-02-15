@@ -127,14 +127,14 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var listing = await _context.Listings.FindAsync(request.ListingId);
+                var listing = await _context.Listings.FirstOrDefaultAsync(x => x.Id == request.ListingId);
                 if (listing == null)
                 {
                     ModelState.AddModelError(nameof(request.ListingId), "Listing not found");
                     return BadRequest(ModelState);
                 }
 
-                var guest = await _context.Guests.FindAsync(request.GuestId);
+                var guest = await _context.Guests.FirstOrDefaultAsync(x => x.Id == request.GuestId);
                 if (guest == null)
                 {
                     ModelState.AddModelError(nameof(request.GuestId), "Guest not found");
@@ -261,17 +261,17 @@ namespace Atlas.Api.Controllers
                 }
                 if (id != booking.Id) return BadRequest();
 
-                var existingBooking = await _context.Bookings.FindAsync(id);
+                var existingBooking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (existingBooking == null) return NotFound();
 
-                var listing = await _context.Listings.FindAsync(booking.ListingId);
+                var listing = await _context.Listings.FirstOrDefaultAsync(x => x.Id == booking.ListingId);
                 if (listing == null)
                 {
                     ModelState.AddModelError(nameof(booking.ListingId), "Listing not found");
                     return ValidationProblem(ModelState);
                 }
 
-                var guest = await _context.Guests.FindAsync(booking.GuestId);
+                var guest = await _context.Guests.FirstOrDefaultAsync(x => x.Id == booking.GuestId);
                 if (guest == null)
                 {
                     ModelState.AddModelError(nameof(booking.GuestId), "Guest not found");
@@ -369,7 +369,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var item = await _context.Bookings.FindAsync(id);
+                var item = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (item == null) return NotFound();
                 _context.Bookings.Remove(item);
                 await _context.SaveChangesAsync();
@@ -387,7 +387,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var booking = await _context.Bookings.FindAsync(id);
+                var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (booking == null)
                 {
                     return NotFound();
@@ -419,7 +419,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var booking = await _context.Bookings.FindAsync(id);
+                var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (booking == null)
                 {
                     return NotFound();
@@ -450,7 +450,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var booking = await _context.Bookings.FindAsync(id);
+                var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (booking == null)
                 {
                     return NotFound();

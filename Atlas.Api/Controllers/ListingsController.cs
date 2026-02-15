@@ -76,10 +76,14 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Listing>> Create(Listing item)
         {
+            if (item.TenantId != 0)
+            {
+                return BadRequest("TenantId is managed by the server.");
+            }
             try
             {
                 // Ensure the associated Property exists and attach it to the context
-                var property = await _context.Properties.FindAsync(item.PropertyId);
+                var property = await _context.Properties.FirstOrDefaultAsync(x => x.Id == item.PropertyId);
                 if (property == null)
                 {
                     return BadRequest();
@@ -105,7 +109,32 @@ namespace Atlas.Api.Controllers
             try
             {
                 if (id != item.Id) return BadRequest();
-                _context.Entry(item).State = EntityState.Modified;
+
+                var existing = await _context.Listings.FirstOrDefaultAsync(x => x.Id == id);
+                if (existing == null) return NotFound();
+                if (item.TenantId != 0 && item.TenantId != existing.TenantId)
+                {
+                    return NotFound();
+                }
+
+                var property = await _context.Properties.FirstOrDefaultAsync(x => x.Id == item.PropertyId);
+                if (property == null)
+                {
+                    return NotFound();
+                }
+
+                existing.PropertyId = item.PropertyId;
+                existing.Property = property;
+                existing.Name = item.Name;
+                existing.Floor = item.Floor;
+                existing.Type = item.Type;
+                existing.CheckInTime = item.CheckInTime;
+                existing.CheckOutTime = item.CheckOutTime;
+                existing.Status = item.Status;
+                existing.WifiName = item.WifiName;
+                existing.WifiPassword = item.WifiPassword;
+                existing.MaxGuests = item.MaxGuests;
+
                 await _context.SaveChangesAsync();
                 return NoContent();
             }
@@ -121,7 +150,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var item = await _context.Listings.FindAsync(id);
+                var item = await _context.Listings.FirstOrDefaultAsync(x => x.Id == id);
                 if (item == null) return NotFound();
                 _context.Listings.Remove(item);
                 await _context.SaveChangesAsync();

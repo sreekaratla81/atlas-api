@@ -1,9 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 namespace Atlas.Api.Models
 {
-    public class CommunicationLog
+    public class CommunicationLog : ITenantOwnedEntity
     {
         public long Id { get; set; }
+
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         public int? BookingId { get; set; }
 

@@ -4,9 +4,12 @@ using System.Text.Json.Serialization;
 
 namespace Atlas.Api.Models
 {
-    public class Booking
+    public class Booking : ITenantOwnedEntity
     {
         public int Id { get; set; }
+
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         [Required]
         [ForeignKey(nameof(Listing))]

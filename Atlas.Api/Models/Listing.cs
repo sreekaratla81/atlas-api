@@ -3,9 +3,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Atlas.Api.Models
 {
-    public class Listing
+    public class Listing : ITenantOwnedEntity
     {
         public int Id { get; set; }
+
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         [ForeignKey(nameof(Property))]
         public int PropertyId { get; set; }

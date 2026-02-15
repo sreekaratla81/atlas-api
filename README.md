@@ -154,9 +154,9 @@ add explicit domains to the allowlist instead.
 ## Deployment
 
 Production deploys are automated through the GitHub Actions workflows at
-`.github/workflows/deploy.yml` and `.github/workflows/dev_atlas-homes-api-dev.yml`.
+`.github/workflows/gate.yml` (dev) and `.github/workflows/deploy-prod.yml` (prod).
 
-- **Triggers:** **Prod** — `deploy.yml` runs on push to `main` (when `DEPLOY_PROD_ON_MAIN` is set) or via **workflow_dispatch** (choose prod). **Dev** — `dev_atlas-homes-api-dev.yml` runs on push to `dev`; `deploy.yml` can also deploy to dev via workflow_dispatch. See `docs/ci-cd-branch-mapping.md` for branch → workflow → app mapping.
+- **Triggers:** **Prod** — `deploy-prod.yml` runs on push to `main` (when `DEPLOY_PROD_ON_MAIN` is set) or via **workflow_dispatch** (choose prod). **Dev** — `gate.yml` runs on push to `dev` (gate job then deploy-dev job; one build, deploy only after tests pass); `gate.yml` can also be run via **workflow_dispatch**. See `docs/ci-cd-branch-mapping.md` for branch → workflow → app mapping.
 - **Migration/deploy flow:** Both workflows validate DbMigrator connection
   secrets and run a migration check gate. Dev deploy paths can apply pending
   migrations before deployment. Production migration application is gated to
@@ -169,8 +169,8 @@ Production deploys are automated through the GitHub Actions workflows at
 
 | Workflow file | Required/used secret identifiers (exact names from workflow YAML) |
 | --- | --- |
-| `.github/workflows/dev_atlas-homes-api-dev.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`, `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`, `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9` |
-| `.github/workflows/deploy.yml` | `AZURE_WEBAPP_PUBLISH_PROFILE_DEV`, `AZURE_WEBAPP_PUBLISH_PROFILE_PROD`, `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD`, `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`, `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`, `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9` |
+| `.github/workflows/gate.yml` (deploy-dev job) | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV` |
+| `.github/workflows/deploy-prod.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD` |
 
 The `AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*`
 patterns map to `*_DEV` and `*_PROD` variables above.

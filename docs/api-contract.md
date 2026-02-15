@@ -434,3 +434,50 @@
 - **Request body**: none
 - **Response**: `IResult` (OK)
 - **Status codes**: 200 (not explicitly annotated)
+
+## Tenant Resolution
+- Requests can provide tenant context using the `X-Tenant-Slug` header.
+- Resolution precedence is:
+  1. `X-Tenant-Slug` header
+  2. subdomain from host (for example `contoso.atlashomestays.com` → `contoso`)
+  3. default tenant (`atlas`) only in development/local/test environments
+- In production, requests without a resolvable tenant are rejected before reaching controllers.
+
+### Admin Calendar (`Atlas.Api/Controllers/AdminCalendarController.cs`)
+
+#### `GET /admin/calendar/availability`
+- **Purpose**: Return availability calendar cells for one property (optionally one listing), tenant-scoped.
+- **Query params**:
+  - `propertyId` (int, required, must be > 0)
+  - `from` (DateTime, required; normalized to date)
+  - `days` (int, optional, default `30`, must be > 0)
+  - `listingId` (int, optional)
+- **Response body**: `200 OK` with `AdminCalendarAvailabilityCellDto[]`
+  - `date` (date)
+  - `listingId` (int)
+  - `roomsAvailable` (int)
+  - `effectivePrice` (decimal)
+  - `priceOverride` (decimal?)
+  - `isBlocked` (bool)
+- **Validation / errors**:
+  - `400` when `propertyId <= 0` or `days <= 0`
+  - `404` when `listingId` is provided but not visible to the current tenant
+
+#### `PUT /admin/calendar/availability`
+- **Purpose**: Bulk upsert listing daily availability and optional price overrides, tenant-scoped.
+- **Request body**: `AdminCalendarAvailabilityBulkUpsertRequestDto`
+  - `cells` (required, min length 1)
+  - each cell:
+    - `listingId` (required)
+    - `date` (required)
+    - `roomsAvailable` (must be `>= 0`)
+    - `priceOverride` (optional, must be `>= 0` when supplied)
+- **Response body**: `200 OK` with `AdminCalendarAvailabilityBulkUpsertResponseDto`
+  - `updatedCells` (int)
+  - `deduplicated` (bool)
+  - `cells` (`AdminCalendarAvailabilityCellDto[]`)
+- **Validation / errors**:
+  - `400` for model validation failures, including negative `roomsAvailable` or negative `priceOverride`
+  - `404` when one or more referenced listings are not visible to the current tenant
+  - `409` when an `Idempotency-Key` is reused with a different payload hash
+

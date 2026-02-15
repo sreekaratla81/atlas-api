@@ -76,6 +76,37 @@ public class TenantProviderTests
         Assert.Null(tenant);
     }
 
+    [Fact]
+    public async Task ResolveTenantAsync_UsesResolutionOrder_HeaderThenSubdomainThenDefaultInDevelopment()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Tenants.AddRange(
+            new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow },
+            new Tenant { Name = "Contoso", Slug = "contoso", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+        await dbContext.SaveChangesAsync();
+
+        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Development"));
+
+        var headerContext = new DefaultHttpContext();
+        headerContext.Request.Headers[TenantProvider.TenantSlugHeaderName] = "atlas";
+        headerContext.Request.Host = new HostString("contoso.atlashomestays.com");
+
+        var headerTenant = await provider.ResolveTenantAsync(headerContext);
+        Assert.NotNull(headerTenant);
+        Assert.Equal("atlas", headerTenant!.Slug);
+
+        var subdomainContext = new DefaultHttpContext();
+        subdomainContext.Request.Host = new HostString("contoso.atlashomestays.com");
+
+        var subdomainTenant = await provider.ResolveTenantAsync(subdomainContext);
+        Assert.NotNull(subdomainTenant);
+        Assert.Equal("contoso", subdomainTenant!.Slug);
+
+        var fallbackTenant = await provider.ResolveTenantAsync(new DefaultHttpContext());
+        Assert.NotNull(fallbackTenant);
+        Assert.Equal(TenantProvider.DefaultTenantSlug, fallbackTenant!.Slug);
+    }
+
     private static AppDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

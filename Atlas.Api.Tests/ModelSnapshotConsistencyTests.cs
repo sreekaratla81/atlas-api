@@ -86,18 +86,24 @@ public class ModelSnapshotConsistencyTests
         Assert.NotNull(entityType);
 
         var indexes = entityType!.GetIndexes().ToList();
-        Assert.Contains(indexes, index =>
-            index.IsUnique &&
-            index.Properties.Select(property => property.Name).SequenceEqual(new[]
-            {
-                nameof(CommunicationLog.TenantId),
-                nameof(CommunicationLog.IdempotencyKey)
-            }));
+        var tenantScopedIdempotencyIndexes = indexes
+            .Where(index =>
+                index.IsUnique &&
+                index.Properties.Select(property => property.Name).SequenceEqual(new[]
+                {
+                    nameof(CommunicationLog.TenantId),
+                    nameof(CommunicationLog.IdempotencyKey)
+                }))
+            .ToList();
+
+        Assert.Single(tenantScopedIdempotencyIndexes);
 
         Assert.DoesNotContain(indexes, index =>
             index.IsUnique &&
-            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            index.Properties.Any(property => property.Name == nameof(CommunicationLog.IdempotencyKey)) &&
+            !index.Properties.Select(property => property.Name).SequenceEqual(new[]
             {
+                nameof(CommunicationLog.TenantId),
                 nameof(CommunicationLog.IdempotencyKey)
             }));
     }
@@ -115,15 +121,24 @@ public class ModelSnapshotConsistencyTests
         Assert.NotNull(entityType);
 
         var foreignKeys = entityType!.GetForeignKeys().ToList();
-        Assert.Contains(foreignKeys, foreignKey =>
-            foreignKey.PrincipalEntityType.ClrType == typeof(Booking) &&
-            foreignKey.Properties.Select(property => property.Name).SequenceEqual(new[]
-            {
-                nameof(AutomationSchedule.BookingId)
-            }));
+        var bookingForeignKeys = foreignKeys
+            .Where(foreignKey =>
+                foreignKey.PrincipalEntityType.ClrType == typeof(Booking) &&
+                foreignKey.Properties.Select(property => property.Name).SequenceEqual(new[]
+                {
+                    nameof(AutomationSchedule.BookingId)
+                }) &&
+                foreignKey.PrincipalKey.Properties.Select(property => property.Name).SequenceEqual(new[]
+                {
+                    nameof(Booking.Id)
+                }))
+            .ToList();
+
+        Assert.Single(bookingForeignKeys);
 
         var indexes = entityType.GetIndexes().ToList();
-        Assert.Contains(indexes, index =>
+        var tenantScopedScheduleIndexes = indexes
+            .Where(index =>
             index.IsUnique &&
             index.Properties.Select(property => property.Name).SequenceEqual(new[]
             {
@@ -131,6 +146,9 @@ public class ModelSnapshotConsistencyTests
                 nameof(AutomationSchedule.BookingId),
                 nameof(AutomationSchedule.EventType),
                 nameof(AutomationSchedule.DueAtUtc)
-            }));
+            }))
+            .ToList();
+
+        Assert.Single(tenantScopedScheduleIndexes);
     }
 }

@@ -112,6 +112,16 @@ public class TenantScopedWorkflowSchemaIntegrationTests : IntegrationTestBase
 
         Assert.Single(tenantOneSchedules);
         Assert.Equal(1, tenantOneSchedules[0].TenantId);
+
+        await using var tenantTwoReadDb = CreateTenantContext(2);
+        var tenantTwoLogs = await tenantTwoReadDb.CommunicationLogs.AsNoTracking().ToListAsync();
+        var tenantTwoSchedules = await tenantTwoReadDb.AutomationSchedules.AsNoTracking().ToListAsync();
+
+        Assert.Single(tenantTwoLogs);
+        Assert.Equal("tenant-two-key", tenantTwoLogs[0].IdempotencyKey);
+
+        Assert.Single(tenantTwoSchedules);
+        Assert.Equal(2, tenantTwoSchedules[0].TenantId);
     }
 
     private static CommunicationLog CreateCommunicationLog(string idempotencyKey)

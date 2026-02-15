@@ -158,12 +158,15 @@ namespace Atlas.Api
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
+            if (!app.Environment.IsProduction())
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Atlas API v1");
-                c.RoutePrefix = "swagger";
-            });
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Atlas API v1");
+                    c.RoutePrefix = "swagger";
+                });
+            }
 
             app.UseRouting();
 

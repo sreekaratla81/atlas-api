@@ -308,7 +308,7 @@ namespace Atlas.Api.Data
                 .IsUnique();
 
             modelBuilder.Entity<Tenant>()
-                .ToTable("Tenant");
+                .ToTable("Tenants");
 
             modelBuilder.Entity<Tenant>()
                 .Property(t => t.Name)

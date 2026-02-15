@@ -396,11 +396,12 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - None
 
 ## Multi-tenant additions
+- Canonical table naming decision (confirmed with project owner): use plural `Tenants` as the canonical table name.
 - Core domain tables include a non-null `TenantId` column and enforce tenant isolation through global query filters in EF Core.
 - Tenant-owned entities include (not exhaustive): `Properties`, `Listings`, `Bookings`, `Guests`, `Payments`, `ListingPricing`, `ListingDailyRate`, `ListingDailyInventory`, `AvailabilityBlock`, `BankAccounts`, `Users`, `MessageTemplate`, `CommunicationLog`, `OutboxMessage`, and `AutomationSchedule`.
 - `TenantId` is used in uniqueness constraints where tenant-scoped uniqueness is required.
 
-## Tenant
+## Tenants
 **Columns**
 | Column | Type | Nullable |
 | --- | --- | --- |
@@ -414,7 +415,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Unique Indexes**
-- `UX_Tenant_Slug` (Slug)
+- `UX_Tenants_Slug` (Slug)
 
 **Relationships**
 - One tenant has many rows across tenant-owned domain tables through `TenantId`.
@@ -437,7 +438,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Foreign Keys**
-- TenantId → Tenant.Id
+- TenantId → Tenants.Id
 - ListingId → Listings.Id
 
 **Unique Indexes**

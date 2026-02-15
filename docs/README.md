@@ -3,7 +3,7 @@
 This folder is the single source of truth for API, schema, and operations. **These docs are kept in sync for use as context in AI tools (e.g. ChatGPT, Cursor).** When you add or change controllers, DTOs, or migrations, update the relevant doc.
 
 ## API Docs
-- [API Contract](api-contract.md) — endpoints, request/response shapes, tenant resolution
+- [API Contract](api-contract.md) — endpoints, request/response shapes, tenant resolution; includes `GET /health` (liveness)
 - [API Examples](api-examples.http) — runnable HTTP examples (REST Client / IDE)
 - [DB Schema](db-schema.md) — tables, columns, FKs, indexes (aligned with AppDbContext)
 

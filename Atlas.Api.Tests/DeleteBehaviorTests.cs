@@ -55,4 +55,40 @@ public class DeleteBehaviorTests
             }));
     }
 
+    [Fact]
+    public void WhatsAppInboundMessage_UsesExpectedIndexesAndForeignKeys()
+    {
+        Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", null);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var entity = context.Model.FindEntityType(typeof(WhatsAppInboundMessage))!;
+
+        var bookingForeignKey = Assert.Single(entity.GetForeignKeys(), fk => fk.Properties.Single().Name == nameof(WhatsAppInboundMessage.BookingId));
+        Assert.Equal(DeleteBehavior.Restrict, bookingForeignKey.DeleteBehavior);
+
+        var guestForeignKey = Assert.Single(entity.GetForeignKeys(), fk => fk.Properties.Single().Name == nameof(WhatsAppInboundMessage.GuestId));
+        Assert.Equal(DeleteBehavior.Restrict, guestForeignKey.DeleteBehavior);
+
+        Assert.Contains(entity.GetIndexes(), index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(WhatsAppInboundMessage.TenantId),
+                nameof(WhatsAppInboundMessage.Provider),
+                nameof(WhatsAppInboundMessage.ProviderMessageId)
+            }));
+
+        Assert.Contains(entity.GetIndexes(), index =>
+            !index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(WhatsAppInboundMessage.TenantId),
+                nameof(WhatsAppInboundMessage.ReceivedAtUtc)
+            }));
+    }
+
+
 }

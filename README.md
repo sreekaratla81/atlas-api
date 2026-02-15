@@ -115,9 +115,9 @@ repository—use secret managers or platform configuration instead.
 
 ## CI validation
 
-CI runs expect `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release`
-to pass. Make sure this command succeeds locally before opening a pull
-request.
+The **Gate** workflow (`.github/workflows/gate.yml`) runs on push to `dev` and on pull requests to `main`/`dev`: restore → build (Release) → unit tests (Atlas.Api.Tests, Atlas.DbMigrator.Tests). No SQL Server required in CI; integration tests run in the deploy workflow.
+
+CI expects `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release` (and DbMigrator.Tests) to pass. Run these locally before opening a pull request. See `docs/DEVSECOPS-GATES-BASELINE.md` for the full gate definition.
 
 ## CORS allowlist
 

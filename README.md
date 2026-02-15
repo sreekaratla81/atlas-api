@@ -175,6 +175,17 @@ Production deploys are automated through the GitHub Actions workflows at
 The `AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*`
 patterns map to `*_DEV` and `*_PROD` variables above.
 
+### Validate deploy artifacts locally
+
+To catch missing publish outputs before pushing (and avoid deploy-dev failures in CI), run the same validation the gate uses:
+
+```powershell
+dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
+./scripts/validate-publish.ps1 -PublishPath ./publish
+```
+
+If any required file is missing, the script exits non-zero and lists what’s missing.
+
 ### CI/CD troubleshooting
 
 - The deploy workflow lets `dotnet test` build the test project (no `--no-build`)

@@ -54,6 +54,11 @@ jobs:
         if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
+      - name: Validate publish artifacts
+        if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        shell: pwsh
+        run: ./scripts/validate-publish.ps1 -PublishPath ./publish
+
       - name: Upload deploy artifact
         if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-artifact@v4
@@ -131,10 +136,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
+      # upload-artifact preserves directory name: artifact root is "publish", so after download we have ./net-app/publish/
       - name: Normalize SqlClient runtime layout
         shell: pwsh
         run: |
-          $deployDir = './net-app'
+          $deployDir = './net-app/publish'
           $rootSqlClient = Join-Path $deployDir 'Microsoft.Data.SqlClient.dll'
           $expectedSqlClient = Join-Path $deployDir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
           if ((-not (Test-Path $expectedSqlClient)) -and (Test-Path $rootSqlClient)) {
@@ -145,19 +151,11 @@ jobs:
 
       - name: Validate deploy artifacts
         shell: pwsh
-        run: |
-          $deployDir = './net-app'
-          $requiredFiles = @('Atlas.Api.exe', 'Atlas.Api.dll', 'Atlas.Api.deps.json', 'Atlas.Api.runtimeconfig.json', 'web.config')
-          $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path $deployDir $_)) }
-          if ($missingFiles.Count -gt 0) {
-            Write-Error ("Missing required deploy artifacts: {0}" -f ($missingFiles -join ', '))
-            exit 1
-          }
-          Write-Host 'All required deploy artifacts are present.'
+        run: ./scripts/validate-publish.ps1 -PublishPath ./net-app/publish
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'atlas-homes-api-dev'
           slot-name: 'Production'
-          package: ./net-app
+          package: ./net-app/publish

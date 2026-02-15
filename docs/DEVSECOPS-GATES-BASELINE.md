@@ -4,7 +4,7 @@
 **Runbook:** `DEVSECOPS-WORKSPACE-SANITY-PROMPT.md`  
 *(This file is the versioned copy in atlas-api; a mirror may exist at workspace root.)*
 
-**Quick reference:** §2 = commands per repo; §4 = CI gates (workflow files); §5–6 = verify in Actions, branch protection, re-run before release.
+**Quick reference:** §2 = commands per repo; §4 = CI gates (workflow files); §5–6 = verify in Actions, branch protection, re-run before release. **Feature work:** see `docs/ATLAS-HIGH-VALUE-BACKLOG.md` and `docs/ATLAS-FEATURE-EXECUTION-PROMPT.md`.
 
 ---
 

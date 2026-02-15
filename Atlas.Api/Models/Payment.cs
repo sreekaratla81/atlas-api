@@ -20,6 +20,15 @@ namespace Atlas.Api.Models
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? BaseAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? DiscountAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? ConvenienceFeeAmount { get; set; }
         
         [Required]
         [MaxLength(50)]

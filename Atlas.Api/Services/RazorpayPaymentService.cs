@@ -1,15 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
-using System.Collections.Generic;
-using System.Linq;
 using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Atlas.Api.Models.Dtos.Razorpay;
-using Atlas.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -30,13 +26,17 @@ namespace Atlas.Api.Services
         private readonly string _keySecret;
         private readonly ILogger<RazorpayPaymentService> _logger;
         private readonly IEmailService _emailService;
+        private readonly PricingService _pricingService;
+        private readonly IQuoteService _quoteService;
 
         public RazorpayPaymentService(
-            AppDbContext context, 
+            AppDbContext context,
             IOptions<RazorpayConfig> config,
             IHttpClientFactory httpClientFactory,
             ILogger<RazorpayPaymentService> logger,
-            IEmailService emailService)
+            IEmailService emailService,
+            PricingService pricingService,
+            IQuoteService quoteService)
         {
             _context = context;
             _keyId = config.Value.KeyId ?? throw new ArgumentNullException(nameof(config.Value.KeyId));
@@ -44,8 +44,9 @@ namespace Atlas.Api.Services
             _httpClient = httpClientFactory.CreateClient("Razorpay");
             _logger = logger;
             _emailService = emailService;
-            
-            // Set up basic auth for Razorpay
+            _pricingService = pricingService;
+            _quoteService = quoteService;
+
             var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_keyId}:{_keySecret}"));
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
             _httpClient.BaseAddress = new Uri("https://api.razorpay.com/v1/");
@@ -53,435 +54,267 @@ namespace Atlas.Api.Services
 
         public async Task<RazorpayOrderResponse> CreateOrderAsync(CreateRazorpayOrderRequest request)
         {
-            try
+            var booking = await GetOrCreateBookingAsync(request);
+
+            var breakdown = await ResolveBreakdownForOrderAsync(request, booking);
+            booking.PaymentStatus = "pending";
+            booking.TotalAmount = breakdown.FinalAmount;
+            booking.BaseAmount = breakdown.BaseAmount;
+            booking.DiscountAmount = breakdown.DiscountAmount;
+            booking.ConvenienceFeeAmount = breakdown.ConvenienceFeeAmount;
+            booking.FinalAmount = breakdown.FinalAmount;
+            booking.PricingSource = breakdown.PricingSource;
+            booking.QuoteTokenNonce = breakdown.QuoteTokenNonce;
+            booking.QuoteExpiresAtUtc = breakdown.QuoteExpiresAtUtc;
+
+            var orderRequest = new
             {
-                _logger.LogInformation("Starting to create Razorpay order for request: {Request}", JsonSerializer.Serialize(request));
-                
-                // Create or update booking
-                var booking = await GetOrCreateBookingAsync(request);
-                _logger.LogInformation("Booking created/retrieved with ID: {BookingId}", booking.Id);
-                
-                // Create temporary 5-minute availability blocks for payment flow
-                var checkInDate = booking.CheckinDate.Date;
-                var checkOutDate = booking.CheckoutDate.Date;
-                var now = DateTime.UtcNow;
-                
-                // Generate list of dates to block
-                var datesToBlock = new List<DateTime>();
-                for (var d = checkInDate; d < checkOutDate; d = d.AddDays(1))
-                {
-                    datesToBlock.Add(d);
-                }
-                
-                // Create temporary availability blocks (5-minute expiry)
-                var temporaryBlocks = datesToBlock.Select(date => new AvailabilityBlock
-                {
-                    ListingId = booking.ListingId,
-                    BookingId = booking.Id,
-                    StartDate = date,
-                    EndDate = date.AddDays(1),
-                    BlockType = "Hold",
-                    Source = "Razorpay",
-                    Status = "Hold",
-                    Inventory = false,  // inventory = 0
-                    CreatedAtUtc = now,
-                    UpdatedAtUtc = now
-                }).ToList();
-                
-                _context.AvailabilityBlocks.AddRange(temporaryBlocks);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Created {Count} temporary availability blocks for booking {BookingId} (expires in 5 minutes)", 
-                    temporaryBlocks.Count, booking.Id);
-                
-                // Create Razorpay order
-                var orderRequest = new
-                {
-                    amount = (int)(request.Amount * 100), // Convert to paise
-                    currency = request.Currency,
-                    receipt = $"booking_{booking.Id}",
-                    payment_capture = 1 // Auto-capture payment
-                };
+                amount = (int)(breakdown.FinalAmount * 100),
+                currency = request.Currency,
+                receipt = $"booking_{booking.Id}",
+                payment_capture = 1
+            };
 
-                var content = new StringContent(
-                    JsonSerializer.Serialize(orderRequest),
-                    Encoding.UTF8,
-                    "application/json");
-
-                _logger.LogInformation("Sending request to Razorpay API");
-                var response = await _httpClient.PostAsync("orders", content);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("Razorpay API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
-                    throw new InvalidOperationException($"Razorpay API error: {response.StatusCode} - {errorContent}");
-                }
-                
-                var responseContent = await response.Content.ReadAsStringAsync();
-                _logger.LogDebug("Razorpay API response: {Response}", responseContent);
-                
-                var orderResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
-                var orderId = orderResponse.GetProperty("id").GetString();
-                
-                if (string.IsNullOrEmpty(orderId))
-                {
-                    throw new InvalidOperationException("Failed to create Razorpay order: Invalid response from Razorpay");
-                }
-
-                // Create payment record
-                // Note: Payment.Note is required in database, so ensure it's never null
-                var paymentNote = $"Razorpay Order ID: {orderId}";
-                if (string.IsNullOrWhiteSpace(paymentNote))
-                {
-                    paymentNote = "Razorpay payment";
-                }
-                
-                var payment = new Payment
-                {
-                    BookingId = booking.Id,
-                    Amount = request.Amount,
-                    Method = "Razorpay",
-                    Type = "payment",
-                    ReceivedOn = DateTime.UtcNow,
-                    Note = paymentNote, // Required field - ensure it's never null
-                    RazorpayOrderId = orderId,
-                    Status = "pending"
-                };
-
-                // Validate model before saving
-                var validationResults = new List<ValidationResult>();
-                var isValid = Validator.TryValidateObject(payment, new ValidationContext(payment), validationResults, true);
-                if (!isValid)
-                {
-                    var errorMessages = validationResults.Select(v => v.ErrorMessage);
-                    _logger.LogError("Payment validation failed: {Errors}", string.Join(", ", errorMessages));
-                    throw new ValidationException($"Invalid payment data: {string.Join(", ", errorMessages)}");
-                }
-
-                _context.Payments.Add(payment);
-                
-                // Update booking with payment details
-                booking.PaymentStatus = "pending";
-                booking.TotalAmount = request.Amount;
-                booking.Currency = request.Currency;
-                
-                _logger.LogInformation("Saving booking and payment updates to database");
-                try
-                {
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateException dbEx)
-                {
-                    _logger.LogError(dbEx, "Database error saving booking and payment");
-                    var errorMessage = ExtractFullExceptionMessage(dbEx);
-                    _logger.LogError("Full exception chain: {FullException}", errorMessage);
-                    throw new InvalidOperationException($"Failed to save changes: {errorMessage}", dbEx);
-                }
-
-                var result = new RazorpayOrderResponse
-                {
-                    KeyId = _keyId,
-                    OrderId = orderId,
-                    Amount = request.Amount,
-                    Currency = request.Currency,
-                    BookingId = booking.Id
-                };
-
-                _logger.LogInformation("Successfully created Razorpay order: {OrderId}", orderId);
-                return result;
-            }
-            catch (Exception ex)
+            var content = new StringContent(JsonSerializer.Serialize(orderRequest), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("orders", content);
+            if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError(ex, "Error in CreateOrderAsync");
-                throw; // Re-throw to be handled by the controller
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Razorpay API error: {response.StatusCode} - {errorContent}");
             }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var orderResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
+            var orderId = orderResponse.GetProperty("id").GetString();
+            if (string.IsNullOrEmpty(orderId))
+            {
+                throw new InvalidOperationException("Failed to create Razorpay order: Invalid response from Razorpay");
+            }
+
+            var payment = new Payment
+            {
+                BookingId = booking.Id,
+                Amount = breakdown.FinalAmount,
+                BaseAmount = breakdown.BaseAmount,
+                DiscountAmount = breakdown.DiscountAmount,
+                ConvenienceFeeAmount = breakdown.ConvenienceFeeAmount,
+                Method = "Razorpay",
+                Type = "payment",
+                ReceivedOn = DateTime.UtcNow,
+                Note = $"Razorpay Order ID: {orderId}",
+                RazorpayOrderId = orderId,
+                Status = "pending"
+            };
+
+            var validationResults = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(payment, new ValidationContext(payment), validationResults, true))
+            {
+                throw new ValidationException($"Invalid payment data: {string.Join(", ", validationResults.Select(v => v.ErrorMessage))}");
+            }
+
+            _context.Payments.Add(payment);
+            await _context.SaveChangesAsync();
+
+            return new RazorpayOrderResponse
+            {
+                KeyId = _keyId,
+                OrderId = orderId,
+                Amount = breakdown.FinalAmount,
+                Currency = request.Currency,
+                BookingId = booking.Id
+            };
         }
 
         public async Task<bool> VerifyAndProcessPaymentAsync(VerifyRazorpayPaymentRequest request)
         {
-            _logger.LogInformation("Starting payment verification for booking ID: {BookingId}", request.BookingId);
-            
-            var booking = await _context.Bookings.FindAsync(request.BookingId);
-            if (booking == null)
-            {
-                _logger.LogError("Booking not found with ID: {BookingId}", request.BookingId);
-                throw new ArgumentException($"Invalid booking ID: {request.BookingId}");
-            }
+            var booking = await _context.Bookings.FindAsync(request.BookingId)
+                ?? throw new ArgumentException($"Invalid booking ID: {request.BookingId}");
 
-            // Find the existing payment record for this booking
             var payment = await _context.Payments
-                .FirstOrDefaultAsync(p => p.BookingId == request.BookingId && p.RazorpayOrderId == request.RazorpayOrderId);
+                .FirstOrDefaultAsync(p => p.BookingId == request.BookingId && p.RazorpayOrderId == request.RazorpayOrderId)
+                ?? throw new InvalidOperationException("Payment record not found for the given booking and order ID");
 
-            if (payment == null)
-            {
-                _logger.LogError("Payment record not found for booking ID: {BookingId} and order ID: {OrderId}", 
-                    request.BookingId, request.RazorpayOrderId);
-                throw new InvalidOperationException("Payment record not found for the given booking and order ID");
-            }
-
-            _logger.LogInformation("Found payment record with ID: {PaymentId}", payment.Id);
-
-            // Verify the payment signature
             var text = $"{request.RazorpayOrderId}|{request.RazorpayPaymentId}";
-            var secret = Encoding.UTF8.GetBytes(_keySecret);
-            var signature = request.RazorpaySignature;
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_keySecret));
+            var computedSignature = BitConverter.ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-", "").ToLower();
 
-            using var hmac = new HMACSHA256(secret);
-            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(text));
-            var computedSignature = BitConverter.ToString(hash).Replace("-", "").ToLower();
-
-            if (computedSignature != signature.ToLower())
+            if (computedSignature != request.RazorpaySignature.ToLower())
             {
-                _logger.LogWarning("Signature verification failed for booking ID: {BookingId}", request.BookingId);
                 booking.PaymentStatus = "failed";
                 payment.Status = "failed";
                 await _context.SaveChangesAsync();
                 return false;
             }
 
-            _logger.LogInformation("Signature verified successfully for booking ID: {BookingId}", request.BookingId);
-
-            // Update the existing payment record with Razorpay details
             payment.RazorpayPaymentId = request.RazorpayPaymentId;
             payment.RazorpaySignature = request.RazorpaySignature;
             payment.Status = "completed";
             payment.ReceivedOn = DateTime.UtcNow;
             payment.Note = $"Razorpay Payment ID: {request.RazorpayPaymentId}";
 
-            // Update booking status from "Hold" to "blocked" after successful payment
             booking.PaymentStatus = "paid";
             booking.AmountReceived = booking.TotalAmount ?? 0;
-            
-            // Check if booking status is "Hold" (case-insensitive check)
-            var currentBookingStatus = booking.BookingStatus;
-            if (string.Equals(currentBookingStatus, "Hold", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(booking.BookingStatus, "Hold", StringComparison.OrdinalIgnoreCase))
             {
                 booking.BookingStatus = "blocked";
-                _logger.LogInformation("Updated booking status from '{CurrentStatus}' to 'blocked' for booking ID: {BookingId}", 
-                    currentBookingStatus, request.BookingId);
-            }
-            else
-            {
-                _logger.LogInformation("Booking status is '{CurrentStatus}', not updating to blocked for booking ID: {BookingId}", 
-                    currentBookingStatus, request.BookingId);
             }
 
-            // Convert temporary "Hold" availability blocks to permanent "blocked" status
             var temporaryBlocks = await _context.AvailabilityBlocks
-                .Where(ab => ab.BookingId == booking.Id 
-                    && ab.BlockType == "Hold" 
-                    && ab.Status == "Hold")
+                .Where(ab => ab.BookingId == booking.Id && ab.BlockType == "Hold" && ab.Status == "Hold")
                 .ToListAsync();
-
-            _logger.LogInformation("Found {Count} temporary Hold blocks for booking ID: {BookingId}", 
-                temporaryBlocks.Count, request.BookingId);
-
-            if (temporaryBlocks.Any())
+            foreach (var block in temporaryBlocks)
             {
-                foreach (var block in temporaryBlocks)
-                {
-                    block.BlockType = "Booking";
-                    block.Source = "System";
-                    block.Status = "blocked";  // Permanent blocked status
-                    block.Inventory = false;  // Ensure inventory = 0 (blocked)
-                    block.UpdatedAtUtc = DateTime.UtcNow;
-                    _logger.LogDebug("Updating block ID {BlockId}: BlockType=Booking, Status=blocked, Inventory=false", block.Id);
-                }
-                _logger.LogInformation("Converted {Count} temporary Hold blocks to permanent blocked status for booking ID: {BookingId}", 
-                    temporaryBlocks.Count, request.BookingId);
-            }
-            else
-            {
-                _logger.LogWarning("No temporary Hold blocks found for booking ID: {BookingId}", request.BookingId);
+                block.BlockType = "Booking";
+                block.Source = "System";
+                block.Status = "blocked";
+                block.Inventory = false;
+                block.UpdatedAtUtc = DateTime.UtcNow;
             }
 
-            // Save all changes (booking, payment, and availability blocks are already tracked)
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Successfully saved changes: payment status=completed, booking status={BookingStatus}, blocks updated={BlockCount} for booking ID: {BookingId}", 
-                booking.BookingStatus, temporaryBlocks.Count, request.BookingId);
 
-            // Send booking confirmation email after successful payment verification and database update
-            // Email sending is wrapped in try-catch to ensure payment success is not affected if email fails
             try
             {
                 var emailSent = await _emailService.SendBookingConfirmationEmailAsync(booking, request.RazorpayPaymentId);
                 if (emailSent)
                 {
-                    _logger.LogInformation("Booking confirmation email sent successfully for booking ID: {BookingId}", request.BookingId);
-                    
-                    // Update ConfirmationSentAtUtc timestamp
                     booking.ConfirmationSentAtUtc = DateTime.UtcNow;
                     await _context.SaveChangesAsync();
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to send booking confirmation email for booking ID: {BookingId}", request.BookingId);
                 }
             }
             catch (Exception emailEx)
             {
-                // Log email error but don't fail the payment verification
                 _logger.LogError(emailEx, "Error sending booking confirmation email for booking ID: {BookingId}. Payment verification succeeded.", request.BookingId);
             }
 
             return true;
         }
 
+        private async Task<Atlas.Api.DTOs.PriceBreakdownDto> ResolveBreakdownForOrderAsync(CreateRazorpayOrderRequest request, Booking booking)
+        {
+            if (!string.IsNullOrWhiteSpace(request.QuoteToken))
+            {
+                var quoteValidation = await _quoteService.ValidateForRedemptionAsync(request.QuoteToken, booking.Id);
+                if (!quoteValidation.IsValid || quoteValidation.Breakdown is null)
+                {
+                    throw new InvalidOperationException(quoteValidation.Error ?? "Invalid quote token.");
+                }
+
+                return quoteValidation.Breakdown;
+            }
+
+            if (request.BookingDraft is not null)
+            {
+                return await _pricingService.GetPublicBreakdownAsync(request.BookingDraft.ListingId, request.BookingDraft.CheckinDate, request.BookingDraft.CheckoutDate);
+            }
+
+            if (booking.TotalAmount.HasValue)
+            {
+                return new Atlas.Api.DTOs.PriceBreakdownDto
+                {
+                    ListingId = booking.ListingId,
+                    Currency = booking.Currency,
+                    BaseAmount = booking.BaseAmount ?? booking.TotalAmount.Value,
+                    DiscountAmount = booking.DiscountAmount ?? 0,
+                    ConvenienceFeeAmount = booking.ConvenienceFeeAmount ?? 0,
+                    FinalAmount = booking.FinalAmount ?? booking.TotalAmount.Value,
+                    PricingSource = booking.PricingSource
+                };
+            }
+
+            if (request.Amount.HasValue)
+            {
+                return new Atlas.Api.DTOs.PriceBreakdownDto
+                {
+                    ListingId = booking.ListingId,
+                    Currency = request.Currency,
+                    BaseAmount = request.Amount.Value,
+                    DiscountAmount = 0,
+                    ConvenienceFeeAmount = 0,
+                    FinalAmount = request.Amount.Value,
+                    PricingSource = "Manual"
+                };
+            }
+
+            throw new InvalidOperationException("Unable to determine pricing for Razorpay order.");
+        }
+
         private async Task<Booking> GetOrCreateBookingAsync(CreateRazorpayOrderRequest request)
         {
-            try
+            if (request.BookingId.HasValue)
             {
-                _logger.LogInformation("Starting GetOrCreateBookingAsync");
-                
-                if (request.BookingId.HasValue)
+                var existing = await _context.Bookings.FindAsync(request.BookingId.Value);
+                if (existing is not null)
                 {
-                    _logger.LogInformation("Looking for existing booking with ID: {BookingId}", request.BookingId.Value);
-                    var existingBooking = await _context.Bookings.FindAsync(request.BookingId.Value);
-                    if (existingBooking != null)
-                    {
-                        _logger.LogInformation("Found existing booking");
-                        return existingBooking;
-                    }
-                    _logger.LogWarning("No booking found with ID: {BookingId}", request.BookingId.Value);
+                    return existing;
                 }
+            }
 
-                if (request.BookingDraft == null)
-                {
-                    throw new ArgumentException("Either bookingId or bookingDraft must be provided");
-                }
+            if (request.BookingDraft is null)
+            {
+                throw new ArgumentException("Either bookingId or bookingDraft must be provided");
+            }
 
-                _logger.LogInformation("Creating new booking for listing: {ListingId}", request.BookingDraft.ListingId);
-                
-                // Validate that the listing exists
-                var listingExists = await _context.Listings.AnyAsync(l => l.Id == request.BookingDraft.ListingId);
-                if (!listingExists)
-                {
-                    _logger.LogError("Listing with ID {ListingId} does not exist", request.BookingDraft.ListingId);
-                    throw new ArgumentException($"Listing with ID {request.BookingDraft.ListingId} does not exist");
-                }
-                
-                // Check availability: ensure no blocked dates overlap with requested booking dates
-                // Exclude expired holds (holds older than 5 minutes are considered invalid)
-                var checkInDate = request.BookingDraft.CheckinDate.Date;
-                var checkOutDate = request.BookingDraft.CheckoutDate.Date;
-                var now = DateTime.UtcNow;
-                
-                var hasBlockedDates = await _context.AvailabilityBlocks
-                    .AsNoTracking()
-                    .AnyAsync(block => block.ListingId == request.BookingDraft.ListingId
-                        && block.Inventory == false  // Blocked dates
-                        && block.StartDate < checkOutDate
-                        && block.EndDate > checkInDate
-                        && (
-                            // Permanent blocks (not holds)
-                            (block.BlockType != "Hold" && block.Status != "Hold")
-                            ||
-                            // Active holds (not expired - within 5 minutes)
-                            ((block.BlockType == "Hold" || block.Status == "Hold")
-                             && now <= block.CreatedAtUtc.AddMinutes(5))
-                        ));
-                
-                if (hasBlockedDates)
-                {
-                    _logger.LogWarning("Booking dates {CheckIn} to {CheckOut} overlap with blocked dates for listing {ListingId}", 
-                        checkInDate, checkOutDate, request.BookingDraft.ListingId);
-                    throw new ArgumentException($"Selected dates ({checkInDate:yyyy-MM-dd} to {checkOutDate:yyyy-MM-dd}) are not available. Please choose different dates.");
-                }
-                
-                // Create or get the guest from the request
-                var guest = await _context.Guests
-                    .FirstOrDefaultAsync(g => g.Email == request.GuestInfo.Email) ?? new Guest
-                    {
-                        Name = !string.IsNullOrWhiteSpace(request.GuestInfo.Name) 
-                            ? request.GuestInfo.Name 
-                            : "Guest User",
-                        Email = request.GuestInfo.Email,
-                        Phone = request.GuestInfo.Phone,
-                        IdProofUrl = null // Can be updated later if needed
-                    };
+            var listingExists = await _context.Listings.AnyAsync(l => l.Id == request.BookingDraft.ListingId);
+            if (!listingExists)
+            {
+                throw new ArgumentException($"Listing with ID {request.BookingDraft.ListingId} does not exist");
+            }
 
-                if (guest.Id == 0) // New guest
+            var guest = await _context.Guests
+                .FirstOrDefaultAsync(g => g.Email == request.GuestInfo.Email) ?? new Guest
                 {
-                    _context.Guests.Add(guest);
-                    await _context.SaveChangesAsync();
-                }
-
-                var booking = new Booking
-                {
-                    ListingId = request.BookingDraft.ListingId,
-                    GuestId = guest.Id,
-                    CheckinDate = request.BookingDraft.CheckinDate,
-                    CheckoutDate = request.BookingDraft.CheckoutDate,
-                    GuestsPlanned = request.BookingDraft.Guests,
-                    Notes = request.BookingDraft.Notes ?? string.Empty,
-                    BookingStatus = "Hold",  // Temporary hold status for payment flow
-                    PaymentStatus = "pending",
-                    Currency = request.Currency, // Set currency when creating booking
-                    CreatedAt = DateTime.UtcNow
+                    Name = string.IsNullOrWhiteSpace(request.GuestInfo.Name) ? "Guest User" : request.GuestInfo.Name,
+                    Email = request.GuestInfo.Email,
+                    Phone = request.GuestInfo.Phone
                 };
 
-                _logger.LogInformation("Adding new booking to context");
-                _context.Bookings.Add(booking);
+            if (guest.Id == 0)
+            {
+                _context.Guests.Add(guest);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Successfully created booking with ID: {BookingId}", booking.Id);
+            }
 
-                // Create temporary availability blocks for each date in the booking range (5-minute expiry)
-                var dates = new List<DateTime>();
-                for (var d = checkInDate; d < checkOutDate; d = d.AddDays(1))
-                {
-                    dates.Add(d);
-                }
+            var booking = new Booking
+            {
+                ListingId = request.BookingDraft.ListingId,
+                GuestId = guest.Id,
+                CheckinDate = request.BookingDraft.CheckinDate,
+                CheckoutDate = request.BookingDraft.CheckoutDate,
+                GuestsPlanned = request.BookingDraft.Guests,
+                Notes = request.BookingDraft.Notes ?? string.Empty,
+                BookingStatus = "Hold",
+                PaymentStatus = "pending",
+                Currency = request.Currency,
+                CreatedAt = DateTime.UtcNow
+            };
 
-                var temporaryBlocks = dates.Select(date => new AvailabilityBlock
+            _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync();
+
+            var now = DateTime.UtcNow;
+            var blocks = new List<AvailabilityBlock>();
+            for (var d = booking.CheckinDate.Date; d < booking.CheckoutDate.Date; d = d.AddDays(1))
+            {
+                blocks.Add(new AvailabilityBlock
                 {
-                    ListingId = request.BookingDraft.ListingId,
+                    ListingId = booking.ListingId,
                     BookingId = booking.Id,
-                    StartDate = date,
-                    EndDate = date.AddDays(1),
+                    StartDate = d,
+                    EndDate = d.AddDays(1),
                     BlockType = "Hold",
                     Source = "Razorpay",
                     Status = "Hold",
-                    Inventory = false,  // Blocked (inventory = 0)
+                    Inventory = false,
                     CreatedAtUtc = now,
                     UpdatedAtUtc = now
-                }).ToList();
+                });
+            }
 
-                _context.AvailabilityBlocks.AddRange(temporaryBlocks);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Created {Count} temporary availability blocks for booking {BookingId} (expires in 5 minutes)", 
-                    temporaryBlocks.Count, booking.Id);
+            _context.AvailabilityBlocks.AddRange(blocks);
+            await _context.SaveChangesAsync();
 
-                return booking;
-            }
-            catch (DbUpdateException dbEx)
-            {
-                _logger.LogError(dbEx, "Database error in GetOrCreateBookingAsync");
-                var errorMessage = ExtractFullExceptionMessage(dbEx);
-                _logger.LogError("Full exception chain: {FullException}", errorMessage);
-                throw new InvalidOperationException($"Failed to save booking: {errorMessage}", dbEx);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in GetOrCreateBookingAsync");
-                throw; // Re-throw to be handled by the caller
-            }
-        }
-
-        private string ExtractFullExceptionMessage(Exception ex)
-        {
-            var messages = new List<string>();
-            var current = ex;
-            
-            while (current != null)
-            {
-                if (!string.IsNullOrWhiteSpace(current.Message))
-                {
-                    messages.Add(current.Message);
-                }
-                current = current.InnerException;
-            }
-            
-            return string.Join(" -> ", messages);
+            return booking;
         }
     }
 }

@@ -1,4 +1,6 @@
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
+using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +24,7 @@ public class PricingServiceTests : IntegrationTestBase
         await DataSeeder.SeedListingPricingAsync(db, listing, 110m, 140m, null, "USD");
         await DataSeeder.SeedListingDailyRateAsync(db, listing, new DateTime(2025, 2, 8), 200m, "USD");
 
-        var service = new PricingService(db);
+        var service = new PricingService(db, new StubTenantPricingSettingsService());
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 2, 7), new DateTime(2025, 2, 10));
 
@@ -32,4 +34,16 @@ public class PricingServiceTests : IntegrationTestBase
 
         await transaction.RollbackAsync();
     }
+}
+
+
+internal sealed class StubTenantPricingSettingsService : ITenantPricingSettingsService
+{
+    public Task<TenantPricingSetting> GetCurrentAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(new TenantPricingSetting { ConvenienceFeePercent = 3m, GlobalDiscountPercent = 0m });
+
+    public void Invalidate(int tenantId) { }
+
+    public Task<TenantPricingSetting> UpdateCurrentAsync(UpdateTenantPricingSettingsDto request, CancellationToken cancellationToken = default)
+        => Task.FromResult(new TenantPricingSetting { ConvenienceFeePercent = request.ConvenienceFeePercent, GlobalDiscountPercent = request.GlobalDiscountPercent });
 }

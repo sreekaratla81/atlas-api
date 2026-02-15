@@ -74,7 +74,11 @@ namespace Atlas.Api
                 client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
             });
             
+            builder.Services.AddMemoryCache();
+            builder.Services.Configure<QuoteOptions>(builder.Configuration.GetSection("Quotes"));
             builder.Services.AddScoped<IRazorpayPaymentService, RazorpayPaymentService>();
+            builder.Services.AddScoped<ITenantPricingSettingsService, TenantPricingSettingsService>();
+            builder.Services.AddScoped<IQuoteService, QuoteService>();
             builder.Services.AddScoped<Atlas.Api.Services.IEmailService, Atlas.Api.Services.EmailService>();
             
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();

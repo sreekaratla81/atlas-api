@@ -91,4 +91,36 @@ public class DeleteBehaviorTests
     }
 
 
+    [Fact]
+    public void ConsumedEvent_UsesExpectedIndexesAndTenantForeignKey()
+    {
+        Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", null);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var entity = context.Model.FindEntityType(typeof(ConsumedEvent))!;
+
+        var tenantForeignKey = Assert.Single(entity.GetForeignKeys(), fk => fk.Properties.Single().Name == nameof(ConsumedEvent.TenantId));
+        Assert.Equal(DeleteBehavior.Restrict, tenantForeignKey.DeleteBehavior);
+
+        Assert.Contains(entity.GetIndexes(), index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(ConsumedEvent.TenantId),
+                nameof(ConsumedEvent.ConsumerName),
+                nameof(ConsumedEvent.EventId)
+            }));
+
+        Assert.Contains(entity.GetIndexes(), index =>
+            !index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(ConsumedEvent.TenantId),
+                nameof(ConsumedEvent.ProcessedAtUtc)
+            }));
+    }
+
 }

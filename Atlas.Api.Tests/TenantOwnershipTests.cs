@@ -74,6 +74,30 @@ public class TenantOwnershipTests
         Assert.Equal("Tenant1", tenantOneRows[0].Name);
     }
 
+
+    [Fact]
+    public async Task SaveChanges_AssignsTenantId_ForConsumedEvent_FromTenantContext()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new AppDbContext(options, new TestTenantContextAccessor(9));
+        context.ConsumedEvents.Add(new ConsumedEvent
+        {
+            ConsumerName = "booking-consumer",
+            EventId = "evt-1",
+            EventType = "booking.confirmed",
+            ProcessedAtUtc = DateTime.UtcNow
+        });
+
+        await context.SaveChangesAsync();
+
+        var consumedEvent = await context.ConsumedEvents.AsNoTracking().SingleAsync();
+        Assert.Equal(9, consumedEvent.TenantId);
+    }
+
+
     private sealed class TestTenantContextAccessor : ITenantContextAccessor
     {
         public TestTenantContextAccessor(int tenantId)

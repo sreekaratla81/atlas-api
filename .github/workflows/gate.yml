@@ -1,5 +1,5 @@
-# Baseline gate per DEVSECOPS-GATES-BASELINE.md: restore + build (Release) + unit tests only
-# Runs on PRs and push to dev. Unit tests only (no SQL Server); integration tests run in deploy workflow.
+# Baseline gate per DEVSECOPS-GATES-BASELINE.md: restore + build + unit tests + integration tests (host + UI contract)
+# Runs on PRs and push to dev. Integration tests use LocalDb (windows-latest) and validate host startup and UI-like flows.
 # Status check name for branch protection: gate
 name: Gate
 
@@ -39,7 +39,9 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-incremental
 
-      - name: Test (unit only)
+      - name: Test (unit)
         run: |
-          dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release
-          dotnet test ./Atlas.DbMigrator.Tests/Atlas.DbMigrator.Tests.csproj -c Release
+          dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release --no-build
+          dotnet test ./Atlas.DbMigrator.Tests/Atlas.DbMigrator.Tests.csproj -c Release --no-build
+      - name: Test (integration, host + UI contract)
+        run: dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release --no-build

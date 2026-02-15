@@ -78,7 +78,7 @@ npm test
 
 ## 4. CI gates (implementation)
 
-- **atlas-api:** `.github/workflows/gate.yml` — on push to `dev` and on PRs to `main`/`dev`: `dotnet restore` → `dotnet build -c Release` → unit tests only (Atlas.Api.Tests, Atlas.DbMigrator.Tests). No SQL Server required; integration tests run in the deploy workflow.
+- **atlas-api:** `.github/workflows/gate.yml` — on push to `dev` and on PRs to `main`/`dev`: `dotnet restore` → `dotnet build -c Release` → unit tests (Api.Tests, DbMigrator.Tests) → integration tests (IntegrationTests, includes UI contract). Uses LocalDb on windows-latest. See `docs/API-TESTING-BEFORE-DEPLOY.md`.
 - **atlas-admin-portal:** `.github/workflows/gate.yml` — on push/PR to `main` and `dev`: `npm ci` → `npm run lint` → `npm run build` → `npx vitest run`. Uses `eslint.config.cjs` (flat config) for ESLint 9+.
 - **RatebotaiRepo:** `.github/workflows/ci.yml` — on push to `main` and PRs: `npm ci` → `npm run lint` → `npm run build` → `npm test` → `npm run check:local-network`. Node 22.12.0.
 

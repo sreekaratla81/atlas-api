@@ -87,7 +87,7 @@ namespace Atlas.Api
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ITenantContextAccessor, HttpTenantContextAccessor>();
             builder.Services.AddScoped<ITenantProvider, TenantProvider>();
-            builder.Services.AddScoped<TenantResolutionMiddleware>();
+            // Do not register TenantResolutionMiddleware in DI; RequestDelegate is provided by the pipeline in UseMiddleware<T>()
 
             ValidateRequiredConfiguration(builder.Configuration, env);
 

@@ -117,15 +117,16 @@ repository—use secret managers or platform configuration instead.
 
 ## CI validation
 
-The **Gate** workflow (`.github/workflows/gate.yml`) runs on push to `dev` and on pull requests to `main`/`dev`: restore → build (Release) → unit tests (Atlas.Api.Tests, Atlas.DbMigrator.Tests). No SQL Server required in CI; integration tests run in the deploy workflow.
+The **Gate** workflow runs restore → build (Release) → unit tests → **integration tests** (including UI contract tests). Integration tests use LocalDb on `windows-latest` and validate host startup and the same flows the guest/admin portals use (see `docs/API-TESTING-BEFORE-DEPLOY.md`).
 
-CI expects `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release` (and DbMigrator.Tests) to pass. Run these locally before opening a pull request. See `CONTRIBUTING.md` for the PR checklist and `docs/DEVSECOPS-GATES-BASELINE.md` for the full gate definition.
+Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validation before deploy, run integration tests too (`dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release`). See `CONTRIBUTING.md` and `docs/DEVSECOPS-GATES-BASELINE.md`.
 
 ## Documentation
 
 - **AGENTS.md** — Instructions for AI assistants (gate, feature backlog, docs sync).
 - **CONTRIBUTING.md** — PR checklist and gate commands.
 - **docs/DEVSECOPS-GATES-BASELINE.md** — Gate definition, commands per repo, verify in CI, branch protection.
+- **docs/API-TESTING-BEFORE-DEPLOY.md** — Unit vs integration vs UI contract tests; run integration tests before deploy.
 - **docs/ci-cd-branch-mapping.md** — Branch → workflow → app mapping and secrets.
 - **docs/ATLAS-HIGH-VALUE-BACKLOG.md** — Prioritized feature roadmap and current implementation status.
 - **docs/ATLAS-FEATURE-EXECUTION-PROMPT.md** — Workflow for implementing the next feature from the backlog.

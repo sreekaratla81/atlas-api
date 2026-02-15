@@ -14,6 +14,7 @@ This folder is the single source of truth for API, schema, and operations. **The
 - [ATLAS-BACKLOG-ANALYSIS.md](ATLAS-BACKLOG-ANALYSIS.md) — how the backlog was derived and what’s already implemented
 
 ## Runbooks & Ops
+- [API testing before deploy](API-TESTING-BEFORE-DEPLOY.md) — Ensure host and UI-critical flows pass before deploy.
 - [Quoted pricing runbook](quoted-pricing-runbook.md)
 - [Migrations troubleshooting](migrations-troubleshooting.md), [Migrations audit](migrations-audit.md)
 - [Startup diagnostics](startup-diagnostics.md), [Startup failure report](startup-failure-report.md)

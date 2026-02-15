@@ -19,3 +19,7 @@ This folder is the single source of truth for API, schema, and operations. **The
 
 ## Update Rule
 Any controller or DTO change requires a documentation update in this folder.
+
+## Using this folder as ChatGPT (or other AI) context
+- **Recommended set**: `api-contract.md`, `db-schema.md`, `api-examples.http`, and this `README.md` give the API surface, schema, and examples. Add runbooks (`quoted-pricing-runbook.md`, `migrations-troubleshooting.md`) when the AI needs ops or pricing behavior.
+- Keep paths and request/response shapes in sync with the codebase so the model has accurate context.

@@ -1,5 +1,6 @@
 # Baseline gate per DEVSECOPS-GATES-BASELINE.md: restore + build (Release) + unit tests only
 # Runs on PRs and push to dev. Unit tests only (no SQL Server); integration tests run in deploy workflow.
+# Status check name for branch protection: gate
 name: Gate
 
 on:

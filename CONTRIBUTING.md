@@ -12,4 +12,4 @@
 2. **Open a PR** to `main` or `dev`.
 3. **Ensure the Gate workflow passes** — `.github/workflows/gate.yml` runs the same checks on push/PR; it must pass before merge.
 
-For deployment and secrets, see [README → Deployment](README.md#deployment) and `docs/ci-cd-branch-mapping.md`. To pick and implement the next high-value feature, see `docs/ATLAS-HIGH-VALUE-BACKLOG.md` and `docs/ATLAS-FEATURE-EXECUTION-PROMPT.md`.
+For deployment and secrets, see [README → Deployment](README.md#deployment) and `docs/ci-cd-branch-mapping.md`. To pick and implement the next high-value feature, see `docs/ATLAS-HIGH-VALUE-BACKLOG.md` and `docs/ATLAS-FEATURE-EXECUTION-PROMPT.md`. **For AI agents:** see [AGENTS.md](AGENTS.md) for gate and feature-backlog pointers.

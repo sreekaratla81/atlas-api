@@ -121,6 +121,7 @@ CI expects `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release` (an
 
 ## Documentation
 
+- **AGENTS.md** — Instructions for AI assistants (gate, feature backlog, docs sync).
 - **CONTRIBUTING.md** — PR checklist and gate commands.
 - **docs/DEVSECOPS-GATES-BASELINE.md** — Gate definition, commands per repo, verify in CI, branch protection.
 - **docs/ci-cd-branch-mapping.md** — Branch → workflow → app mapping and secrets.

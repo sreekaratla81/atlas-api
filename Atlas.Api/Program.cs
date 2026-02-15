@@ -191,6 +191,7 @@ namespace Atlas.Api
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();
 
+            // Authentication is intentionally disabled until JWT is configured; then uncomment UseAuthentication/UseAuthorization.
             // app.UseAuthentication();
             // app.UseAuthorization();
 

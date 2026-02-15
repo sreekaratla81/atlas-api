@@ -113,6 +113,8 @@ Configure production runtime settings in Azure App Service and GitHub Actions:
 Reminder: never commit connection strings, JWT keys, or `.env` files to the
 repository—use secret managers or platform configuration instead.
 
+- **Health:** `GET /health` returns 200 with `{ "status": "healthy" }` for liveness (e.g. load balancer or Azure App Service). See `docs/api-contract.md`.
+
 ## CI validation
 
 The **Gate** workflow (`.github/workflows/gate.yml`) runs on push to `dev` and on pull requests to `main`/`dev`: restore → build (Release) → unit tests (Atlas.Api.Tests, Atlas.DbMigrator.Tests). No SQL Server required in CI; integration tests run in the deploy workflow.

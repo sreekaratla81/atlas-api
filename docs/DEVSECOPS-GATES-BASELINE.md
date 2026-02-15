@@ -111,4 +111,4 @@ npm test
    After pushing to `dev` (or opening a PR to `main`/`dev`), the Gate or CI workflow runs in GitHub Actions. Check the Actions tab to confirm the run completes successfully. To require the gate before merge: repo **Settings → Branches → Add rule** for `main` (and optionally `dev`) → **Require status checks to pass before merging** → select the workflow’s job name. **Status check names by repo:** atlas-api → **gate**; atlas-admin-portal → **gate**; RatebotaiRepo → **build**.
 
 6. **Before a release**
-   Re-run the full sanity suite (this section, steps 1–3) locally for all three repos to confirm they are still green before tagging or releasing.
+   Re-run the full sanity suite (this section, steps 1–3) locally for all three repos to confirm they are still green before tagging or releasing. In production, `GET /health` returns 200 for liveness (load balancer / platform health checks).

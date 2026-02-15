@@ -152,14 +152,14 @@ public class AdminCalendarControllerTests
         tenantOneContext.Properties.Add(new Property { Name = "P1", Address = "A", Type = "Villa", OwnerName = "O", ContactPhone = "1", Status = "Active" });
         await tenantOneContext.SaveChangesAsync();
         var tenantOneProperty = await tenantOneContext.Properties.SingleAsync();
-        tenantOneContext.Listings.Add(new Listing { PropertyId = tenantOneProperty.Id, Name = "L1", Floor = 1, Type = "Room", Status = "Active", WifiName = "w", WifiPassword = "p", MaxGuests = 2 });
+        tenantOneContext.Listings.Add(new Listing { PropertyId = tenantOneProperty.Id, Property = tenantOneProperty, Name = "L1", Floor = 1, Type = "Room", Status = "Active", WifiName = "w", WifiPassword = "p", MaxGuests = 2 });
         await tenantOneContext.SaveChangesAsync();
         var tenantOneListing = await tenantOneContext.Listings.SingleAsync();
 
         tenantTwoContext.Properties.Add(new Property { Name = "P2", Address = "A", Type = "Villa", OwnerName = "O", ContactPhone = "1", Status = "Active" });
         await tenantTwoContext.SaveChangesAsync();
         var tenantTwoProperty = await tenantTwoContext.Properties.SingleAsync();
-        tenantTwoContext.Listings.Add(new Listing { PropertyId = tenantTwoProperty.Id, Name = "L2", Floor = 1, Type = "Room", Status = "Active", WifiName = "w", WifiPassword = "p", MaxGuests = 2 });
+        tenantTwoContext.Listings.Add(new Listing { PropertyId = tenantTwoProperty.Id, Property = tenantTwoProperty, Name = "L2", Floor = 1, Type = "Room", Status = "Active", WifiName = "w", WifiPassword = "p", MaxGuests = 2 });
         await tenantTwoContext.SaveChangesAsync();
         var tenantTwoListing = await tenantTwoContext.Listings.SingleAsync();
 

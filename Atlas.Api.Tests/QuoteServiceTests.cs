@@ -67,7 +67,7 @@ public class QuoteServiceTests
             var property = new Property { Name = "P", Address = "A", Type = "Villa", OwnerName = "O", ContactPhone = "1", CommissionPercent = 10, Status = "Active" };
             db.Properties.Add(property);
             await db.SaveChangesAsync();
-            var listing = new Listing { Id = 1, PropertyId = property.Id, Name = "L", Floor = 1, Type = "Room", Status = "Available", WifiName = "w", WifiPassword = "p", MaxGuests = 2 };
+            var listing = new Listing { Id = 1, PropertyId = property.Id, Property = property, Name = "L", Floor = 1, Type = "Room", Status = "Available", WifiName = "w", WifiPassword = "p", MaxGuests = 2 };
             db.Listings.Add(listing);
             db.ListingPricings.Add(new ListingPricing { ListingId = 1, BaseNightlyRate = 500, WeekendNightlyRate = 500, Currency = "INR" });
         }

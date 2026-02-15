@@ -31,7 +31,8 @@ public class ConfigurationValidationIntegrationTests
                         config.AddInMemoryCollection(new Dictionary<string, string?>
                         {
                             ["ConnectionStrings:DefaultConnection"] = "__SET_VIA_ENV_OR_AZURE__",
-                            ["Jwt:Key"] = "__SET_VIA_ENV_OR_AZURE__"
+                            ["Jwt:Key"] = "__SET_VIA_ENV_OR_AZURE__",
+                            ["Startup:StrictRequiredConfig"] = "true"
                         });
                     });
                 });

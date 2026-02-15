@@ -9,8 +9,9 @@ public class ListingDailyInventoryModelTests
     [Fact]
     public void ListingDailyInventory_HasExpectedModelConfiguration()
     {
+        // Use SqlServer so GetColumnType() (relational) works; InMemory does not provide RelationalTypeMapping.
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=Dummy;Trusted_Connection=True;")
             .Options;
 
         using var context = new AppDbContext(options);

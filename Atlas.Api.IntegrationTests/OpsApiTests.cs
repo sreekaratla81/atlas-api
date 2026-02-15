@@ -13,6 +13,16 @@ public class OpsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetHealth_ReturnsOkWithHealthyStatus()
+    {
+        var response = await Client.GetAsync(ApiRoute("health"));
+        response.EnsureSuccessStatusCode();
+        var payload = await response.Content.ReadFromJsonAsync<HealthResponse>();
+        Assert.NotNull(payload);
+        Assert.Equal("healthy", payload!.status);
+    }
+
+    [Fact]
     public async Task DbInfo_ReturnsDatabaseNameAndMarker()
     {
         using var scope = Factory.Services.CreateScope();
@@ -45,5 +55,6 @@ public class OpsApiTests : IntegrationTestBase
         response.EnsureSuccessStatusCode();
     }
 
+    private sealed record HealthResponse(string status);
     private sealed record DbInfoResponse(string environment, string server, string database, string marker);
 }

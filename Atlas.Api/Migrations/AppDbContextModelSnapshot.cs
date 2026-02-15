@@ -394,7 +394,7 @@ namespace Atlas.Api.Migrations
                     b.HasIndex("Slug")
                         .IsUnique();
 
-                    b.ToTable("Tenant", (string)null);
+                    b.ToTable("Tenants", (string)null);
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Guest", b =>

@@ -72,4 +72,65 @@ public class ModelSnapshotConsistencyTests
                 nameof(ListingDailyRate.Date)
             }));
     }
+
+    [Fact]
+    public void CommunicationLog_ShouldUseTenantScopedIdempotencyKeyUniqueIndex()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=Dummy;Trusted_Connection=True;")
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var entityType = context.Model.FindEntityType(typeof(CommunicationLog));
+        Assert.NotNull(entityType);
+
+        var indexes = entityType!.GetIndexes().ToList();
+        Assert.Contains(indexes, index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(CommunicationLog.TenantId),
+                nameof(CommunicationLog.IdempotencyKey)
+            }));
+
+        Assert.DoesNotContain(indexes, index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(CommunicationLog.IdempotencyKey)
+            }));
+    }
+
+    [Fact]
+    public void AutomationSchedule_ShouldHaveBookingForeignKeyAndTenantScopedUniqueIndex()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=Dummy;Trusted_Connection=True;")
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var entityType = context.Model.FindEntityType(typeof(AutomationSchedule));
+        Assert.NotNull(entityType);
+
+        var foreignKeys = entityType!.GetForeignKeys().ToList();
+        Assert.Contains(foreignKeys, foreignKey =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Booking) &&
+            foreignKey.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(AutomationSchedule.BookingId)
+            }));
+
+        var indexes = entityType.GetIndexes().ToList();
+        Assert.Contains(indexes, index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(AutomationSchedule.TenantId),
+                nameof(AutomationSchedule.BookingId),
+                nameof(AutomationSchedule.EventType),
+                nameof(AutomationSchedule.DueAtUtc)
+            }));
+    }
 }

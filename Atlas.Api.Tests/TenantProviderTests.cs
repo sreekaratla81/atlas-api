@@ -63,7 +63,7 @@ public class TenantProviderTests
     }
 
     [Fact]
-    public async Task ResolveTenantAsync_DoesNotFallbackInProduction()
+    public async Task ResolveTenantAsync_DoesNotFallbackInProduction_WhenHostUnknown()
     {
         await using var dbContext = CreateDbContext();
         dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
@@ -74,6 +74,23 @@ public class TenantProviderTests
         var tenant = await provider.ResolveTenantAsync(new DefaultHttpContext());
 
         Assert.Null(tenant);
+    }
+
+    [Fact]
+    public async Task ResolveTenantAsync_ResolvesAtlas_WhenHostIsDevApi()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+        await dbContext.SaveChangesAsync();
+
+        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString("atlas-homes-api-dev-fhdtg0gkgmcmhwfd.centralindia-01.azurewebsites.net");
+
+        var tenant = await provider.ResolveTenantAsync(context);
+
+        Assert.NotNull(tenant);
+        Assert.Equal("atlas", tenant!.Slug);
     }
 
     [Fact]

@@ -20,8 +20,10 @@ public class TenantProvider : ITenantProvider
 
     public async Task<Tenant?> ResolveTenantAsync(HttpContext httpContext, CancellationToken cancellationToken = default)
     {
+        var host = httpContext.Request.Host.Host ?? "";
         var slug = ResolveTenantSlugFromHeader(httpContext)
-            ?? ResolveTenantSlugFromHost(httpContext.Request.Host.Host)
+            ?? ResolveTenantSlugFromHost(host)
+            ?? ResolveTenantSlugFromDevApiHost(host)
             ?? ResolveDefaultSlug();
 
         if (string.IsNullOrWhiteSpace(slug))
@@ -60,6 +62,16 @@ public class TenantProvider : ITenantProvider
 
         var subdomain = parts[0].Trim().ToLowerInvariant();
         return string.IsNullOrWhiteSpace(subdomain) ? null : subdomain;
+    }
+
+    /// <summary>When the request hits the known dev API host (e.g. atlas-homes-api-dev-xxx.azurewebsites.net), resolve to default tenant so direct browser and clients without X-Tenant-Slug still work.</summary>
+    private static string? ResolveTenantSlugFromDevApiHost(string host)
+    {
+        if (string.IsNullOrWhiteSpace(host)) return null;
+        var lower = host.Trim().ToLowerInvariant();
+        if (lower.Contains("atlas-homes-api-dev"))
+            return DefaultTenantSlug;
+        return null;
     }
 
     private string? ResolveDefaultSlug()

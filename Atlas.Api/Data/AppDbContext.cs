@@ -40,6 +40,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<MessageTemplate>(modelBuilder);
             ApplyTenantQueryFilter<CommunicationLog>(modelBuilder);
             ApplyTenantQueryFilter<OutboxMessage>(modelBuilder);
+            ApplyTenantQueryFilter<ConsumedEvent>(modelBuilder);
             ApplyTenantQueryFilter<AutomationSchedule>(modelBuilder);
             ApplyTenantQueryFilter<BankAccount>(modelBuilder);
             ApplyTenantQueryFilter<TenantPricingSetting>(modelBuilder);
@@ -580,6 +581,47 @@ namespace Atlas.Api.Data
                 .Property(o => o.LastError)
                 .HasColumnType("text");
 
+            // Kafka consumers should upsert into this inbox table for per-tenant dedupe once consumer handlers are added.
+            modelBuilder.Entity<ConsumedEvent>()
+                .ToTable("ConsumedEvent");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(c => c.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(c => c.ConsumerName)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)")
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(c => c.EventId)
+                .HasMaxLength(150)
+                .HasColumnType("varchar(150)")
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(c => c.EventType)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)")
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(c => c.ProcessedAtUtc)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(c => c.PayloadHash)
+                .HasMaxLength(128)
+                .HasColumnType("varchar(128)");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(c => c.Status)
+                .HasMaxLength(30)
+                .HasColumnType("varchar(30)");
+
             modelBuilder.Entity<AutomationSchedule>()
                 .ToTable("AutomationSchedule");
 
@@ -682,6 +724,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<MessageTemplate>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<CommunicationLog>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<OutboxMessage>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ConsumedEvent>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<AutomationSchedule>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<BankAccount>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<TenantPricingSetting>(modelBuilder, deleteBehavior);
@@ -696,6 +739,8 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<AvailabilityBlock>().HasIndex(x => new { x.TenantId, x.ListingId, x.StartDate, x.EndDate });
             modelBuilder.Entity<MessageTemplate>().HasIndex(x => new { x.TenantId, x.EventType, x.Channel });
             modelBuilder.Entity<CommunicationLog>().HasIndex(x => new { x.TenantId, x.BookingId });
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ConsumerName, x.EventId }).IsUnique();
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ProcessedAtUtc });
             modelBuilder.Entity<AutomationSchedule>().HasIndex(x => new { x.TenantId, x.BookingId, x.DueAtUtc });
             modelBuilder.Entity<BankAccount>().HasIndex(x => new { x.TenantId, x.AccountNumber });
             modelBuilder.Entity<TenantPricingSetting>().HasIndex(x => x.TenantId).IsUnique();
@@ -793,6 +838,7 @@ namespace Atlas.Api.Data
         public DbSet<MessageTemplate> MessageTemplates { get; set; }
         public DbSet<CommunicationLog> CommunicationLogs { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
+        public DbSet<ConsumedEvent> ConsumedEvents { get; set; }
         public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
         public DbSet<TenantPricingSetting> TenantPricingSettings { get; set; }
         public DbSet<QuoteRedemption> QuoteRedemptions { get; set; }

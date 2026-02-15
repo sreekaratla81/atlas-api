@@ -20,6 +20,7 @@ public class IntegrationTestDatabaseModelTableTests
 
         Assert.Contains(tables, table => table.Table == "EnvironmentMarker");
         Assert.Contains(tables, table => table.Table == "Properties");
+        Assert.Contains(tables, table => table.Table == "ConsumedEvent");
         Assert.DoesNotContain(tables, table => table.Table == "__EFMigrationsHistory");
         Assert.All(tables, table => Assert.False(string.IsNullOrWhiteSpace(table.Schema)));
     }

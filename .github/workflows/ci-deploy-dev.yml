@@ -73,6 +73,10 @@ jobs:
       contents: read
       id-token: write
     steps:
+      # Checkout first so repo (scripts/, migrator) exists; then download artifact so it is not overwritten by checkout
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download deploy artifact
         uses: actions/download-artifact@v4
         with:
@@ -94,9 +98,6 @@ jobs:
             Write-Error 'Deploy artifact missing Atlas.Api.exe in ./net-app or ./net-app/publish. Check upload-artifact path.'
             exit 1
           }
-
-      - name: Checkout (for migrator)
-        uses: actions/checkout@v4
 
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4

@@ -550,6 +550,9 @@ namespace Atlas.Api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -562,7 +565,9 @@ namespace Atlas.Api.Migrations
 
                     b.HasIndex("ListingPricingListingId");
 
-                    b.HasIndex("ListingId", "Date")
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "ListingId", "Date")
                         .IsUnique();
 
                     b.ToTable("ListingDailyRate", (string)null);
@@ -637,6 +642,9 @@ namespace Atlas.Api.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -647,6 +655,11 @@ namespace Atlas.Api.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("ListingId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "ListingId")
+                        .IsUnique();
 
                     b.ToTable("ListingPricing", (string)null);
                 });
@@ -984,7 +997,15 @@ namespace Atlas.Api.Migrations
                         .WithMany("DailyRates")
                         .HasForeignKey("ListingPricingListingId");
 
+                    b.HasOne("Atlas.Api.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Listing");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.ListingDailyInventory", b =>
@@ -1014,7 +1035,15 @@ namespace Atlas.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Atlas.Api.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Listing");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.Payment", b =>

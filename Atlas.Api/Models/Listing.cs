@@ -26,6 +26,7 @@ namespace Atlas.Api.Models
 
         public ListingPricing? Pricing { get; set; }
         public ICollection<ListingDailyRate> DailyRates { get; set; } = new List<ListingDailyRate>();
+        public ICollection<ListingDailyInventory> DailyInventories { get; set; } = new List<ListingDailyInventory>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
 }

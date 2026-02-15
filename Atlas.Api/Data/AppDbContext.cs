@@ -35,6 +35,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<User>(modelBuilder);
             ApplyTenantQueryFilter<ListingPricing>(modelBuilder);
             ApplyTenantQueryFilter<ListingDailyRate>(modelBuilder);
+            ApplyTenantQueryFilter<ListingDailyInventory>(modelBuilder);
             ApplyTenantQueryFilter<AvailabilityBlock>(modelBuilder);
             ApplyTenantQueryFilter<MessageTemplate>(modelBuilder);
             ApplyTenantQueryFilter<CommunicationLog>(modelBuilder);
@@ -207,6 +208,43 @@ namespace Atlas.Api.Data
                 .HasOne(r => r.Listing)
                 .WithMany(l => l.DailyRates)
                 .HasForeignKey(r => r.ListingId)
+                .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .ToTable("ListingDailyInventory");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.Date)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.RoomsAvailable)
+                .HasColumnType("int");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.Source)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired();
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.Reason)
+                .HasMaxLength(200)
+                .HasColumnType("varchar(200)");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.UpdatedAtUtc)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .HasIndex(i => new { i.TenantId, i.ListingId, i.Date })
+                .IsUnique();
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .HasOne(i => i.Listing)
+                .WithMany(l => l.DailyInventories)
+                .HasForeignKey(i => i.ListingId)
                 .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<AvailabilityBlock>()
@@ -555,6 +593,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<User>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<ListingPricing>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<ListingDailyRate>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ListingDailyInventory>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<AvailabilityBlock>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<MessageTemplate>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<CommunicationLog>(modelBuilder, deleteBehavior);
@@ -567,6 +606,7 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<Payment>().HasIndex(x => new { x.TenantId, x.BookingId });
             modelBuilder.Entity<ListingPricing>().HasIndex(x => new { x.TenantId, x.ListingId }).IsUnique();
             modelBuilder.Entity<ListingDailyRate>().HasIndex(x => new { x.TenantId, x.ListingId, x.Date }).IsUnique();
+            modelBuilder.Entity<ListingDailyInventory>().HasIndex(x => new { x.TenantId, x.ListingId, x.Date }).IsUnique();
             modelBuilder.Entity<AvailabilityBlock>().HasIndex(x => new { x.TenantId, x.ListingId, x.StartDate, x.EndDate });
             modelBuilder.Entity<MessageTemplate>().HasIndex(x => new { x.TenantId, x.EventType, x.Channel });
             modelBuilder.Entity<CommunicationLog>().HasIndex(x => new { x.TenantId, x.BookingId });
@@ -661,6 +701,7 @@ namespace Atlas.Api.Data
         public DbSet<AvailabilityBlock> AvailabilityBlocks { get; set; }
         public DbSet<ListingPricing> ListingPricings { get; set; }
         public DbSet<ListingDailyRate> ListingDailyRates { get; set; }
+        public DbSet<ListingDailyInventory> ListingDailyInventories { get; set; }
         public DbSet<MessageTemplate> MessageTemplates { get; set; }
         public DbSet<CommunicationLog> CommunicationLogs { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }

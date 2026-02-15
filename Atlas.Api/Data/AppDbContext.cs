@@ -214,6 +214,9 @@ namespace Atlas.Api.Data
                 .ToTable("ListingDailyInventory");
 
             modelBuilder.Entity<ListingDailyInventory>()
+                .ToTable(t => t.HasCheckConstraint("CK_ListingDailyInventory_RoomsAvailable_NonNegative", "[RoomsAvailable] >= 0"));
+
+            modelBuilder.Entity<ListingDailyInventory>()
                 .Property(i => i.Date)
                 .HasColumnType("date");
 

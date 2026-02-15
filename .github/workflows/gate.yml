@@ -8,6 +8,10 @@ on:
   pull_request:
     branches: [main, dev]
 
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gate:
     runs-on: windows-latest

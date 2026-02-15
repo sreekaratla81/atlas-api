@@ -5,6 +5,9 @@
 # Optional: for tenant-scoped endpoints (multi-tenant)
 # X-Tenant-Slug: atlas
 
+### Health (liveness)
+GET {{baseUrl}}/health
+
 ### Create Property
 POST {{baseUrl}}/properties
 Content-Type: application/json

@@ -140,6 +140,120 @@ public class AdminCalendarApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task PutAvailability_UpsertingPriceOverrideTwice_UpdatesSingleRateRow()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        await DataSeeder.SeedListingPricingAsync(db, listing, 100m, 120m);
+
+        var date = new DateTime(2025, 1, 2);
+
+        using var firstRequest = new HttpRequestMessage(HttpMethod.Put, ApiRoute("admin/calendar/availability"))
+        {
+            Content = JsonContent.Create(new AdminCalendarAvailabilityBulkUpsertRequestDto
+            {
+                Cells =
+                [
+                    new AdminCalendarAvailabilityCellUpsertDto { ListingId = listing.Id, Date = date, RoomsAvailable = 3, PriceOverride = 210m }
+                ]
+            })
+        };
+        firstRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+
+        var firstResponse = await Client.SendAsync(firstRequest);
+        firstResponse.EnsureSuccessStatusCode();
+
+        using var secondRequest = new HttpRequestMessage(HttpMethod.Put, ApiRoute("admin/calendar/availability"))
+        {
+            Content = JsonContent.Create(new AdminCalendarAvailabilityBulkUpsertRequestDto
+            {
+                Cells =
+                [
+                    new AdminCalendarAvailabilityCellUpsertDto { ListingId = listing.Id, Date = date, RoomsAvailable = 3, PriceOverride = 260m }
+                ]
+            })
+        };
+        secondRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+
+        var secondResponse = await Client.SendAsync(secondRequest);
+        secondResponse.EnsureSuccessStatusCode();
+
+        var rates = await db.ListingDailyRates
+            .AsNoTracking()
+            .Where(r => r.ListingId == listing.Id && r.Date == date)
+            .ToListAsync();
+
+        Assert.Single(rates);
+        Assert.Equal(260m, rates[0].NightlyRate);
+
+        var getResponse = await Client.GetAsync(ApiRoute($"admin/calendar/availability?propertyId={property.Id}&from={date:yyyy-MM-dd}&days=1&listingId={listing.Id}"));
+        getResponse.EnsureSuccessStatusCode();
+
+        var cells = await getResponse.Content.ReadFromJsonAsync<List<AdminCalendarAvailabilityCellDto>>();
+        var cell = Assert.Single(cells!);
+        Assert.Equal(260m, cell.PriceOverride);
+    }
+
+    [Fact]
+    public async Task PutAvailability_UpsertingInventoryTwice_UpdatesSingleInventoryRow()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        await DataSeeder.SeedListingPricingAsync(db, listing, 100m, 120m);
+
+        var date = new DateTime(2025, 1, 3);
+
+        using var firstRequest = new HttpRequestMessage(HttpMethod.Put, ApiRoute("admin/calendar/availability"))
+        {
+            Content = JsonContent.Create(new AdminCalendarAvailabilityBulkUpsertRequestDto
+            {
+                Cells =
+                [
+                    new AdminCalendarAvailabilityCellUpsertDto { ListingId = listing.Id, Date = date, RoomsAvailable = 5, PriceOverride = 180m }
+                ]
+            })
+        };
+        firstRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+
+        var firstResponse = await Client.SendAsync(firstRequest);
+        firstResponse.EnsureSuccessStatusCode();
+
+        using var secondRequest = new HttpRequestMessage(HttpMethod.Put, ApiRoute("admin/calendar/availability"))
+        {
+            Content = JsonContent.Create(new AdminCalendarAvailabilityBulkUpsertRequestDto
+            {
+                Cells =
+                [
+                    new AdminCalendarAvailabilityCellUpsertDto { ListingId = listing.Id, Date = date, RoomsAvailable = 1, PriceOverride = 180m }
+                ]
+            })
+        };
+        secondRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+
+        var secondResponse = await Client.SendAsync(secondRequest);
+        secondResponse.EnsureSuccessStatusCode();
+
+        var inventoryRows = await db.ListingDailyInventories
+            .AsNoTracking()
+            .Where(i => i.ListingId == listing.Id && i.Date == date)
+            .ToListAsync();
+
+        Assert.Single(inventoryRows);
+        Assert.Equal(1, inventoryRows[0].RoomsAvailable);
+
+        var getResponse = await Client.GetAsync(ApiRoute($"admin/calendar/availability?propertyId={property.Id}&from={date:yyyy-MM-dd}&days=1&listingId={listing.Id}"));
+        getResponse.EnsureSuccessStatusCode();
+
+        var cells = await getResponse.Content.ReadFromJsonAsync<List<AdminCalendarAvailabilityCellDto>>();
+        var cell = Assert.Single(cells!);
+        Assert.Equal(1, cell.RoomsAvailable);
+    }
+
+    [Fact]
     public async Task PutAvailability_ReturnsNotFound_ForCrossTenantListingAccess()
     {
         using var scope = Factory.Services.CreateScope();

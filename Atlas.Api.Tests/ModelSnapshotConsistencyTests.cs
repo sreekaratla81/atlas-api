@@ -1,8 +1,10 @@
 using Atlas.Api.Data;
+using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
+using System.Linq;
 using Xunit;
 
 namespace Atlas.Api.Tests;
@@ -38,5 +40,36 @@ public class ModelSnapshotConsistencyTests
         Assert.False(
             hasDifferences,
             "Model snapshot does not match the current model. Add a new migration to update it.");
+    }
+
+    [Fact]
+    public void ListingDailyRate_ShouldUseTenantScopedUniqueIndexOnly()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=Dummy;Trusted_Connection=True;")
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var entityType = context.Model.FindEntityType(typeof(ListingDailyRate));
+        Assert.NotNull(entityType);
+
+        var indexes = entityType!.GetIndexes().ToList();
+        Assert.Contains(indexes, index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(ListingDailyRate.TenantId),
+                nameof(ListingDailyRate.ListingId),
+                nameof(ListingDailyRate.Date)
+            }));
+
+        Assert.DoesNotContain(indexes, index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(ListingDailyRate.ListingId),
+                nameof(ListingDailyRate.Date)
+            }));
     }
 }

@@ -195,6 +195,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | bigint | No |
+| TenantId | int | No |
 | ListingId | int | No |
 | Date | date | No |
 | NightlyRate | decimal(18,2) | No |
@@ -208,15 +209,22 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Foreign Keys**
+- TenantId → Tenant.Id
 - ListingId → Listings.Id
 
+**Indexes**
+- Unique index on (ListingId, Date)
+- Unique index on (TenantId, ListingId, Date)
+
 **Relationships**
+- Many daily rates belong to one tenant.
 - Many daily rates belong to one listing.
 
 ## ListingPricing
 **Columns**
 | Column | Type | Nullable |
 | --- | --- | --- |
+| TenantId | int | No |
 | ListingId | int | No |
 | BaseNightlyRate | decimal(18,2) | No |
 | WeekendNightlyRate | decimal(18,2) | Yes |
@@ -228,16 +236,21 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - ListingId
 
 **Foreign Keys**
+- TenantId → Tenant.Id
 - ListingId → Listings.Id
 
+**Indexes**
+- Unique index on (TenantId, ListingId)
+
 **Relationships**
-- Each listing pricing row corresponds to one listing (one-to-one).
+- Each listing pricing row corresponds to one tenant-owned listing (one-to-one).
 
 ## Listings
 **Columns**
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
+| TenantId | int | No |
 | PropertyId | int | No |
 | Name | nvarchar(max) | No |
 | Floor | int | No |
@@ -253,9 +266,14 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - Id
 
 **Foreign Keys**
+- TenantId → Tenant.Id
 - PropertyId → Properties.Id
 
+**Indexes**
+- Non-unique index on (TenantId, PropertyId)
+
 **Relationships**
+- Many listings belong to one tenant.
 - Many listings belong to one property.
 
 ## MessageTemplate
@@ -396,9 +414,10 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - None
 
 ## Multi-tenant additions
-- Core domain tables include a non-null `TenantId` column and enforce tenant isolation through global query filters in EF Core.
+- Core domain tables include a non-null `TenantId` column and enforce tenant isolation through EF Core global query filters.
 - Tenant-owned entities include (not exhaustive): `Properties`, `Listings`, `Bookings`, `Guests`, `Payments`, `ListingPricing`, `ListingDailyRate`, `ListingDailyInventory`, `AvailabilityBlock`, `BankAccounts`, `Users`, `MessageTemplate`, `CommunicationLog`, `OutboxMessage`, and `AutomationSchedule`.
-- `TenantId` is used in uniqueness constraints where tenant-scoped uniqueness is required.
+- `TenantId` is automatically populated on insert and validated on update in `SaveChanges`/`SaveChangesAsync`.
+- `TenantId` is used in uniqueness constraints where tenant-scoped uniqueness is required to prevent cross-tenant collisions.
 
 ## Tenant
 **Columns**
@@ -443,5 +462,14 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 **Unique Indexes**
 - `UX_ListingDailyInventory_TenantId_ListingId_Date` (`TenantId`, `ListingId`, `Date`)
 
-## ListingDailyRate (tenant uniqueness)
-- In addition to its base schema, tenant-scoped deployments use a unique key on (`TenantId`, `ListingId`, `Date`) to prevent cross-tenant collisions on daily pricing rows.
+**Relationships**
+- Many daily inventory rows belong to one tenant.
+- Many daily inventory rows belong to one listing.
+
+## Calendar query indexes
+The admin calendar endpoints rely on tenant-scoped predicates and date windows. Key indexes are:
+- `Listings`: (`TenantId`, `PropertyId`) for property-level listing lookup per tenant.
+- `ListingPricing`: unique (`TenantId`, `ListingId`) for per-listing base/weekend rate resolution.
+- `ListingDailyRate`: unique (`TenantId`, `ListingId`, `Date`) for per-day price overrides.
+- `ListingDailyInventory`: unique (`TenantId`, `ListingId`, `Date`) for per-day inventory overrides.
+- `AvailabilityBlock`: (`TenantId`, `ListingId`, `StartDate`, `EndDate`) for overlap checks against requested date ranges.

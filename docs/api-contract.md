@@ -447,35 +447,38 @@
 
 #### `GET /admin/calendar/availability`
 - **Purpose**: Return availability calendar cells for one property (optionally one listing), tenant-scoped.
+- **Tenant scoping behavior**: Listing/pricing/rate/inventory/block queries are constrained by EF global filters (`TenantId`), so only rows owned by the resolved tenant are included.
 - **Query params**:
   - `propertyId` (int, required, must be > 0)
   - `from` (DateTime, required; normalized to date)
   - `days` (int, optional, default `30`, must be > 0)
   - `listingId` (int, optional)
 - **Response body**: `200 OK` with `AdminCalendarAvailabilityCellDto[]`
-  - `date` (date)
-  - `listingId` (int)
-  - `roomsAvailable` (int)
-  - `effectivePrice` (decimal)
-  - `priceOverride` (decimal?)
-  - `isBlocked` (bool)
+  - `date` (`date`)
+  - `listingId` (`int`)
+  - `roomsAvailable` (`int`; sourced from `ListingDailyInventory.RoomsAvailable`, defaults to `1`, forced to `0` when blocked)
+  - `effectivePrice` (`decimal(18,2)` semantic; `priceOverride` when present, otherwise base/weekend price from `ListingPricing`)
+  - `priceOverride` (`decimal(18,2)?`; nullable daily override from `ListingDailyRate.NightlyRate`)
+  - `isBlocked` (`bit`/bool)
 - **Validation / errors**:
   - `400` when `propertyId <= 0` or `days <= 0`
   - `404` when `listingId` is provided but not visible to the current tenant
 
 #### `PUT /admin/calendar/availability`
 - **Purpose**: Bulk upsert listing daily availability and optional price overrides, tenant-scoped.
+- **Tenant scoping behavior**: `TenantId` is assigned by the DbContext tenant ownership rule; clients must not pass `tenantId` in payloads.
 - **Request body**: `AdminCalendarAvailabilityBulkUpsertRequestDto`
   - `cells` (required, min length 1)
   - each cell:
-    - `listingId` (required)
-    - `date` (required)
-    - `roomsAvailable` (must be `>= 0`)
-    - `priceOverride` (optional, must be `>= 0` when supplied)
+    - `listingId` (`int`, required)
+    - `date` (`date`, required)
+    - `roomsAvailable` (`int`, required, must be `>= 0`; persisted to `ListingDailyInventory.RoomsAvailable`)
+    - `priceOverride` (`decimal(18,2)?`, optional, must be `>= 0` when supplied; persisted to `ListingDailyRate.NightlyRate`, removed when omitted/null)
 - **Response body**: `200 OK` with `AdminCalendarAvailabilityBulkUpsertResponseDto`
-  - `updatedCells` (int)
-  - `deduplicated` (bool)
+  - `updatedCells` (`int`)
+  - `deduplicated` (`bool`)
   - `cells` (`AdminCalendarAvailabilityCellDto[]`)
+    - each returned cell includes `roomsAvailable` (`int`) and `priceOverride` (`decimal(18,2)?`) explicitly.
 - **Validation / errors**:
   - `400` for model validation failures, including negative `roomsAvailable` or negative `priceOverride`
   - `404` when one or more referenced listings are not visible to the current tenant

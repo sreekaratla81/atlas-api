@@ -776,6 +776,7 @@ namespace Atlas.Api.Migrations
                     b.ToTable("OutboxMessage", (string)null);
                 });
 
+
             modelBuilder.Entity("Atlas.Api.Models.Payment", b =>
                 {
                     b.Property<int>("Id")
@@ -874,6 +875,71 @@ namespace Atlas.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Properties");
+                });
+
+
+            modelBuilder.Entity("Atlas.Api.Models.WhatsAppInboundMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int?>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("FromNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<int?>("GuestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("ProviderMessageId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("ReceivedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ToNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("GuestId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "Provider", "ProviderMessageId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "ReceivedAtUtc");
+
+                    b.ToTable("WhatsAppInboundMessage", (string)null);
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.User", b =>
@@ -1045,6 +1111,32 @@ namespace Atlas.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Listing");
+
+                    b.Navigation("Tenant");
+                });
+
+
+            modelBuilder.Entity("Atlas.Api.Models.WhatsAppInboundMessage", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Atlas.Api.Models.Guest", "Guest")
+                        .WithMany()
+                        .HasForeignKey("GuestId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Atlas.Api.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Guest");
 
                     b.Navigation("Tenant");
                 });

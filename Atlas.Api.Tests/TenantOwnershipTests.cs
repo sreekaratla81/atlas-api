@@ -74,6 +74,50 @@ public class TenantOwnershipTests
         Assert.Equal("Tenant1", tenantOneRows[0].Name);
     }
 
+    [Fact]
+    public async Task WhatsAppInboundMessage_QueryFilter_OnlyReturnsRowsForCurrentTenant()
+    {
+        var databaseName = Guid.NewGuid().ToString();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName)
+            .Options;
+
+        await using (var tenantOneContext = new AppDbContext(options, new TestTenantContextAccessor(1)))
+        {
+            tenantOneContext.WhatsAppInboundMessages.Add(new WhatsAppInboundMessage
+            {
+                Provider = "Meta",
+                ProviderMessageId = "m-1",
+                FromNumber = "+15550001",
+                ToNumber = "+15550999",
+                ReceivedAtUtc = DateTime.UtcNow,
+                PayloadJson = "{}"
+            });
+            await tenantOneContext.SaveChangesAsync();
+        }
+
+        await using (var tenantTwoContext = new AppDbContext(options, new TestTenantContextAccessor(2)))
+        {
+            tenantTwoContext.WhatsAppInboundMessages.Add(new WhatsAppInboundMessage
+            {
+                Provider = "Meta",
+                ProviderMessageId = "m-2",
+                FromNumber = "+15550002",
+                ToNumber = "+15550999",
+                ReceivedAtUtc = DateTime.UtcNow,
+                PayloadJson = "{}"
+            });
+            await tenantTwoContext.SaveChangesAsync();
+        }
+
+        await using var filteredContext = new AppDbContext(options, new TestTenantContextAccessor(1));
+        var rows = await filteredContext.WhatsAppInboundMessages.AsNoTracking().ToListAsync();
+
+        Assert.Single(rows);
+        Assert.Equal("m-1", rows[0].ProviderMessageId);
+        Assert.Equal(1, rows[0].TenantId);
+    }
+
     private sealed class TestTenantContextAccessor : ITenantContextAccessor
     {
         public TestTenantContextAccessor(int tenantId)

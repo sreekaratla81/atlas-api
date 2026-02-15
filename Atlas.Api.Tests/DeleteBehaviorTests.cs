@@ -21,4 +21,18 @@ public class DeleteBehaviorTests
 
         Assert.All(fks, fk => Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior));
     }
+
+    [Fact]
+    public void WhatsAppInboundMessage_ForeignKeys_DefaultToRestrict()
+    {
+        Environment.SetEnvironmentVariable("ATLAS_DELETE_BEHAVIOR", null);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+        var entity = context.Model.FindEntityType(typeof(WhatsAppInboundMessage))!;
+
+        Assert.All(entity.GetForeignKeys(), fk => Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior));
+    }
 }

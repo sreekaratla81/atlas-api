@@ -20,4 +20,14 @@ public class DeleteBehaviorTests : IntegrationTestBase
 
         Assert.All(fks, fk => Assert.Equal(DeleteBehavior.Cascade, fk.DeleteBehavior));
     }
+
+    [Fact]
+    public void WhatsAppInboundMessage_ForeignKeys_UseCascadeInIntegrationTests()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var entity = context.Model.FindEntityType(typeof(WhatsAppInboundMessage))!;
+
+        Assert.All(entity.GetForeignKeys(), fk => Assert.Equal(DeleteBehavior.Cascade, fk.DeleteBehavior));
+    }
 }

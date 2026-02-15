@@ -191,10 +191,6 @@ namespace Atlas.Api.Data
                 .HasDefaultValueSql("GETUTCDATE()");
 
             modelBuilder.Entity<ListingDailyRate>()
-                .HasIndex(r => new { r.ListingId, r.Date })
-                .IsUnique();
-
-            modelBuilder.Entity<ListingDailyRate>()
                 .Property(r => r.Date)
                 .HasColumnType("date");
 

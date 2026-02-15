@@ -119,6 +119,14 @@ The **Gate** workflow (`.github/workflows/gate.yml`) runs on push to `dev` and o
 
 CI expects `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release` (and DbMigrator.Tests) to pass. Run these locally before opening a pull request. See `CONTRIBUTING.md` for the PR checklist and `docs/DEVSECOPS-GATES-BASELINE.md` for the full gate definition.
 
+## Documentation
+
+- **CONTRIBUTING.md** — PR checklist and gate commands.
+- **docs/DEVSECOPS-GATES-BASELINE.md** — Gate definition, commands per repo, verify in CI, branch protection.
+- **docs/ci-cd-branch-mapping.md** — Branch → workflow → app mapping and secrets.
+- **docs/ATLAS-HIGH-VALUE-BACKLOG.md** — Prioritized feature roadmap and current implementation status.
+- **docs/ATLAS-FEATURE-EXECUTION-PROMPT.md** — Workflow for implementing the next feature from the backlog.
+
 ## CORS allowlist
 
 Admin surfaces rely on an explicit CORS allowlist defined in `Program.cs` via

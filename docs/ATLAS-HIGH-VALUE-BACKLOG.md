@@ -4,7 +4,7 @@
 
 Prioritized feature roadmap for Atlas Homestays. All development must align with revenue impact, SaaS scalability, automation readiness, multi-tenant architecture, and operational efficiency.
 
-**See also:** `ATLAS-BACKLOG-ANALYSIS.md` at workspace root `docs/` (how this backlog was derived and what’s already in the codebase).
+**See also:** `ATLAS-BACKLOG-ANALYSIS.md` (this folder; how this backlog was derived and what’s already in the codebase).
 
 ---
 

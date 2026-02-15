@@ -50,7 +50,7 @@ dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Re
 
 ## CI
 
-- **Gate** (`.github/workflows/gate.yml`): Today it runs **unit tests only**. To catch host/UI issues before merge, run integration tests in the gate (they need LocalDb, which is available on `windows-latest`). See the workflow and DEVSECOPS-GATES-BASELINE for the exact commands.
+- **CI and Deploy to Dev** (`.github/workflows/ci-deploy-dev.yml`): It runs **unit and integration tests** (including UI contract). To catch host/UI issues before merge, run integration tests in the gate (they need LocalDb, which is available on `windows-latest`). See the workflow and DEVSECOPS-GATES-BASELINE for the exact commands.
 - **Deploy**: Run integration tests (and optionally UI contract tests) before deploy so the same host and UI flows are validated; then deploy.
 
 ## Adding new UI-mirror tests

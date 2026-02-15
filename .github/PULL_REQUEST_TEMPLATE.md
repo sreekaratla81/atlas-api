@@ -9,7 +9,7 @@
 - [ ] PR is raised from `dev` branch
 - [ ] PR merges into `main` only
 - [ ] Code has been tested locally (run gate commands; see CONTRIBUTING.md)
-- [ ] **Gate** workflow must pass before merge (`.github/workflows/gate.yml`)
+- [ ] **CI and Deploy to Dev** workflow must pass before merge (`.github/workflows/ci-deploy-dev.yml`)
 - [ ] No secrets (.env) are committed
 - [ ] Follows repo naming and folder structure
 

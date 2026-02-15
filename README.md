@@ -117,7 +117,7 @@ repository—use secret managers or platform configuration instead.
 
 ## CI validation
 
-The **Gate** workflow runs restore → build (Release) → unit tests → **integration tests** (including UI contract tests). Integration tests use LocalDb on `windows-latest` and validate host startup and the same flows the guest/admin portals use (see `docs/API-TESTING-BEFORE-DEPLOY.md`).
+The **CI and Deploy to Dev** workflow (`ci-deploy-dev.yml`) runs restore → build (Release) → unit tests → **integration tests** (including UI contract tests). Integration tests use LocalDb on `windows-latest` and validate host startup and the same flows the guest/admin portals use (see `docs/API-TESTING-BEFORE-DEPLOY.md`).
 
 Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validation before deploy, run integration tests too (`dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release`). See `CONTRIBUTING.md` and `docs/DEVSECOPS-GATES-BASELINE.md`.
 
@@ -125,7 +125,7 @@ Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validat
 
 - **AGENTS.md** — Instructions for AI assistants (gate, feature backlog, docs sync).
 - **CONTRIBUTING.md** — PR checklist and gate commands.
-- **docs/DEVSECOPS-GATES-BASELINE.md** — Gate definition, commands per repo, verify in CI, branch protection.
+- **docs/DEVSECOPS-GATES-BASELINE.md** — CI/gate definition per repo, verify in CI, branch protection.
 - **docs/API-TESTING-BEFORE-DEPLOY.md** — Unit vs integration vs UI contract tests; run integration tests before deploy.
 - **docs/ci-cd-branch-mapping.md** — Branch → workflow → app mapping and secrets.
 - **docs/ATLAS-HIGH-VALUE-BACKLOG.md** — Prioritized feature roadmap and current implementation status.
@@ -154,9 +154,9 @@ add explicit domains to the allowlist instead.
 ## Deployment
 
 Production deploys are automated through the GitHub Actions workflows at
-`.github/workflows/gate.yml` (dev) and `.github/workflows/deploy-prod.yml` (prod).
+`.github/workflows/ci-deploy-dev.yml` (dev) and `.github/workflows/deploy-prod.yml` (prod).
 
-- **Triggers:** **Prod** — `deploy-prod.yml` runs on push to `main` (when `DEPLOY_PROD_ON_MAIN` is set) or via **workflow_dispatch** (choose prod). **Dev** — `gate.yml` runs on push to `dev` (gate job then deploy-dev job; one build, deploy only after tests pass); `gate.yml` can also be run via **workflow_dispatch**. See `docs/ci-cd-branch-mapping.md` for branch → workflow → app mapping.
+- **Triggers:** **Prod** — `deploy-prod.yml` runs on push to `main` (when `DEPLOY_PROD_ON_MAIN` is set) or via **workflow_dispatch** (choose prod). **Dev** — `ci-deploy-dev.yml` runs on push to `dev` (ci job then deploy-dev job; one build, deploy only after tests pass); it can also be run via **workflow_dispatch**. See `docs/ci-cd-branch-mapping.md` for branch → workflow → app mapping.
 - **Migration/deploy flow:** Both workflows validate DbMigrator connection
   secrets and run a migration check gate. Dev deploy paths can apply pending
   migrations before deployment. Production migration application is gated to
@@ -169,7 +169,7 @@ Production deploys are automated through the GitHub Actions workflows at
 
 | Workflow file | Required/used secret identifiers (exact names from workflow YAML) |
 | --- | --- |
-| `.github/workflows/gate.yml` (deploy-dev job) | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV` |
+| `.github/workflows/ci-deploy-dev.yml` (deploy-dev job) | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV` |
 | `.github/workflows/deploy-prod.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD` |
 
 The `AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*`
@@ -177,14 +177,14 @@ patterns map to `*_DEV` and `*_PROD` variables above.
 
 ### Validate deploy artifacts locally
 
-To catch missing publish outputs before pushing (and avoid deploy-dev failures in CI), run the same validation the gate uses:
+To catch missing publish outputs before pushing (and avoid deploy-dev failures in CI), run the same validation the **ci** job uses:
 
 ```powershell
 dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 ./scripts/validate-publish.ps1 -PublishPath ./publish
 ```
 
-If any required file is missing, the script exits non-zero and lists what’s missing.
+If any required file is missing, the script exits non-zero and lists what’s missing. Note: the deploy-dev job downloads the artifact on the runner where layout can be `./net-app` or `./net-app/publish`; the workflow now resolves this automatically. Local validation only checks `./publish` (same as the ci job), so it would not have caught a “path not found” that was due to layout differences after download—the workflow fix handles both layouts.
 
 ### CI/CD troubleshooting
 

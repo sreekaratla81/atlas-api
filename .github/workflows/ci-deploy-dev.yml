@@ -1,7 +1,6 @@
-# Baseline gate per DEVSECOPS-GATES-BASELINE.md: restore + build + unit tests + integration tests (host + UI contract).
-# On push to dev, after gate passes we publish once and deploy (no separate build/deploy workflow).
-# Status check name for branch protection: gate
-name: Gate
+# CI (build + unit + integration tests) and, on dev branch, deploy to dev (atlas-homes-api-dev).
+# Per DEVSECOPS-GATES-BASELINE.md. Status check name for branch protection: CI and Deploy to Dev
+name: CI and Deploy to Dev
 
 on:
   push:
@@ -11,11 +10,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: gate-${{ github.ref }}
+  group: ci-deploy-dev-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  gate:
+  ci:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -68,7 +67,7 @@ jobs:
 
   deploy-dev:
     runs-on: windows-latest
-    needs: gate
+    needs: ci
     if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
@@ -79,6 +78,22 @@ jobs:
         with:
           name: net-app
           path: ./net-app
+
+      # Artifact layout varies: upload may give net-app/ or net-app/publish/; resolve so both work
+      - name: Resolve deploy directory
+        id: resolve_deploy_dir
+        shell: pwsh
+        run: |
+          $flat = Join-Path './net-app' 'Atlas.Api.exe'
+          $nested = Join-Path './net-app/publish' 'Atlas.Api.exe'
+          if (Test-Path $nested) { 'deploy_dir=./net-app/publish' | Out-File -FilePath $env:GITHUB_OUTPUT -Append }
+          elseif (Test-Path $flat) { 'deploy_dir=./net-app' | Out-File -FilePath $env:GITHUB_OUTPUT -Append }
+          else {
+            Write-Host 'Contents of ./net-app:'
+            Get-ChildItem -Path './net-app' -Recurse -Name | ForEach-Object { Write-Host $_ }
+            Write-Error 'Deploy artifact missing Atlas.Api.exe in ./net-app or ./net-app/publish. Check upload-artifact path.'
+            exit 1
+          }
 
       - name: Checkout (for migrator)
         uses: actions/checkout@v4
@@ -136,11 +151,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
-      # upload-artifact preserves directory name: artifact root is "publish", so after download we have ./net-app/publish/
       - name: Normalize SqlClient runtime layout
         shell: pwsh
+        env:
+          DEPLOY_DIR: ${{ steps.resolve_deploy_dir.outputs.deploy_dir }}
         run: |
-          $deployDir = './net-app/publish'
+          $deployDir = $env:DEPLOY_DIR
           $rootSqlClient = Join-Path $deployDir 'Microsoft.Data.SqlClient.dll'
           $expectedSqlClient = Join-Path $deployDir 'runtimes/win/lib/net8.0/Microsoft.Data.SqlClient.dll'
           if ((-not (Test-Path $expectedSqlClient)) -and (Test-Path $rootSqlClient)) {
@@ -151,11 +167,11 @@ jobs:
 
       - name: Validate deploy artifacts
         shell: pwsh
-        run: ./scripts/validate-publish.ps1 -PublishPath ./net-app/publish
+        run: ./scripts/validate-publish.ps1 -PublishPath ${{ steps.resolve_deploy_dir.outputs.deploy_dir }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'atlas-homes-api-dev'
           slot-name: 'Production'
-          package: ./net-app/publish
+          package: ${{ steps.resolve_deploy_dir.outputs.deploy_dir }}

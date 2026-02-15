@@ -43,6 +43,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Enforce: prod deploy only from main branch (push or workflow_dispatch)
+      - name: Guard prod deploy from main only
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod' && github.ref != 'refs/heads/main'
+        shell: pwsh
+        run: |
+          Write-Error "Prod deploy is only allowed from the main branch. Current ref: $env:GITHUB_REF. Run this workflow from main, or choose environment 'dev' to deploy to dev."
+          exit 1
+
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:

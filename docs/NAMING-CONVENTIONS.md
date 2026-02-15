@@ -10,11 +10,11 @@
 ### atlas-api
 | File | Display name | Purpose |
 |------|--------------|---------|
-| `gate.yml` | Gate | CI + dev deploy: restore, build, test; on dev branch publish and deploy to atlas-homes-api-dev. |
+| `ci-deploy-dev.yml` | CI and Deploy to Dev | CI (restore, build, test) + on dev branch publish and deploy to atlas-homes-api-dev. |
 | `deploy-prod.yml` | Build and Deploy to Prod | Prod deploy on push to main or workflow_dispatch. |
 
 ### Other repos (reference)
-- **atlas-admin-portal**: `gate.yml` → "Gate" (CI gate).
+- **atlas-admin-portal**: `ci.yml` → "CI" (lint, build, test).
 - **RatebotaiRepo**: `ci.yml` → "CI"; `lockfile-guard.yml` → "Lockfile guard" (Title Case).
 - **sreekaratla**: `ci.yml` → "CI"; status check name in branch protection can remain "build".
 

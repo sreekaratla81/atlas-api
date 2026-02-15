@@ -78,8 +78,8 @@ npm test
 
 ## 4. CI gates (implementation)
 
-- **atlas-api:** `.github/workflows/gate.yml` — on push to `dev` and on PRs to `main`/`dev`: `dotnet restore` → `dotnet build -c Release` → unit tests (Api.Tests, DbMigrator.Tests) → integration tests (IntegrationTests, includes UI contract). Uses LocalDb on windows-latest. See `docs/API-TESTING-BEFORE-DEPLOY.md`.
-- **atlas-admin-portal:** `.github/workflows/gate.yml` — on push/PR to `main` and `dev`: `npm ci` → `npm run lint` → `npm run build` → `npx vitest run`. Uses `eslint.config.cjs` (flat config) for ESLint 9+.
+- **atlas-api:** `.github/workflows/ci-deploy-dev.yml` (CI and Deploy to Dev) — on push to `dev` and on PRs to `main`/`dev`: `dotnet restore` → `dotnet build -c Release` → unit tests (Api.Tests, DbMigrator.Tests) → integration tests (IntegrationTests, includes UI contract). On dev branch also publishes and deploys to dev. Uses LocalDb on windows-latest. See `docs/API-TESTING-BEFORE-DEPLOY.md`.
+- **atlas-admin-portal:** `.github/workflows/ci.yml` (CI) — on push/PR to `main` and `dev`: `npm ci` → `npm run lint` → `npm run build` → `npx vitest run`. Uses `eslint.config.cjs` (flat config) for ESLint 9+.
 - **RatebotaiRepo:** `.github/workflows/ci.yml` — on push to `main` and PRs: `npm ci` → `npm run lint` → `npm run build` → `npm test` → `npm run check:local-network`. Node 22.12.0.
 
 ---
@@ -108,7 +108,7 @@ npm test
    and push. If not all green, do not commit; document failures here and fix environment/code before re-run.
 
 5. **Verify gates in CI**
-   After pushing to `dev` (or opening a PR to `main`/`dev`), the Gate or CI workflow runs in GitHub Actions. Check the Actions tab to confirm the run completes successfully. To require the gate before merge: repo **Settings → Branches → Add rule** for `main` (and optionally `dev`) → **Require status checks to pass before merging** → select the workflow’s job name. **Status check names by repo:** atlas-api → **gate**; atlas-admin-portal → **gate**; RatebotaiRepo → **build**.
+   After pushing to `dev` (or opening a PR to `main`/`dev`), the Gate or CI workflow runs in GitHub Actions. Check the Actions tab to confirm the run completes successfully. To require the gate before merge: repo **Settings → Branches → Add rule** for `main` (and optionally `dev`) → **Require status checks to pass before merging** → select the workflow’s job name. **Status check names by repo:** atlas-api → **CI and Deploy to Dev**; atlas-admin-portal → **CI**; RatebotaiRepo → **build**.
 
 6. **Before a release**
    Re-run the full sanity suite (this section, steps 1–3) locally for all three repos to confirm they are still green before tagging or releasing. In production, `GET /health` returns 200 for liveness (load balancer / platform health checks).

@@ -1,10 +1,19 @@
 # CI/CD Branch Mapping
 
+## Branch → environment rule
+
+| Branch | Deploys to | How |
+|--------|------------|-----|
+| **dev** | **Dev only** (`atlas-homes-api-dev`) | `ci-deploy-dev.yml` (CI and Deploy to Dev) runs on push to dev; deploy-dev job runs only when ref is dev (push or workflow_dispatch from dev). |
+| **main** | **Prod only** (`atlas-homes-api`) | `deploy-prod.yml` runs on push to main (when `DEPLOY_PROD_ON_MAIN` is set); manual prod deploy via workflow_dispatch is allowed only when run from the main branch (guard step fails otherwise). |
+
+Dev branch never deploys to prod. Main branch never deploys to dev on push; manual deploy to dev from main is possible via `deploy-prod.yml` workflow_dispatch with environment = dev.
+
 ## Branch → Workflow → App → Connection String Diagram
 
 ```text
 Dev branch
-  dev → gate.yml (gate job + deploy-dev job) → atlas-homes-api-dev → ATLAS_DEV_SQL_CONNECTION_STRING
+  dev → ci-deploy-dev.yml (ci job + deploy-dev job) → atlas-homes-api-dev → ATLAS_DEV_SQL_CONNECTION_STRING
 
 Main branch
   main → deploy-prod.yml → atlas-homes-api → ATLAS_PROD_SQL_CONNECTION_STRING
@@ -15,15 +24,15 @@ Main branch
 
 | Workflow file | Trigger(s) | Azure app name (`with.app-name`) | Auth method | DbMigrator usage |
 | --- | --- | --- | --- | --- |
-| `.github/workflows/gate.yml` | `on.push.branches: [dev]`, `pull_request` (main, dev), `workflow_dispatch` | `atlas-homes-api-dev` (deploy-dev job only on push/workflow_dispatch to dev) | `azure/login@v2` with OIDC secrets in deploy-dev job | deploy-dev: validates dev connection, checks pending migrations, applies migrations using `ATLAS_DEV_SQL_CONNECTION_STRING`. |
-| `.github/workflows/deploy-prod.yml` | `on.push.branches: [main]`, `workflow_dispatch` | `atlas-homes-api` | `azure/login@v2` with OIDC secrets | Validates connection + checks pending migrations; applies migrations only for `workflow_dispatch` + `inputs.environment == dev` (prod migrations gated). |
+| `.github/workflows/ci-deploy-dev.yml` | `on.push.branches: [dev]`, `pull_request` (main, dev), `workflow_dispatch` | `atlas-homes-api-dev` (deploy-dev job only on push/workflow_dispatch to dev) | `azure/login@v2` with OIDC secrets in deploy-dev job | deploy-dev: validates dev connection, checks pending migrations, applies migrations using `ATLAS_DEV_SQL_CONNECTION_STRING`. |
+| `.github/workflows/deploy-prod.yml` | `on.push.branches: [main]`, `workflow_dispatch` | `atlas-homes-api` (prod) or `atlas-homes-api-dev` (manual dev) | `azure/login@v2` with OIDC secrets | Prod deploy only from main (guard step enforces this on workflow_dispatch). Validates connection + checks pending migrations; applies migrations only for `workflow_dispatch` + `inputs.environment == dev` (prod migrations gated). |
 | `.github/workflows/prod-migrate.yml` | `workflow_dispatch` only | _N/A_ (no app deploy) | _N/A_ | Validates prod connection, checks pending migrations, applies migrations only when `inputs.confirm == 'APPLY_PROD_MIGRATIONS'` using `ATLAS_PROD_SQL_CONNECTION_STRING`. |
 
 ## Required secrets by workflow
 
 | Workflow file | Required/used secret identifiers (exact names from workflow YAML) |
 | --- | --- |
-| `.github/workflows/gate.yml` (deploy-dev job) | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV` |
+| `.github/workflows/ci-deploy-dev.yml` (deploy-dev job) | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV` |
 | `.github/workflows/deploy-prod.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD` |
 
 `AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*` correspond to `*_DEV` and `*_PROD` variants shown above.
@@ -41,10 +50,10 @@ Resource group is **not** a variable: prod uses `atlas-prod-rg`, dev uses `atlas
 ## Checklist for Verification
 
 - **Branch triggers**: Confirm the correct branch is listed under `on.push.branches` in each workflow.
-  - `gate.yml` lists `dev` for push; deploy-dev job runs only when ref is dev (push or workflow_dispatch).
+  - `ci-deploy-dev.yml` lists `dev` for push; deploy-dev job runs only when ref is dev (push or workflow_dispatch).
   - `deploy-prod.yml` should list `main`.
 - **App name**: Confirm `with.app-name` matches the intended Azure Web App name.
-  - Gate deploy-dev job → `atlas-homes-api-dev`.
+  - CI and Deploy to Dev workflow, deploy-dev job → `atlas-homes-api-dev`.
   - Deploy workflow → `atlas-homes-api`.
 - **Migration gating**: Review `if:` conditions on migration steps.
   - `deploy-prod.yml` should apply migrations only on `workflow_dispatch` when `inputs.environment == dev`.
@@ -72,7 +81,7 @@ Resource group is **not** a variable: prod uses `atlas-prod-rg`, dev uses `atlas
 
 - **Same app name in both workflows**: `atlas-homes-api` and `atlas-homes-api-dev` must remain distinct to prevent deploys from overwriting the wrong environment.
 - **Wrong auth secret type**:
-  - `gate.yml` deploy-dev job expects `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV` (OIDC).
+  - `ci-deploy-dev.yml` (deploy-dev job) expects `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV` (OIDC).
   - `deploy-prod.yml` uses OIDC secret sets for dev and prod.
 - **Missing/typo secrets**:
   - `ATLAS_DEV_SQL_CONNECTION_STRING` and `ATLAS_PROD_SQL_CONNECTION_STRING` must match the workflow references exactly.

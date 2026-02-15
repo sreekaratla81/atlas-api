@@ -242,6 +242,36 @@ namespace Atlas.Api.Data
                 .HasIndex(em => em.Marker)
                 .IsUnique();
 
+            modelBuilder.Entity<Tenant>()
+                .ToTable("Tenant");
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.Name)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.Slug)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.Status)
+                .HasColumnType("varchar(20)")
+                .HasMaxLength(20)
+                .IsRequired();
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.CreatedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<Tenant>()
+                .HasIndex(t => t.Slug)
+                .IsUnique();
+
+
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
                 .WithMany()
@@ -511,5 +541,6 @@ namespace Atlas.Api.Data
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
         public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
         public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
+        public DbSet<Tenant> Tenants { get; set; }
     }
 }

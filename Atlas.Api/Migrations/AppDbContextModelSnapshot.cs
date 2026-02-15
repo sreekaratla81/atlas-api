@@ -398,6 +398,55 @@ namespace Atlas.Api.Migrations
                 });
 
 
+            modelBuilder.Entity("Atlas.Api.Models.ConsumedEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ConsumerName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("PayloadHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<DateTime>("ProcessedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "ConsumerName", "EventId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "ProcessedAtUtc");
+
+                    b.ToTable("ConsumedEvent", (string)null);
+                });
+
             modelBuilder.Entity("Atlas.Api.Models.WhatsAppInboundMessage", b =>
                 {
                     b.Property<long>("Id")
@@ -1124,6 +1173,16 @@ namespace Atlas.Api.Migrations
                     b.Navigation("Booking");
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.ConsumedEvent", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
 
             modelBuilder.Entity("Atlas.Api.Models.WhatsAppInboundMessage", b =>
                 {

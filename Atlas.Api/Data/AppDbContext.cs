@@ -45,6 +45,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<TenantPricingSetting>(modelBuilder);
             ApplyTenantQueryFilter<QuoteRedemption>(modelBuilder);
             ApplyTenantQueryFilter<WhatsAppInboundMessage>(modelBuilder);
+            ApplyTenantQueryFilter<ConsumedEvent>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -582,6 +583,46 @@ namespace Atlas.Api.Data
                 .Property(o => o.LastError)
                 .HasColumnType("text");
 
+            modelBuilder.Entity<ConsumedEvent>()
+                .ToTable("ConsumedEvent");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.ConsumerName)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.EventId)
+                .HasColumnType("varchar(150)")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.EventType)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.ProcessedAtUtc)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.PayloadHash)
+                .HasColumnType("varchar(128)")
+                .HasMaxLength(128);
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.Status)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30);
+
             modelBuilder.Entity<AutomationSchedule>()
                 .ToTable("AutomationSchedule");
 
@@ -753,6 +794,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<TenantPricingSetting>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<QuoteRedemption>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<WhatsAppInboundMessage>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ConsumedEvent>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -769,6 +811,8 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<QuoteRedemption>().HasIndex(x => new { x.TenantId, x.Nonce }).IsUnique();
             modelBuilder.Entity<WhatsAppInboundMessage>().HasIndex(x => new { x.TenantId, x.Provider, x.ProviderMessageId }).IsUnique();
             modelBuilder.Entity<WhatsAppInboundMessage>().HasIndex(x => new { x.TenantId, x.ReceivedAtUtc });
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ConsumerName, x.EventId }).IsUnique();
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ProcessedAtUtc });
         }
 
         private static void ConfigureTenantOwnedEntity<TEntity>(ModelBuilder modelBuilder, DeleteBehavior deleteBehavior)
@@ -866,6 +910,7 @@ namespace Atlas.Api.Data
         public DbSet<TenantPricingSetting> TenantPricingSettings { get; set; }
         public DbSet<QuoteRedemption> QuoteRedemptions { get; set; }
         public DbSet<WhatsAppInboundMessage> WhatsAppInboundMessages { get; set; }
+        public DbSet<ConsumedEvent> ConsumedEvents { get; set; }
         public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
     }

@@ -44,6 +44,8 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<BankAccount>(modelBuilder);
             ApplyTenantQueryFilter<TenantPricingSetting>(modelBuilder);
             ApplyTenantQueryFilter<QuoteRedemption>(modelBuilder);
+            ApplyTenantQueryFilter<WhatsAppInboundMessage>(modelBuilder);
+            ApplyTenantQueryFilter<ConsumedEvent>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -465,7 +467,8 @@ namespace Atlas.Api.Data
                 .HasColumnType("datetime");
 
             modelBuilder.Entity<CommunicationLog>()
-                .HasIndex(cl => cl.IdempotencyKey)
+                .HasIndex(cl => new { cl.TenantId, cl.IdempotencyKey })
+                .HasDatabaseName("IX_CommunicationLog_TenantId_IdempotencyKey")
                 .IsUnique();
 
             modelBuilder.Entity<CommunicationLog>()
@@ -580,6 +583,46 @@ namespace Atlas.Api.Data
                 .Property(o => o.LastError)
                 .HasColumnType("text");
 
+            modelBuilder.Entity<ConsumedEvent>()
+                .ToTable("ConsumedEvent");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.ConsumerName)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.EventId)
+                .HasColumnType("varchar(150)")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.EventType)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.ProcessedAtUtc)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.PayloadHash)
+                .HasColumnType("varchar(128)")
+                .HasMaxLength(128);
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.Status)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30);
+
             modelBuilder.Entity<AutomationSchedule>()
                 .ToTable("AutomationSchedule");
 
@@ -614,6 +657,12 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<AutomationSchedule>()
                 .Property(a => a.LastError)
                 .HasColumnType("text");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .HasOne(a => a.Booking)
+                .WithMany()
+                .HasForeignKey(a => a.BookingId)
+                .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<TenantPricingSetting>()
                 .ToTable("TenantPricingSettings");
@@ -664,6 +713,64 @@ namespace Atlas.Api.Data
                 .HasForeignKey(x => x.BookingId)
                 .OnDelete(deleteBehavior);
 
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .ToTable("WhatsAppInboundMessage");
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.Provider)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.ProviderMessageId)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.FromNumber)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30)
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.ToNumber)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30)
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.ReceivedAtUtc)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.PayloadJson)
+                .HasColumnType("text")
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.CorrelationId)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .HasOne(x => x.Booking)
+                .WithMany()
+                .HasForeignKey(x => x.BookingId)
+                .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .HasOne(x => x.Guest)
+                .WithMany()
+                .HasForeignKey(x => x.GuestId)
+                .OnDelete(deleteBehavior);
+
             ConfigureTenantOwnership(modelBuilder, deleteBehavior);
         }
 
@@ -686,6 +793,8 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<BankAccount>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<TenantPricingSetting>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<QuoteRedemption>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<WhatsAppInboundMessage>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ConsumedEvent>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -696,10 +805,14 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<AvailabilityBlock>().HasIndex(x => new { x.TenantId, x.ListingId, x.StartDate, x.EndDate });
             modelBuilder.Entity<MessageTemplate>().HasIndex(x => new { x.TenantId, x.EventType, x.Channel });
             modelBuilder.Entity<CommunicationLog>().HasIndex(x => new { x.TenantId, x.BookingId });
-            modelBuilder.Entity<AutomationSchedule>().HasIndex(x => new { x.TenantId, x.BookingId, x.DueAtUtc });
+            modelBuilder.Entity<AutomationSchedule>().HasIndex(x => new { x.TenantId, x.BookingId, x.EventType, x.DueAtUtc }).IsUnique();
             modelBuilder.Entity<BankAccount>().HasIndex(x => new { x.TenantId, x.AccountNumber });
             modelBuilder.Entity<TenantPricingSetting>().HasIndex(x => x.TenantId).IsUnique();
             modelBuilder.Entity<QuoteRedemption>().HasIndex(x => new { x.TenantId, x.Nonce }).IsUnique();
+            modelBuilder.Entity<WhatsAppInboundMessage>().HasIndex(x => new { x.TenantId, x.Provider, x.ProviderMessageId }).IsUnique();
+            modelBuilder.Entity<WhatsAppInboundMessage>().HasIndex(x => new { x.TenantId, x.ReceivedAtUtc });
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ConsumerName, x.EventId }).IsUnique();
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ProcessedAtUtc });
         }
 
         private static void ConfigureTenantOwnedEntity<TEntity>(ModelBuilder modelBuilder, DeleteBehavior deleteBehavior)
@@ -796,6 +909,8 @@ namespace Atlas.Api.Data
         public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
         public DbSet<TenantPricingSetting> TenantPricingSettings { get; set; }
         public DbSet<QuoteRedemption> QuoteRedemptions { get; set; }
+        public DbSet<WhatsAppInboundMessage> WhatsAppInboundMessages { get; set; }
+        public DbSet<ConsumedEvent> ConsumedEvents { get; set; }
         public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
     }

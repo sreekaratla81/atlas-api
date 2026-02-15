@@ -2,6 +2,7 @@ using Atlas.Api.Controllers;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
+using Atlas.Api.Services.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -134,5 +135,68 @@ public class AdminCalendarControllerTests
         var secondPayload = Assert.IsType<AdminCalendarAvailabilityBulkUpsertResponseDto>(secondOk.Value);
         Assert.True(secondPayload.Deduplicated);
         Assert.Single(secondPayload.Cells);
+    }
+
+    [Fact]
+    public async Task UpsertAvailability_DoesNotDeduplicateAcrossTenants()
+    {
+        var databaseName = nameof(UpsertAvailability_DoesNotDeduplicateAcrossTenants);
+
+        await using var tenantOneContext = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(databaseName).Options,
+            new StubTenantContextAccessor(1));
+        await using var tenantTwoContext = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(databaseName).Options,
+            new StubTenantContextAccessor(2));
+
+        tenantOneContext.Properties.Add(new Property { Name = "P1", Address = "A", Type = "Villa", OwnerName = "O", ContactPhone = "1", Status = "Active" });
+        await tenantOneContext.SaveChangesAsync();
+        var tenantOneProperty = await tenantOneContext.Properties.SingleAsync();
+        tenantOneContext.Listings.Add(new Listing { PropertyId = tenantOneProperty.Id, Name = "L1", Floor = 1, Type = "Room", Status = "Active", WifiName = "w", WifiPassword = "p", MaxGuests = 2 });
+        await tenantOneContext.SaveChangesAsync();
+        var tenantOneListing = await tenantOneContext.Listings.SingleAsync();
+
+        tenantTwoContext.Properties.Add(new Property { Name = "P2", Address = "A", Type = "Villa", OwnerName = "O", ContactPhone = "1", Status = "Active" });
+        await tenantTwoContext.SaveChangesAsync();
+        var tenantTwoProperty = await tenantTwoContext.Properties.SingleAsync();
+        tenantTwoContext.Listings.Add(new Listing { PropertyId = tenantTwoProperty.Id, Name = "L2", Floor = 1, Type = "Room", Status = "Active", WifiName = "w", WifiPassword = "p", MaxGuests = 2 });
+        await tenantTwoContext.SaveChangesAsync();
+        var tenantTwoListing = await tenantTwoContext.Listings.SingleAsync();
+
+        var tenantTwoController = new AdminCalendarController(tenantTwoContext)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+        tenantTwoController.Request.Headers["Idempotency-Key"] = "shared-key";
+
+        var tenantTwoResult = await tenantTwoController.UpsertAvailability(new AdminCalendarAvailabilityBulkUpsertRequestDto
+        {
+            Cells = [new AdminCalendarAvailabilityCellUpsertDto { ListingId = tenantTwoListing.Id, Date = new DateTime(2025, 1, 2), RoomsAvailable = 2, PriceOverride = 250m }]
+        });
+        var tenantTwoPayload = Assert.IsType<AdminCalendarAvailabilityBulkUpsertResponseDto>(Assert.IsType<OkObjectResult>(tenantTwoResult.Result).Value);
+        Assert.False(tenantTwoPayload.Deduplicated);
+
+        var tenantOneController = new AdminCalendarController(tenantOneContext)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+        tenantOneController.Request.Headers["Idempotency-Key"] = "shared-key";
+
+        var tenantOneResult = await tenantOneController.UpsertAvailability(new AdminCalendarAvailabilityBulkUpsertRequestDto
+        {
+            Cells = [new AdminCalendarAvailabilityCellUpsertDto { ListingId = tenantOneListing.Id, Date = new DateTime(2025, 1, 2), RoomsAvailable = 3, PriceOverride = 275m }]
+        });
+        var tenantOnePayload = Assert.IsType<AdminCalendarAvailabilityBulkUpsertResponseDto>(Assert.IsType<OkObjectResult>(tenantOneResult.Result).Value);
+        Assert.False(tenantOnePayload.Deduplicated);
+    }
+
+    private sealed class StubTenantContextAccessor : ITenantContextAccessor
+    {
+        public StubTenantContextAccessor(int tenantId)
+        {
+            TenantId = tenantId;
+        }
+
+        public int? TenantId { get; }
     }
 }

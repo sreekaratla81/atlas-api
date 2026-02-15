@@ -12,6 +12,8 @@ namespace Atlas.Api.Models
         [Required]
         public int BookingId { get; set; }
 
+        public Booking? Booking { get; set; }
+
         [Required]
         public string EventType { get; set; } = string.Empty;
 

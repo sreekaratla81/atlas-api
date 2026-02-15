@@ -72,4 +72,83 @@ public class ModelSnapshotConsistencyTests
                 nameof(ListingDailyRate.Date)
             }));
     }
+
+    [Fact]
+    public void CommunicationLog_ShouldUseTenantScopedIdempotencyKeyUniqueIndex()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=Dummy;Trusted_Connection=True;")
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var entityType = context.Model.FindEntityType(typeof(CommunicationLog));
+        Assert.NotNull(entityType);
+
+        var indexes = entityType!.GetIndexes().ToList();
+        var tenantScopedIdempotencyIndexes = indexes
+            .Where(index =>
+                index.IsUnique &&
+                index.Properties.Select(property => property.Name).SequenceEqual(new[]
+                {
+                    nameof(CommunicationLog.TenantId),
+                    nameof(CommunicationLog.IdempotencyKey)
+                }))
+            .ToList();
+
+        Assert.Single(tenantScopedIdempotencyIndexes);
+
+        Assert.DoesNotContain(indexes, index =>
+            index.IsUnique &&
+            index.Properties.Any(property => property.Name == nameof(CommunicationLog.IdempotencyKey)) &&
+            !index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(CommunicationLog.TenantId),
+                nameof(CommunicationLog.IdempotencyKey)
+            }));
+    }
+
+    [Fact]
+    public void AutomationSchedule_ShouldHaveBookingForeignKeyAndTenantScopedUniqueIndex()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=Dummy;Trusted_Connection=True;")
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var entityType = context.Model.FindEntityType(typeof(AutomationSchedule));
+        Assert.NotNull(entityType);
+
+        var foreignKeys = entityType!.GetForeignKeys().ToList();
+        var bookingForeignKeys = foreignKeys
+            .Where(foreignKey =>
+                foreignKey.PrincipalEntityType.ClrType == typeof(Booking) &&
+                foreignKey.Properties.Select(property => property.Name).SequenceEqual(new[]
+                {
+                    nameof(AutomationSchedule.BookingId)
+                }) &&
+                foreignKey.PrincipalKey.Properties.Select(property => property.Name).SequenceEqual(new[]
+                {
+                    nameof(Booking.Id)
+                }))
+            .ToList();
+
+        Assert.Single(bookingForeignKeys);
+
+        var indexes = entityType.GetIndexes().ToList();
+        var tenantScopedScheduleIndexes = indexes
+            .Where(index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(AutomationSchedule.TenantId),
+                nameof(AutomationSchedule.BookingId),
+                nameof(AutomationSchedule.EventType),
+                nameof(AutomationSchedule.DueAtUtc)
+            }))
+            .ToList();
+
+        Assert.Single(tenantScopedScheduleIndexes);
+    }
 }

@@ -95,16 +95,18 @@ public class AdminCalendarController : ControllerBase
         }
 
         var uniqueListingIds = request.Cells.Select(c => c.ListingId).Distinct().ToArray();
-        var visibleListingIds = await _context.Listings
+        var visibleListings = await _context.Listings
             .AsNoTracking()
             .Where(l => uniqueListingIds.Contains(l.Id))
-            .Select(l => l.Id)
+            .Select(l => new { l.Id, l.TenantId })
             .ToListAsync();
 
-        if (visibleListingIds.Count != uniqueListingIds.Length)
+        if (visibleListings.Count != uniqueListingIds.Length)
         {
             return NotFound();
         }
+
+        var tenantId = visibleListings[0].TenantId;
 
         var idempotencyKey = Request.Headers["Idempotency-Key"].ToString();
         var payloadHash = ComputeRequestHash(request);
@@ -113,7 +115,9 @@ public class AdminCalendarController : ControllerBase
             var existingLog = await _context.CommunicationLogs
                 .AsNoTracking()
                 .OrderByDescending(l => l.CreatedAtUtc)
-                .FirstOrDefaultAsync(l => l.EventType == UpsertEventType && l.IdempotencyKey == idempotencyKey);
+                .FirstOrDefaultAsync(l => l.EventType == UpsertEventType
+                    && l.TenantId == tenantId
+                    && l.IdempotencyKey == idempotencyKey);
 
             if (existingLog is not null)
             {

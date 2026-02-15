@@ -72,4 +72,36 @@ public class ModelSnapshotConsistencyTests
                 nameof(ListingDailyRate.Date)
             }));
     }
+    [Fact]
+    public void ConsumedEvent_ShouldHaveTenantScopedDedupeAndRetentionIndexes()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=Dummy;Trusted_Connection=True;")
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var entityType = context.Model.FindEntityType(typeof(ConsumedEvent));
+        Assert.NotNull(entityType);
+
+        var indexes = entityType!.GetIndexes().ToList();
+
+        Assert.Contains(indexes, index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(ConsumedEvent.TenantId),
+                nameof(ConsumedEvent.ConsumerName),
+                nameof(ConsumedEvent.EventId)
+            }));
+
+        Assert.Contains(indexes, index =>
+            !index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(new[]
+            {
+                nameof(ConsumedEvent.TenantId),
+                nameof(ConsumedEvent.ProcessedAtUtc)
+            }));
+    }
+
 }

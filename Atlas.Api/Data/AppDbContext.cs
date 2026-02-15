@@ -44,6 +44,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<BankAccount>(modelBuilder);
             ApplyTenantQueryFilter<TenantPricingSetting>(modelBuilder);
             ApplyTenantQueryFilter<QuoteRedemption>(modelBuilder);
+            ApplyTenantQueryFilter<ConsumedEvent>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -671,6 +672,41 @@ namespace Atlas.Api.Data
                 .HasForeignKey(x => x.BookingId)
                 .OnDelete(deleteBehavior);
 
+            modelBuilder.Entity<ConsumedEvent>()
+                .ToTable("ConsumedEvent");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.ConsumerName)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.EventId)
+                .HasColumnType("varchar(150)")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.EventType)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.ProcessedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.PayloadHash)
+                .HasColumnType("varchar(128)")
+                .HasMaxLength(128);
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.Status)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30);
+
             ConfigureTenantOwnership(modelBuilder, deleteBehavior);
         }
 
@@ -693,6 +729,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<BankAccount>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<TenantPricingSetting>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<QuoteRedemption>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ConsumedEvent>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -707,6 +744,8 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<BankAccount>().HasIndex(x => new { x.TenantId, x.AccountNumber });
             modelBuilder.Entity<TenantPricingSetting>().HasIndex(x => x.TenantId).IsUnique();
             modelBuilder.Entity<QuoteRedemption>().HasIndex(x => new { x.TenantId, x.Nonce }).IsUnique();
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ConsumerName, x.EventId }).IsUnique();
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ProcessedAtUtc });
         }
 
         private static void ConfigureTenantOwnedEntity<TEntity>(ModelBuilder modelBuilder, DeleteBehavior deleteBehavior)
@@ -803,6 +842,7 @@ namespace Atlas.Api.Data
         public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
         public DbSet<TenantPricingSetting> TenantPricingSettings { get; set; }
         public DbSet<QuoteRedemption> QuoteRedemptions { get; set; }
+        public DbSet<ConsumedEvent> ConsumedEvents { get; set; }
         public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
     }

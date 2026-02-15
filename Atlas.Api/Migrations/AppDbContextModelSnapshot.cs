@@ -568,6 +568,55 @@ namespace Atlas.Api.Migrations
                     b.ToTable("ListingDailyRate", (string)null);
                 });
 
+
+            modelBuilder.Entity("Atlas.Api.Models.ListingDailyInventory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ListingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("RoomsAvailable")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "ListingId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("ListingDailyInventory", (string)null);
+                });
             modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
                 {
                     b.Property<int>("ListingId")
@@ -938,6 +987,25 @@ namespace Atlas.Api.Migrations
                     b.Navigation("Listing");
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.ListingDailyInventory", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.Listing", "Listing")
+                        .WithMany("DailyInventories")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Atlas.Api.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
                 {
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
@@ -968,6 +1036,8 @@ namespace Atlas.Api.Migrations
             modelBuilder.Entity("Atlas.Api.Models.Listing", b =>
                 {
                     b.Navigation("Bookings");
+
+                    b.Navigation("DailyInventories");
 
                     b.Navigation("DailyRates");
 

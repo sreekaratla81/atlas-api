@@ -2,9 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.Models
 {
-    public class OutboxMessage
+    public class OutboxMessage : ITenantOwnedEntity
     {
         public Guid Id { get; set; } = Guid.NewGuid();
+
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         [Required]
         public string AggregateType { get; set; } = string.Empty;

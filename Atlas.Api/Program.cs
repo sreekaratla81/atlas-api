@@ -80,6 +80,8 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<ITenantContextAccessor, HttpTenantContextAccessor>();
             builder.Services.AddScoped<ITenantProvider, TenantProvider>();
             builder.Services.AddScoped<TenantResolutionMiddleware>();
 

@@ -40,13 +40,18 @@ namespace Atlas.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Property>> Get(int id)
         {
-            var item = await _context.Properties.FindAsync(id);
+            var item = await _context.Properties.FirstOrDefaultAsync(x => x.Id == id);
             return item == null ? NotFound() : item;
         }
 
         [HttpPost]
         public async Task<ActionResult<Property>> Create(Property item)
         {
+            if (item.TenantId != 0)
+            {
+                return BadRequest("TenantId is managed by the server.");
+            }
+
             _context.Properties.Add(item);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(Get), new { id = item.Id }, item);
@@ -56,7 +61,22 @@ namespace Atlas.Api.Controllers
         public async Task<IActionResult> Update(int id, Property item)
         {
             if (id != item.Id) return BadRequest();
-            _context.Entry(item).State = EntityState.Modified;
+
+            var existing = await _context.Properties.FirstOrDefaultAsync(x => x.Id == id);
+            if (existing == null) return NotFound();
+            if (item.TenantId != 0 && item.TenantId != existing.TenantId)
+            {
+                return NotFound();
+            }
+
+            existing.Name = item.Name;
+            existing.Address = item.Address;
+            existing.Type = item.Type;
+            existing.OwnerName = item.OwnerName;
+            existing.ContactPhone = item.ContactPhone;
+            existing.CommissionPercent = item.CommissionPercent;
+            existing.Status = item.Status;
+
             await _context.SaveChangesAsync();
             return NoContent();
         }
@@ -64,7 +84,7 @@ namespace Atlas.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var item = await _context.Properties.FindAsync(id);
+            var item = await _context.Properties.FirstOrDefaultAsync(x => x.Id == id);
             if (item == null) return NotFound();
             _context.Properties.Remove(item);
             await _context.SaveChangesAsync();

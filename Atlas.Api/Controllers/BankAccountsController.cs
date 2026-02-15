@@ -29,7 +29,7 @@ namespace Atlas.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<BankAccountResponseDto>> Get(int id)
         {
-            var account = await _context.BankAccounts.FindAsync(id);
+            var account = await _context.BankAccounts.FirstOrDefaultAsync(x => x.Id == id);
             return account == null ? NotFound() : MapToDto(account);
         }
 
@@ -52,7 +52,7 @@ namespace Atlas.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, BankAccountRequestDto request)
         {
-            var account = await _context.BankAccounts.FindAsync(id);
+            var account = await _context.BankAccounts.FirstOrDefaultAsync(x => x.Id == id);
             if (account == null) return NotFound();
 
             account.BankName = request.BankName;
@@ -67,7 +67,7 @@ namespace Atlas.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var account = await _context.BankAccounts.FindAsync(id);
+            var account = await _context.BankAccounts.FirstOrDefaultAsync(x => x.Id == id);
             if (account == null) return NotFound();
             _context.BankAccounts.Remove(account);
             await _context.SaveChangesAsync();

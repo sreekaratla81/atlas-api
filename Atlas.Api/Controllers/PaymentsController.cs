@@ -27,7 +27,7 @@ namespace Atlas.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Payment>> Get(int id)
         {
-            var item = await _context.Payments.FindAsync(id);
+            var item = await _context.Payments.FirstOrDefaultAsync(x => x.Id == id);
             return item == null ? NotFound() : item;
         }
 
@@ -55,7 +55,7 @@ namespace Atlas.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, PaymentUpdateDto request)
         {
-            var item = await _context.Payments.FindAsync(id);
+            var item = await _context.Payments.FirstOrDefaultAsync(x => x.Id == id);
             if (item == null) return NotFound();
 
             item.BookingId = request.BookingId;
@@ -79,7 +79,7 @@ namespace Atlas.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var item = await _context.Payments.FindAsync(id);
+            var item = await _context.Payments.FirstOrDefaultAsync(x => x.Id == id);
             if (item == null) return NotFound();
             _context.Payments.Remove(item);
             await _context.SaveChangesAsync();

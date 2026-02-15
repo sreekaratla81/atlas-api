@@ -1,9 +1,11 @@
 
 namespace Atlas.Api.Models
 {
-    public class Property
+    public class Property : ITenantOwnedEntity
     {
         public int Id { get; set; }
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
         public required string Name { get; set; }
         public required string Address { get; set; }
         public required string Type { get; set; }

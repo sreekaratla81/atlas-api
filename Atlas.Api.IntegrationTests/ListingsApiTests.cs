@@ -29,6 +29,20 @@ public class ListingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetPublic_ReturnsPublicListingDto_WithoutWifiPassword()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await SeedListingAsync(db);
+
+        var response = await Client.GetAsync(ApiRoute("listings/public"));
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("wifiPassword", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("WifiPassword", json);
+    }
+
+    [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
         var response = await Client.GetAsync(ApiRoute("listings/1"));

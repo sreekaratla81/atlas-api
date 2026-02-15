@@ -90,6 +90,54 @@ public class PaymentsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetAll_WithBookingId_Filters()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await SeedBookingAsync(db);
+        db.Payments.Add(new Payment
+        {
+            BookingId = booking.Id,
+            Amount = 50,
+            Method = "cash",
+            Type = "partial",
+            ReceivedOn = DateTime.UtcNow,
+            Note = "first"
+        });
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync(ApiControllerRoute($"payments?bookingId={booking.Id}"));
+        response.EnsureSuccessStatusCode();
+        var list = await response.Content.ReadFromJsonAsync<List<Payment>>();
+        Assert.NotNull(list);
+        Assert.Single(list);
+    }
+
+    [Fact]
+    public async Task GetAll_WithPagination()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var booking = await SeedBookingAsync(db);
+        db.Payments.Add(new Payment
+        {
+            BookingId = booking.Id,
+            Amount = 50,
+            Method = "cash",
+            Type = "partial",
+            ReceivedOn = DateTime.UtcNow,
+            Note = "first"
+        });
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync(ApiControllerRoute("payments?page=1&pageSize=10"));
+        response.EnsureSuccessStatusCode();
+        var list = await response.Content.ReadFromJsonAsync<List<Payment>>();
+        Assert.NotNull(list);
+        Assert.True(list.Count <= 10);
+    }
+
+    [Fact]
     public async Task Get_ReturnsOk()
     {
         using var scope = Factory.Services.CreateScope();

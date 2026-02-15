@@ -396,7 +396,7 @@ public class BookingsControllerTests
             NullLogger<BookingsController>.Instance,
             new NoOpBookingWorkflowPublisher());
 
-        var result = await controller.GetAll(null, null, null);
+        var result = await controller.GetAll(null, null, null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var items = Assert.IsType<List<BookingListDto>>(ok.Value);
         Assert.Equal(2, items.Count);
@@ -422,7 +422,7 @@ public class BookingsControllerTests
             NullLogger<BookingsController>.Instance,
             new NoOpBookingWorkflowPublisher());
 
-        var result = await controller.GetAll(new DateTime(2025, 7, 1), new DateTime(2025, 7, 31), null);
+        var result = await controller.GetAll(new DateTime(2025, 7, 1), new DateTime(2025, 7, 31), null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var items = Assert.IsType<List<BookingListDto>>(ok.Value);
         Assert.Single(items);
@@ -456,7 +456,7 @@ public class BookingsControllerTests
             NullLogger<BookingsController>.Instance,
             new NoOpBookingWorkflowPublisher());
 
-        var result = await controller.GetAll(null, null, null);
+        var result = await controller.GetAll(null, null, null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var items = Assert.IsType<List<BookingListDto>>(ok.Value);
         Assert.Single(items);

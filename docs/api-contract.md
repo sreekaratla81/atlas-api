@@ -28,6 +28,13 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Notes**: Intended for safety checks; avoids returning connection strings or credentials.
 - **Status codes**: 200 on success; 500-style `ProblemDetails` if the marker record is missing.
 
+#### `GET /ops/outbox`
+- **Purpose**: Read-only list of outbox messages for ops diagnostics. Tenant-scoped via EF filters.
+- **Query params**: `fromUtc` (DateTime?, optional), `toUtc` (DateTime?, optional), `published` (bool?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<OutboxMessageDto>>` — `Id`, `TenantId`, `AggregateType`, `AggregateId`, `EventType`, `CreatedAtUtc`, `PublishedAtUtc`, `AttemptCount`, `LastError` (no full payload).
+- **Status codes**: 200, 500
+
 ### Availability (`Atlas.Api/Controllers/AvailabilityController.cs`)
 
 #### `GET /availability`
@@ -109,9 +116,9 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 404, 500 (not explicitly annotated)
 
 #### `GET /listings/public`
-- **Purpose**: List listings for public/guest-facing use (tenant-scoped; may exclude internal-only data).
+- **Purpose**: List listings for public/guest-facing use (tenant-scoped). Returns a safe DTO only; excludes WifiName, WifiPassword, TenantId, and internal-only fields.
 - **Request body**: none
-- **Response**: `ActionResult<IEnumerable<Listing>>` (listing list)
+- **Response**: `ActionResult<IEnumerable<PublicListingDto>>` — each item has `Id`, `PropertyId`, `PropertyName`, `PropertyAddress`, `Name`, `Floor`, `Type`, `CheckInTime`, `CheckOutTime`, `Status`, `MaxGuests`.
 - **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `POST /listings`
@@ -175,10 +182,19 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Query params**:
   - `checkinStart` (DateTime?, optional)
   - `checkinEnd` (DateTime?, optional)
+  - `listingId` (int?, optional)
+  - `bookingId` (int?, optional; when set, returns at most one booking)
   - `include` (string?, optional; supports `guest`)
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<BookingListDto>>` (booking summaries)
 - **Status codes**: 200, 500 (not explicitly annotated)
+
+#### `GET /bookings/by-reference`
+- **Purpose**: Get a booking by external reservation id (e.g. for guest confirmation page). Tenant-scoped.
+- **Query params**: `externalReservationId` (string, required)
+- **Request body**: none
+- **Response**: `ActionResult<BookingDto>` (same shape as `GET /bookings/{id}`); 404 if not found or tenant mismatch.
+- **Status codes**: 200, 400 (missing param), 404, 500
 
 #### `GET /bookings/{id}`
 - **Purpose**: Get a booking by id.
@@ -263,9 +279,10 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Payments (`Atlas.Api/Controllers/PaymentsController.cs`)
 
 #### `GET /api/payments`
-- **Purpose**: List payments.
+- **Purpose**: List payments with optional filters and pagination.
+- **Query params**: `bookingId` (int?, optional), `receivedFrom` (DateTime?, optional), `receivedTo` (DateTime?, optional), `page` (int, default 1), `pageSize` (int, default 100, max 500)
 - **Request body**: none
-- **Response**: `ActionResult<IEnumerable<Payment>>` (payments)
+- **Response**: `ActionResult<IEnumerable<Payment>>` (payments, ordered by ReceivedOn descending)
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /api/payments/{id}`
@@ -363,6 +380,57 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Request body**: none
 - **Response**: `IActionResult`
 - **Status codes**: 204, 404 (not explicitly annotated)
+
+### Message Templates (`Atlas.Api/Controllers/MessageTemplatesController.cs`)
+
+#### `GET /api/message-templates`
+- **Purpose**: List message templates with optional filters and pagination. Tenant-scoped.
+- **Query params**: `eventType` (string?, optional), `channel` (string?, optional), `isActive` (bool?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<MessageTemplateResponseDto>>`
+- **Status codes**: 200, 500
+
+#### `GET /api/message-templates/{id}`
+- **Purpose**: Get a message template by id.
+- **Request body**: none
+- **Response**: `ActionResult<MessageTemplateResponseDto>`; 404 if not found.
+- **Status codes**: 200, 404, 500
+
+#### `POST /api/message-templates`
+- **Purpose**: Create a message template. TenantId is set server-side.
+- **Request body**: `MessageTemplateCreateUpdateDto` — `EventType`, `Channel`, `ScopeType`, `Language`, `Body` (required); `TemplateKey`, `ScopeId`, `TemplateVersion`, `IsActive`, `Subject` (optional).
+- **Response**: 201 with `MessageTemplateResponseDto`
+- **Status codes**: 201, 400, 422, 500
+
+#### `PUT /api/message-templates/{id}`
+- **Purpose**: Update a message template.
+- **Request body**: `MessageTemplateCreateUpdateDto` (same as POST)
+- **Response**: 200 with `MessageTemplateResponseDto`
+- **Status codes**: 200, 400, 404, 422, 500
+
+#### `DELETE /api/message-templates/{id}`
+- **Purpose**: Delete a message template.
+- **Request body**: none
+- **Response**: 204
+- **Status codes**: 204, 404, 500
+
+### Communication Logs (`Atlas.Api/Controllers/CommunicationLogsController.cs`)
+
+#### `GET /api/communication-logs`
+- **Purpose**: List communication logs with filters and pagination. Tenant-scoped.
+- **Query params**: `bookingId` (int?, optional), `guestId` (int?, optional), `fromUtc` (DateTime?, optional), `toUtc` (DateTime?, optional), `channel` (string?, optional), `status` (string?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<CommunicationLogDto>>` — Id, TenantId, BookingId, GuestId, Channel, EventType, ToAddress, TemplateId, TemplateVersion, Status, AttemptCount, CreatedAtUtc, SentAtUtc, LastError.
+- **Status codes**: 200, 500
+
+### Automation Schedules (`Atlas.Api/Controllers/AutomationSchedulesController.cs`)
+
+#### `GET /api/automation-schedules`
+- **Purpose**: List automation schedules with filters and pagination. Tenant-scoped.
+- **Query params**: `bookingId` (int?, optional), `status` (string?, optional), `eventType` (string?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<AutomationScheduleDto>>` — Id, TenantId, BookingId, EventType, DueAtUtc, Status, PublishedAtUtc, CompletedAtUtc, AttemptCount, LastError.
+- **Status codes**: 200, 500
 
 ### Reports (`Atlas.Api/Controllers/ReportsController.cs`)
 

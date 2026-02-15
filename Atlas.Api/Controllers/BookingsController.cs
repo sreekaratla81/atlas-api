@@ -36,6 +36,8 @@ namespace Atlas.Api.Controllers
         public async Task<ActionResult<IEnumerable<BookingListDto>>> GetAll(
             [FromQuery] DateTime? checkinStart,
             [FromQuery] DateTime? checkinEnd,
+            [FromQuery] int? listingId,
+            [FromQuery] int? bookingId,
             [FromQuery] string? include)
         {
             try
@@ -49,6 +51,12 @@ namespace Atlas.Api.Controllers
 
                 if (checkinEnd.HasValue)
                     query = query.Where(b => b.CheckinDate <= checkinEnd.Value);
+
+                if (listingId.HasValue)
+                    query = query.Where(b => b.ListingId == listingId.Value);
+
+                if (bookingId.HasValue)
+                    query = query.Where(b => b.Id == bookingId.Value);
 
                 var includes = (include ?? string.Empty)
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -100,6 +108,27 @@ namespace Atlas.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving bookings");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("by-reference")]
+        public async Task<ActionResult<BookingDto>> GetByExternalReservationId([FromQuery] string? externalReservationId)
+        {
+            if (string.IsNullOrWhiteSpace(externalReservationId))
+                return BadRequest(new { error = "externalReservationId is required." });
+            try
+            {
+                var item = await _context.Bookings
+                    .AsNoTracking()
+                    .Include(b => b.Listing)
+                    .Include(b => b.Guest)
+                    .FirstOrDefaultAsync(b => b.ExternalReservationId == externalReservationId);
+                return item == null ? NotFound() : Ok(MapToDto(item));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving booking by externalReservationId");
                 return StatusCode(500, "Internal server error");
             }
         }

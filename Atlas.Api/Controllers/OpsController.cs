@@ -1,4 +1,5 @@
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,48 @@ namespace Atlas.Api.Controllers
         {
             _dbContext = dbContext;
             _environment = environment;
+        }
+
+        [HttpGet("outbox")]
+        public async Task<ActionResult<IEnumerable<OutboxMessageDto>>> GetOutbox(
+            [FromQuery] DateTime? fromUtc,
+            [FromQuery] DateTime? toUtc,
+            [FromQuery] bool? published,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            CancellationToken cancellationToken = default)
+        {
+            const int maxPageSize = 200;
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
+            if (pageSize > maxPageSize) pageSize = maxPageSize;
+
+            var query = _dbContext.OutboxMessages.AsNoTracking().AsQueryable();
+            if (fromUtc.HasValue)
+                query = query.Where(o => o.CreatedAtUtc >= fromUtc.Value);
+            if (toUtc.HasValue)
+                query = query.Where(o => o.CreatedAtUtc <= toUtc.Value);
+            if (published.HasValue)
+                query = query.Where(o => (o.PublishedAtUtc != null) == published.Value);
+
+            var items = await query
+                .OrderByDescending(o => o.CreatedAtUtc)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(o => new OutboxMessageDto
+                {
+                    Id = o.Id,
+                    TenantId = o.TenantId,
+                    AggregateType = o.AggregateType,
+                    AggregateId = o.AggregateId,
+                    EventType = o.EventType,
+                    CreatedAtUtc = o.CreatedAtUtc,
+                    PublishedAtUtc = o.PublishedAtUtc,
+                    AttemptCount = o.AttemptCount,
+                    LastError = o.LastError
+                })
+                .ToListAsync(cancellationToken);
+            return Ok(items);
         }
 
         [HttpGet("db-info")]

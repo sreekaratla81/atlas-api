@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers
@@ -39,13 +40,27 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("public")]
-        public async Task<ActionResult<IEnumerable<Listing>>> GetPublicListings()
+        public async Task<ActionResult<IEnumerable<PublicListingDto>>> GetPublicListings()
         {
             try
             {
                 var listings = await _context.Listings
-                    .Include(l => l.Property)
+                    .AsNoTracking()
                     .Where(l => l.Status == "Active")
+                    .Select(l => new PublicListingDto
+                    {
+                        Id = l.Id,
+                        PropertyId = l.PropertyId,
+                        PropertyName = l.Property != null ? l.Property.Name : "",
+                        PropertyAddress = l.Property != null ? l.Property.Address : null,
+                        Name = l.Name,
+                        Floor = l.Floor,
+                        Type = l.Type,
+                        CheckInTime = l.CheckInTime,
+                        CheckOutTime = l.CheckOutTime,
+                        Status = l.Status,
+                        MaxGuests = l.MaxGuests
+                    })
                     .ToListAsync();
                 return Ok(listings);
             }

@@ -40,6 +40,10 @@ Studio errors about package paths containing unexpected characters (e.g. when
 your Windows username includes accents). If you see missing package errors,
 delete the `.nuget/packages` folder and restore again.
 
+## Test Fix Summary
+
+- **BookingsController.GetAll** now accepts optional `listingId` and `bookingId` query parameters (API gap implementation). Unit tests in `Atlas.Api.Tests/BookingsControllerTests.cs` were updated to pass the new optional parameters (`null`, `null`) so all tests remain green.
+
 ## Running Integration Tests
 
 Integration tests automatically detect and apply any pending EF Core migrations

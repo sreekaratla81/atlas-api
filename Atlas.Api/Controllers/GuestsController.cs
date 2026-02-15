@@ -34,10 +34,7 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Guest>> Create(Guest item)
         {
-            if (item.TenantId != 0)
-            {
-                return BadRequest("TenantId is managed by the server.");
-            }
+            item.TenantId = 0;
             if (string.IsNullOrWhiteSpace(item.IdProofUrl))
             {
                 item.IdProofUrl = "N/A";
@@ -54,10 +51,7 @@ namespace Atlas.Api.Controllers
             if (id != item.Id) return BadRequest();
             var existing = await _context.Guests.FirstOrDefaultAsync(x => x.Id == id);
             if (existing == null) return NotFound();
-            if (item.TenantId != 0 && item.TenantId != existing.TenantId)
-            {
-                return NotFound();
-            }
+            item.TenantId = existing.TenantId;
 
             existing.Name = item.Name;
             existing.Phone = item.Phone;

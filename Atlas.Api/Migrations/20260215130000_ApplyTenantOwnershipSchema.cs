@@ -124,10 +124,14 @@ namespace Atlas.Api.Migrations
 
         private static void AddTenantOwnership(MigrationBuilder migrationBuilder, string tableName)
         {
+            // Batch 1: Add column so it exists before UPDATE (SQL Server parses entire batch before execution).
             migrationBuilder.Sql($$"""
                 IF COL_LENGTH(N'[{{tableName}}]', N'TenantId') IS NULL
                     ALTER TABLE [{{tableName}}] ADD [TenantId] int NULL;
+                """);
 
+            // Batch 2: Backfill, make NOT NULL, add index and FK.
+            migrationBuilder.Sql($$"""
                 DECLARE @DefaultTenantId int = (SELECT TOP 1 [Id] FROM [Tenant] WHERE [Slug] = 'atlas' ORDER BY [Id]);
                 UPDATE [{{tableName}}]
                 SET [TenantId] = @DefaultTenantId

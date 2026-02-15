@@ -47,11 +47,7 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Property>> Create(Property item)
         {
-            if (item.TenantId != 0)
-            {
-                return BadRequest("TenantId is managed by the server.");
-            }
-
+            item.TenantId = 0;
             _context.Properties.Add(item);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(Get), new { id = item.Id }, item);
@@ -64,10 +60,7 @@ namespace Atlas.Api.Controllers
 
             var existing = await _context.Properties.FirstOrDefaultAsync(x => x.Id == id);
             if (existing == null) return NotFound();
-            if (item.TenantId != 0 && item.TenantId != existing.TenantId)
-            {
-                return NotFound();
-            }
+            item.TenantId = existing.TenantId;
 
             existing.Name = item.Name;
             existing.Address = item.Address;

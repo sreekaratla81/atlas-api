@@ -1,9 +1,13 @@
+using Atlas.Api.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260220100000_AddTenantPricingAndQuotePricingBreakdown")]
     public partial class AddTenantPricingAndQuotePricingBreakdown : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -44,9 +48,9 @@ namespace Atlas.Api.Migrations
                 {
                     table.PrimaryKey("PK_QuoteRedemption", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_QuoteRedemption_Booking_BookingId",
+                        name: "FK_QuoteRedemption_Bookings_BookingId",
                         column: x => x.BookingId,
-                        principalTable: "Booking",
+                        principalTable: "Bookings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -57,17 +61,17 @@ namespace Atlas.Api.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            migrationBuilder.AddColumn<decimal>(name: "BaseAmount", table: "Booking", type: "decimal(18,2)", nullable: true);
-            migrationBuilder.AddColumn<decimal>(name: "DiscountAmount", table: "Booking", type: "decimal(18,2)", nullable: true);
-            migrationBuilder.AddColumn<decimal>(name: "ConvenienceFeeAmount", table: "Booking", type: "decimal(18,2)", nullable: true);
-            migrationBuilder.AddColumn<decimal>(name: "FinalAmount", table: "Booking", type: "decimal(18,2)", nullable: true);
-            migrationBuilder.AddColumn<string>(name: "PricingSource", table: "Booking", type: "varchar(30)", maxLength: 30, nullable: false, defaultValue: "Public");
-            migrationBuilder.AddColumn<string>(name: "QuoteTokenNonce", table: "Booking", type: "varchar(50)", maxLength: 50, nullable: true);
-            migrationBuilder.AddColumn<DateTime>(name: "QuoteExpiresAtUtc", table: "Booking", type: "datetime", nullable: true);
+            migrationBuilder.AddColumn<decimal>(name: "BaseAmount", table: "Bookings", type: "decimal(18,2)", nullable: true);
+            migrationBuilder.AddColumn<decimal>(name: "DiscountAmount", table: "Bookings", type: "decimal(18,2)", nullable: true);
+            migrationBuilder.AddColumn<decimal>(name: "ConvenienceFeeAmount", table: "Bookings", type: "decimal(18,2)", nullable: true);
+            migrationBuilder.AddColumn<decimal>(name: "FinalAmount", table: "Bookings", type: "decimal(18,2)", nullable: true);
+            migrationBuilder.AddColumn<string>(name: "PricingSource", table: "Bookings", type: "varchar(30)", maxLength: 30, nullable: false, defaultValue: "Public");
+            migrationBuilder.AddColumn<string>(name: "QuoteTokenNonce", table: "Bookings", type: "varchar(50)", maxLength: 50, nullable: true);
+            migrationBuilder.AddColumn<DateTime>(name: "QuoteExpiresAtUtc", table: "Bookings", type: "datetime", nullable: true);
 
-            migrationBuilder.AddColumn<decimal>(name: "BaseAmount", table: "Payment", type: "decimal(18,2)", nullable: true);
-            migrationBuilder.AddColumn<decimal>(name: "DiscountAmount", table: "Payment", type: "decimal(18,2)", nullable: true);
-            migrationBuilder.AddColumn<decimal>(name: "ConvenienceFeeAmount", table: "Payment", type: "decimal(18,2)", nullable: true);
+            migrationBuilder.AddColumn<decimal>(name: "BaseAmount", table: "Payments", type: "decimal(18,2)", nullable: true);
+            migrationBuilder.AddColumn<decimal>(name: "DiscountAmount", table: "Payments", type: "decimal(18,2)", nullable: true);
+            migrationBuilder.AddColumn<decimal>(name: "ConvenienceFeeAmount", table: "Payments", type: "decimal(18,2)", nullable: true);
 
             migrationBuilder.CreateIndex(name: "IX_QuoteRedemption_BookingId", table: "QuoteRedemption", column: "BookingId");
             migrationBuilder.CreateIndex(name: "IX_QuoteRedemption_TenantId_Nonce", table: "QuoteRedemption", columns: new[] { "TenantId", "Nonce" }, unique: true);
@@ -79,17 +83,17 @@ namespace Atlas.Api.Migrations
             migrationBuilder.DropTable(name: "QuoteRedemption");
             migrationBuilder.DropTable(name: "TenantPricingSettings");
 
-            migrationBuilder.DropColumn(name: "BaseAmount", table: "Booking");
-            migrationBuilder.DropColumn(name: "DiscountAmount", table: "Booking");
-            migrationBuilder.DropColumn(name: "ConvenienceFeeAmount", table: "Booking");
-            migrationBuilder.DropColumn(name: "FinalAmount", table: "Booking");
-            migrationBuilder.DropColumn(name: "PricingSource", table: "Booking");
-            migrationBuilder.DropColumn(name: "QuoteTokenNonce", table: "Booking");
-            migrationBuilder.DropColumn(name: "QuoteExpiresAtUtc", table: "Booking");
+            migrationBuilder.DropColumn(name: "BaseAmount", table: "Bookings");
+            migrationBuilder.DropColumn(name: "DiscountAmount", table: "Bookings");
+            migrationBuilder.DropColumn(name: "ConvenienceFeeAmount", table: "Bookings");
+            migrationBuilder.DropColumn(name: "FinalAmount", table: "Bookings");
+            migrationBuilder.DropColumn(name: "PricingSource", table: "Bookings");
+            migrationBuilder.DropColumn(name: "QuoteTokenNonce", table: "Bookings");
+            migrationBuilder.DropColumn(name: "QuoteExpiresAtUtc", table: "Bookings");
 
-            migrationBuilder.DropColumn(name: "BaseAmount", table: "Payment");
-            migrationBuilder.DropColumn(name: "DiscountAmount", table: "Payment");
-            migrationBuilder.DropColumn(name: "ConvenienceFeeAmount", table: "Payment");
+            migrationBuilder.DropColumn(name: "BaseAmount", table: "Payments");
+            migrationBuilder.DropColumn(name: "DiscountAmount", table: "Payments");
+            migrationBuilder.DropColumn(name: "ConvenienceFeeAmount", table: "Payments");
         }
     }
 }

@@ -54,7 +54,7 @@ public class ListingsApiTests : IntegrationTestBase
             MaxGuests = 2
         };
 
-        var response = await Client.PostAsJsonAsync(ApiRoute("listings"), listing);
+        var response = await Client.PostAsJsonAsync(ApiRoute("listings"), new { listing.PropertyId, listing.Name, listing.Floor, listing.Type, listing.Status, listing.WifiName, listing.WifiPassword, listing.MaxGuests });
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -70,7 +70,7 @@ public class ListingsApiTests : IntegrationTestBase
         var (_, listing) = await SeedListingAsync(db);
         listing.Name = "Updated";
 
-        var response = await Client.PutAsJsonAsync(ApiRoute($"listings/{listing.Id}"), listing);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"listings/{listing.Id}"), new { listing.Id, listing.PropertyId, listing.Name, listing.Floor, listing.Type, listing.Status, listing.WifiName, listing.WifiPassword, listing.MaxGuests });
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();

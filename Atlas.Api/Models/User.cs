@@ -1,10 +1,13 @@
 
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+
 namespace Atlas.Api.Models
 {
     public class User : ITenantOwnedEntity
     {
         public int Id { get; set; }
         public int TenantId { get; set; }
+        [ValidateNever]
         public Tenant Tenant { get; set; } = null!;
         public required string Name { get; set; }
         public required string Phone { get; set; }

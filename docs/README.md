@@ -26,6 +26,7 @@ This folder is the single source of truth for API, schema, and operations. **The
 ## Testing Docs
 - [Testing Guide](testing-guide.md)
 - [Endpoint Coverage Matrix](testing/endpoint-coverage.md)
+- [API coverage audit](api-coverage-audit.md)
 
 ## Update Rule
 Any controller or DTO change requires a documentation update in this folder.

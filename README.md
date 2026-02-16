@@ -1,5 +1,6 @@
 # atlas-api
-.NET Core backend that powers all frontend apps, integrates with Azure SQL
+
+.NET 8 backend that powers Atlas Homestays frontend apps and integrates with Azure SQL, Azure Service Bus, Razorpay, and MSG91.
 
 ## Controller conventions
 

@@ -14,9 +14,9 @@ Prioritized feature roadmap for Atlas Homestays. All development must align with
 |---|--------|--------|-----------|
 | 1 | Guest Communication Template Engine | **Largely done** | Add event types (pre-arrival, check-in, post-checkout, review); implement outbox consumer + provider gateway to actually send. |
 | 2 | Direct Booking Engine (Property Portal) | **Done** | — |
-| 3 | Event-Driven Notification System | **Partial** | Outbox + booking-confirmed exist; add T-1/T+1/review triggers and consumer that sends via gateway. |
+| 3 | Event-Driven Notification System | **Partial** | Azure Service Bus + outbox + consumers exist; add T-1/T+1/review triggers. |
 | 4 | Availability & Inventory Engine | **Done** | — |
-| 5 | Unified Notification Gateway | **Not done** | Abstraction over SMS/WhatsApp/Email (e.g. MSG91); wire to outbox consumer. |
+| 5 | Unified Notification Gateway | **Partial** | Msg91NotificationProvider + NotificationOrchestrator exist; add WhatsApp/Email providers and wire to consumers. |
 
 ---
 
@@ -31,16 +31,17 @@ Prioritized feature roadmap for Atlas Homestays. All development must align with
 - RatebotaiRepo + BookingsController + RazorpayController.
 
 ## 3. Event-Driven Notification System (expand)
-- **Remaining:** T-1 check-in reminder, T+1 follow-up, review request triggers; consumer that processes OutboxMessage and sends via gateway.
-- **Dependency:** Event bus / outbox consumer; notification gateway (#5).
+- **Implemented:** Azure Service Bus, outbox pattern, OutboxDispatcherHostedService, BookingEventsNotificationConsumer, StayEventsNotificationConsumer.
+- **Remaining:** T-1 check-in reminder, T+1 follow-up, review request triggers.
+- **Dependency:** Notification gateway (#5) for actual sends.
 
 ## 4. Availability & Inventory Engine — ✅ Implemented
 - AvailabilityController, AvailabilityService, blocks, inventory.
 
-## 5. Unified Notification Gateway
-- **Status:** Not implemented.
+## 5. Unified Notification Gateway (partial)
+- **Implemented:** INotificationProvider, Msg91NotificationProvider, NotificationOrchestrator.
+- **Remaining:** WhatsApp/Email provider implementations; wire consumers to orchestrator.
 - **Why:** Vendor flexibility (SMS/WhatsApp/Email providers e.g. MSG91).
-- Abstraction layer so outbox consumer can send without coupling to one provider.
 
 ---
 

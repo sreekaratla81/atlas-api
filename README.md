@@ -114,6 +114,7 @@ Reminder: never commit connection strings, JWT keys, or `.env` files to the
 repository—use secret managers or platform configuration instead.
 
 - **Health:** `GET /health` returns 200 with `{ "status": "healthy" }` for liveness (e.g. load balancer or Azure App Service). See `docs/api-contract.md`.
+- **Azure Service Bus (eventing):** Set `AzureServiceBus__ConnectionString` in App Service or environment. Topics: `booking.events`, `stay.events`. With empty connection string, event bus uses in-memory publisher (suitable for local dev).
 
 ## CI validation
 
@@ -130,6 +131,7 @@ Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validat
 - **docs/ci-cd-branch-mapping.md** — Branch → workflow → app mapping and secrets.
 - **docs/ATLAS-HIGH-VALUE-BACKLOG.md** — Prioritized feature roadmap and current implementation status.
 - **docs/ATLAS-FEATURE-EXECUTION-PROMPT.md** — Workflow for implementing the next feature from the backlog.
+- **docs/eventing-servicebus-implementation-plan.md** — Azure Service Bus eventing architecture and implementation notes.
 
 ## CORS allowlist
 

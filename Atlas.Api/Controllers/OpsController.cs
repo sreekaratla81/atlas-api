@@ -56,9 +56,7 @@ namespace Atlas.Api.Controllers
                     CreatedAtUtc = o.CreatedAtUtc,
                     PublishedAtUtc = o.PublishedAtUtc,
                     AttemptCount = o.AttemptCount,
-                    LastError = o.LastError,
-                    AggregateType = o.AggregateType,
-                    AggregateId = o.AggregateId
+                    LastError = o.LastError
                 })
                 .ToListAsync(cancellationToken);
             return Ok(items);

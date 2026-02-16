@@ -139,7 +139,7 @@ namespace Atlas.Api
             var jwtKey = builder.Configuration["Jwt:Key"];
             _ = jwtKey;
 
-            // TODO: Re-enable authentication before going to production
+            // Auth disabled for local/dev; re-enable before prod (see ATLAS-HIGH-VALUE-BACKLOG execution rules)
             // builder.Services.AddAuthentication("Bearer")
             //     .AddJwtBearer("Bearer", options =>
             //     {

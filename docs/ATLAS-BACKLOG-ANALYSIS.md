@@ -21,9 +21,9 @@ We already have:
 |--------------------|----------------------------|
 | **1. Guest Communication Template Engine** | **Largely implemented.** `MessageTemplatesController` (CRUD), `MessageTemplate` model, DTOs, tenant-owned. `BookingsController` uses templates in `EnqueueBookingConfirmedWorkflowAsync`: selects SMS/WhatsApp/Email templates, creates `CommunicationLog` rows and `OutboxMessage` (event). Integration tests in `MessageTemplatesApiTests.cs`. What may remain: more event types (pre-arrival, check-in, post-checkout, review), and actually sending via SMS/WhatsApp/Email providers (outbox consumer). |
 | **2. Direct Booking Engine (Property Portal)** | **Implemented.** RatebotaiRepo is the guest-facing site; `BookingsController`, `RazorpayController`, booking flow and payment exist. |
-| **3. Event-Driven Notification System** | **Partially implemented.** Outbox pattern (`OutboxMessage`), booking-confirmed event, `CommunicationLog` for pending sends. Missing: generic event bus, T-1/T+1/review triggers, and a consumer that sends via providers. |
+| **3. Event-Driven Notification System** | **Partially implemented.** Azure Service Bus, outbox, `OutboxDispatcherHostedService`, `BookingEventsNotificationConsumer`, `StayEventsNotificationConsumer`. Missing: T-1/T+1/review triggers. |
 | **4. Availability & Inventory Engine** | **Implemented.** `AvailabilityController`, `AvailabilityService`, blocks, inventory. |
-| **5. Unified Notification Gateway** | **Not implemented.** No abstraction over SMS/WhatsApp/Email providers (MSG91, etc.); only in-memory/outbox and template selection exist. |
+| **5. Unified Notification Gateway** | **Partially implemented.** `INotificationProvider`, `Msg91NotificationProvider`, `NotificationOrchestrator`. Missing: WhatsApp/Email providers, wire to consumers. |
 
 So Tier 1 should **not** be copied as if everything is “not yet implemented.” The backlog should either mark items as done/partial or be rewritten to reflect “next steps” (e.g. “Template engine: add pre-arrival/check-in events and wire to notification gateway”).
 

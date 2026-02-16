@@ -133,8 +133,8 @@ jobs:
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
 
       - name: Publish
-        # Self-contained win-x86 for 32-bit Free/Shared tier (avoids 500.31 ANCM + 500.32 load failure).
-        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
+        # win-x64 for Windows App Service.
+        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
 
       - name: Normalize SqlClient runtime layout
         shell: pwsh

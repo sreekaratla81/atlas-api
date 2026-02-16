@@ -38,7 +38,7 @@ namespace Atlas.Api.Controllers
             if (toUtc.HasValue)
                 query = query.Where(o => o.CreatedAtUtc <= toUtc.Value);
             if (published.HasValue)
-                query = query.Where(o => (o.PublishedAtUtc != null) == published.Value);
+                query = query.Where(o => (published.Value ? o.Status == "Published" : o.Status != "Published"));
 
             var items = await query
                 .OrderByDescending(o => o.CreatedAtUtc)
@@ -48,13 +48,17 @@ namespace Atlas.Api.Controllers
                 {
                     Id = o.Id,
                     TenantId = o.TenantId,
-                    AggregateType = o.AggregateType,
-                    AggregateId = o.AggregateId,
+                    Topic = o.Topic,
                     EventType = o.EventType,
+                    EntityId = o.EntityId,
+                    CorrelationId = o.CorrelationId,
+                    Status = o.Status,
                     CreatedAtUtc = o.CreatedAtUtc,
                     PublishedAtUtc = o.PublishedAtUtc,
                     AttemptCount = o.AttemptCount,
-                    LastError = o.LastError
+                    LastError = o.LastError,
+                    AggregateType = o.AggregateType,
+                    AggregateId = o.AggregateId
                 })
                 .ToListAsync(cancellationToken);
             return Ok(items);

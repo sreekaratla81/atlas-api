@@ -24,5 +24,10 @@ namespace Atlas.Api.Services
         /// MSG91 Template ID for Flow API (DLT registered template)
         /// </summary>
         public string TemplateId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// MSG91 WhatsApp API base URL (e.g. https://api.msg91.com/api/v5/whatsapp)
+        /// </summary>
+        public string? WhatsAppBaseUrl { get; set; }
     }
 }

@@ -1,4 +1,7 @@
 using Atlas.Api.Data;
+using Atlas.Api.Options;
+using Atlas.Api.Services.EventBus;
+using Atlas.Api.Services.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
@@ -11,6 +14,7 @@ using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Atlas.Api.Models.Dtos.Razorpay;
 using Atlas.Api.Services.Tenancy;
+using Microsoft.Extensions.Options;
 
 namespace Atlas.Api
 {
@@ -112,6 +116,25 @@ namespace Atlas.Api
                     options.LogTo(Console.WriteLine);
                 }
             });
+
+            builder.Services.Configure<AzureServiceBusOptions>(builder.Configuration.GetSection(AzureServiceBusOptions.SectionName));
+            builder.Services.AddSingleton<InMemoryEventBusPublisher>();
+            builder.Services.AddSingleton<AzureServiceBusPublisher>();
+            builder.Services.AddSingleton<IEventBusPublisher>(sp =>
+            {
+                var opts = sp.GetRequiredService<IOptions<AzureServiceBusOptions>>();
+                return !string.IsNullOrWhiteSpace(opts.Value.ConnectionString)
+                    ? sp.GetRequiredService<AzureServiceBusPublisher>()
+                    : sp.GetRequiredService<InMemoryEventBusPublisher>();
+            });
+            builder.Services.AddHostedService<OutboxDispatcherHostedService>();
+            builder.Services.AddHostedService<Atlas.Api.Services.Consumers.BookingEventsNotificationConsumer>();
+            builder.Services.AddHostedService<Atlas.Api.Services.Consumers.StayEventsNotificationConsumer>();
+
+            builder.Services.Configure<Atlas.Api.Services.Msg91Settings>(builder.Configuration.GetSection("Msg91"));
+            builder.Services.AddHttpClient("MSG91");
+            builder.Services.AddScoped<Atlas.Api.Services.Notifications.INotificationProvider, Atlas.Api.Services.Notifications.Msg91NotificationProvider>();
+            builder.Services.AddScoped<Atlas.Api.Services.Notifications.NotificationOrchestrator>();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
             _ = jwtKey;

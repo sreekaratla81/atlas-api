@@ -545,27 +545,56 @@ namespace Atlas.Api.Data
                 .ToTable("OutboxMessage");
 
             modelBuilder.Entity<OutboxMessage>()
-                .Property(o => o.AggregateType)
-                .HasMaxLength(50)
-                .HasColumnType("varchar(50)")
-                .IsRequired();
-
-            modelBuilder.Entity<OutboxMessage>()
-                .Property(o => o.AggregateId)
-                .HasMaxLength(50)
-                .HasColumnType("varchar(50)")
+                .Property(o => o.Topic)
+                .HasMaxLength(80)
+                .HasColumnType("varchar(80)")
                 .IsRequired();
 
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.EventType)
-                .HasMaxLength(50)
-                .HasColumnType("varchar(50)")
+                .HasMaxLength(80)
+                .HasColumnType("varchar(80)")
                 .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.Status)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired()
+                .HasDefaultValue("Pending");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.CorrelationId)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.EntityId)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.OccurredUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.NextAttemptUtc)
+                .HasColumnType("datetime");
 
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.PayloadJson)
                 .HasColumnType("text")
                 .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.AggregateType)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.AggregateId)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)");
 
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.HeadersJson)
@@ -582,6 +611,14 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.LastError)
                 .HasColumnType("text");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .HasIndex(o => new { o.Status, o.NextAttemptUtc })
+                .HasDatabaseName("IX_OutboxMessage_Status_NextAttemptUtc");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .HasIndex(o => new { o.TenantId, o.CreatedAtUtc })
+                .HasDatabaseName("IX_OutboxMessage_TenantId_CreatedAtUtc");
 
             modelBuilder.Entity<ConsumedEvent>()
                 .ToTable("ConsumedEvent");

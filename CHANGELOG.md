@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Azure Service Bus eventing, outbox pattern, notification consumers
 - .gitattributes for consistent line endings
+- CHANGELOG.md (this file)
+- AzureServiceBus config in appsettings.Development.local.json
+- Azure Service Bus eventing, outbox pattern, notification consumers
 - Msg91NotificationProvider, NotificationOrchestrator
 - Eventing/Service Bus implementation plan doc
 

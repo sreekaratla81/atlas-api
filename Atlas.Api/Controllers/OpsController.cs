@@ -18,6 +18,7 @@ namespace Atlas.Api.Controllers
             _environment = environment;
         }
 
+        /// <summary>Returns paginated outbox messages for ops diagnostics. Tenant-scoped.</summary>
         [HttpGet("outbox")]
         public async Task<ActionResult<IEnumerable<OutboxMessageDto>>> GetOutbox(
             [FromQuery] DateTime? fromUtc,
@@ -62,6 +63,7 @@ namespace Atlas.Api.Controllers
             return Ok(items);
         }
 
+        /// <summary>Returns environment metadata (server, database, marker) without exposing secrets.</summary>
         [HttpGet("db-info")]
         public async Task<IActionResult> GetDatabaseInfo(CancellationToken cancellationToken)
         {

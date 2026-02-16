@@ -1,6 +1,6 @@
 # Database Schema
 
-This document reflects the schema defined by `AppDbContext` and the entity classes in `Atlas.Api/Models`.
+This document reflects the schema defined by `AppDbContext` and the entity classes in `Atlas.Api/Models`. Indexes are defined in `AppDbContext.OnModelCreating`; see the model configuration for composite indexes (e.g. tenant + date, tenant + status).
 
 ## AutomationSchedule
 **Columns**

@@ -338,15 +338,22 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | --- | --- | --- |
 | Id | uniqueidentifier | No |
 | TenantId | int | No |
-| AggregateType | varchar(50) | No |
-| AggregateId | varchar(50) | No |
+| Topic | varchar(80) | No |
 | EventType | varchar(50) | No |
 | PayloadJson | text | No |
-| HeadersJson | text | Yes |
+| CorrelationId | varchar(255) | Yes |
+| EntityId | varchar(255) | Yes |
+| OccurredUtc | datetime | No |
+| SchemaVersion | int | No |
+| Status | varchar(20) | No |
+| NextAttemptUtc | datetime | Yes |
 | CreatedAtUtc | datetime | No |
 | PublishedAtUtc | datetime | Yes |
 | AttemptCount | int | No |
 | LastError | text | Yes |
+| AggregateType | varchar(50) | Yes (legacy) |
+| AggregateId | varchar(50) | Yes (legacy) |
+| HeadersJson | text | Yes |
 
 **Primary Key**
 - Id
@@ -355,7 +362,7 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 - TenantId → Tenants.Id
 
 **Relationships**
-- Tenant-owned; outbox for domain events.
+- Tenant-owned; outbox for domain events. Topic/EntityId are primary; AggregateType/AggregateId are legacy.
 
 ## EnvironmentMarker
 **Columns**

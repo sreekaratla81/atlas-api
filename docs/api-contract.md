@@ -35,7 +35,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Purpose**: Read-only list of outbox messages for ops diagnostics. Tenant-scoped via EF filters.
 - **Query params**: `fromUtc` (DateTime?, optional), `toUtc` (DateTime?, optional), `published` (bool?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
 - **Request body**: none
-- **Response**: `ActionResult<IEnumerable<OutboxMessageDto>>` — `Id`, `TenantId`, `AggregateType`, `AggregateId`, `EventType`, `CreatedAtUtc`, `PublishedAtUtc`, `AttemptCount`, `LastError` (no full payload).
+- **Response**: `ActionResult<IEnumerable<OutboxMessageDto>>` — `Id`, `TenantId`, `Topic`, `EntityId`, `EventType`, `CreatedAtUtc`, `PublishedAtUtc`, `AttemptCount`, `LastError` (no full payload). Legacy `AggregateType`/`AggregateId` deprecated in favor of `Topic`/`EntityId`.
 - **Status codes**: 200, 500
 
 ### Availability (`Atlas.Api/Controllers/AvailabilityController.cs`)

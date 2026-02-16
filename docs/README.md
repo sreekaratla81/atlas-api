@@ -13,6 +13,9 @@ This folder is the single source of truth for API, schema, and operations. **The
 - [ATLAS-FEATURE-EXECUTION-PROMPT.md](ATLAS-FEATURE-EXECUTION-PROMPT.md) — workflow for implementing the next feature from the backlog
 - [ATLAS-BACKLOG-ANALYSIS.md](ATLAS-BACKLOG-ANALYSIS.md) — how the backlog was derived and what’s already implemented
 
+## Eventing & Service Bus
+- [Eventing / Azure Service Bus implementation plan](eventing-servicebus-implementation-plan.md)
+
 ## Runbooks & Ops
 - [API testing before deploy](API-TESTING-BEFORE-DEPLOY.md) — Ensure host and UI-critical flows pass before deploy.
 - [Quoted pricing runbook](quoted-pricing-runbook.md)

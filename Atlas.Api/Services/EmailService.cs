@@ -264,7 +264,7 @@ namespace Atlas.Api.Services
             <div class='contact-info'>
                 <p>If you need any assistance, feel free to contact us:</p>
                 <p>📞 Call/WhatsApp: +91-7032493290<br>
-                📧 Email: atlashomeskphb@gmail.com</p>
+                📧 Email: {_smtpConfig.FromEmail}</p>
             </div>
             
             <p>We look forward to hosting you and making your stay comfortable.</p>

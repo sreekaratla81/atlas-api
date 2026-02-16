@@ -139,7 +139,7 @@ For each FE surface, endpoints the FE will need and why:
 ### 6. OutboxMessage list – ops only (admin)
 
 - **Route:** `GET /ops/outbox` with query params: fromUtc (optional), toUtc (optional), published (optional bool), page (optional), pageSize (optional).
-- **Response:** Array of OutboxMessageDto (Id, TenantId, AggregateType, AggregateId, EventType, CreatedAtUtc, PublishedAtUtc, AttemptCount; optionally LastError; PayloadJson/HeadersJson optional or truncated for size).
+- **Response:** Array of OutboxMessageDto (Id, TenantId, Topic, EntityId, EventType, CreatedAtUtc, PublishedAtUtc, AttemptCount; optionally LastError; PayloadJson/HeadersJson optional or truncated for size).
 - **Status codes:** 200, 500.
 
 ---

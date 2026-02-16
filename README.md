@@ -104,7 +104,8 @@ Configure production runtime settings in Azure App Service and GitHub Actions:
 - **Azure App Service → Connection strings:** add `DefaultConnection` with type
   `SQLAzure` (or `SQLServer` for non-Azure SQL Server targets) and the expected
   database connection string.
-- **Azure App Service → Application settings:** set `Jwt__Key` for JWT signing
+- **Azure App Service → Application settings:** set `Jwt__Key` for JWT signing,
+  `Smtp__FromEmail`, `Smtp__Username`, `Smtp__Password` (or use Key Vault references),
   and any other required application settings (for example, Auth0/client IDs or
   tenant settings used by the API).
 - **GitHub Actions secrets:** add `ATLAS_DEV_SQL_CONNECTION_STRING` and

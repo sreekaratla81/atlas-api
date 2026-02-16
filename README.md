@@ -24,7 +24,7 @@ When returning a 200 payload, call `Ok(...)` instead of constructing an
 
 ## Clone (workspace setup)
 
-From the directory where you want to store all repos:
+From the directory where you want to store all Atlas Homestays repos:
 
 ```bash
 git clone https://github.com/sreekaratla81/atlas-guest-portal.git
@@ -125,7 +125,7 @@ repository—use secret managers or platform configuration instead.
 
 The **CI and Deploy to Dev** workflow (`ci-deploy-dev.yml`) runs restore → build (Release) → unit tests → **integration tests** (including UI contract tests). Integration tests use LocalDb on `windows-latest` and validate host startup and the same flows the guest/admin portals use (see `docs/API-TESTING-BEFORE-DEPLOY.md`).
 
-Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validation before deploy, run integration tests too (`dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release`). See `CONTRIBUTING.md` and `docs/DEVSECOPS-GATES-BASELINE.md`.
+Run locally before opening a PR: follow `CONTRIBUTING.md`. For full validation before deploy, run integration tests too (`dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release`). See `docs/DEVSECOPS-GATES-BASELINE.md` for the workspace sanity runbook.
 
 ## Documentation
 

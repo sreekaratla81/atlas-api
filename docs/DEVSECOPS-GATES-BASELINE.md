@@ -16,11 +16,11 @@
 |---------------------|----------|--------|
 | **atlas-api**       | **GREEN** | restore, build, full test suite passed. `BookingWorkflowFailureTests.Post_CreatesBooking_WhenWorkflowPublisherFails` skipped (obsolete async flow). |
 | **atlas-admin-portal** | **GREEN** | **lint** 0 errors, 15 warnings; **build** ok; **tests** 55 passed (16 files). |
-| **RatebotaiRepo**   | **RED** | **npm ci** EPERM (file lock). Lint/build/test not verified locally. CI may pass if node_modules complete. |
+| **RatebotaiRepo**   | **GREEN** | Lint 0 errors / 13 warnings; build ok; tests 160 passed / 32 skipped. |
 
-**Overall:** atlas-api and atlas-admin-portal gate-ready. RatebotaiRepo: resolve EPERM / node_modules before local sanity.
+**Overall:** All three repos gate-ready.
 
-**Re-run 2026-02-16:** atlas-api: restore + build (Release) GREEN. Unit: Api.Tests 111 passed / 1 skipped; DbMigrator.Tests 9 passed; DbMigrator.IntegrationTests 3 passed. Integration: 158 passed, 1 skipped (obsolete test). atlas-admin-portal: lint 0 errors / 15 warnings, build ok, vitest 55 passed (16 files). RatebotaiRepo: npm ci EPERM; not verified.
+**Re-run 2026-02-16:** atlas-api: restore + build (Release) GREEN; tests pass. atlas-admin-portal: lint 0 errors / 15 warnings, build ok, vitest 55 passed. RatebotaiRepo: lint 0 errors / 13 warnings, build ok, vitest 160 passed / 32 skipped. All GREEN.
 
 ---
 
@@ -60,7 +60,9 @@ npm test
 ```
 
 - **Current status (2026-02-16):**
-  - **Lint/Build/Tests:** Not verified locally — `npm ci` failed with EPERM (file lock on node_modules). Close IDE/terminals and retry `npm ci` to verify.
+  - **Lint:** **0 errors**, 13 warnings.
+  - **Build:** **GREEN** — `npm run build` exit 0.
+  - **Tests:** **GREEN** — `npm test` 160 passed, 32 skipped.
 
 ---
 
@@ -68,7 +70,7 @@ npm test
 
 - **atlas-api:** `BookingWorkflowFailureTests.Post_CreatesBooking_WhenWorkflowPublisherFails` failed (expected sync workflow flow). **Fixed:** Skipped test — architecture now uses async outbox/Service Bus.
 - **atlas-admin-portal:** All green.
-- **RatebotaiRepo:** `npm ci` EPERM (file lock). Close processes locking node_modules and retry.
+- **RatebotaiRepo:** All green. Fixed duplicate `description` in package.json; DatePicker snapshot test made deterministic via `vi.setSystemTime`.
 
 ---
 

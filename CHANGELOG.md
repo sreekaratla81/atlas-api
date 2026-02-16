@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - OutboxMessage DTO: Topic/EntityId primary; AggregateType/AggregateId deprecated
+- BookingWorkflowFailureTests.Post_CreatesBooking_WhenWorkflowPublisherFails skipped (architecture uses async outbox/Service Bus)
 - Smtp config: use __SET_VIA_ENV for Username/FromEmail
 
 ### Security

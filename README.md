@@ -96,6 +96,8 @@ expands it at runtime.
 
 Set `ATLAS_DEV_SQL_CONNECTION_STRING` and `ATLAS_PROD_SQL_CONNECTION_STRING` via
 your secret manager, GitHub Actions secrets, or Azure App Service configuration.
+See [docs/migrations-troubleshooting.md](docs/migrations-troubleshooting.md) for common migration issues.
+
 Logs are redacted and should not include connection string secrets.
 
 ## Runtime configuration
@@ -127,6 +129,8 @@ Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validat
 ## Documentation
 
 - **AGENTS.md** — Instructions for AI assistants (gate, feature backlog, docs sync).
+- **docs/api-contract.md** — Endpoint reference, request/response shapes, tenant resolution.
+- **docs/db-schema.md** — Tables, columns, FKs (aligned with AppDbContext).
 - **CONTRIBUTING.md** — PR checklist and gate commands.
 - **docs/DEVSECOPS-GATES-BASELINE.md** — CI/gate definition per repo, verify in CI, branch protection.
 - **docs/API-TESTING-BEFORE-DEPLOY.md** — Unit vs integration vs UI contract tests; run integration tests before deploy.
@@ -134,6 +138,8 @@ Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validat
 - **docs/ATLAS-HIGH-VALUE-BACKLOG.md** — Prioritized feature roadmap and current implementation status.
 - **docs/ATLAS-FEATURE-EXECUTION-PROMPT.md** — Workflow for implementing the next feature from the backlog.
 - **docs/eventing-servicebus-implementation-plan.md** — Azure Service Bus eventing architecture and implementation notes.
+- **Swagger UI** — Available at `/swagger` when not running in Production (see `docs/api-contract.md`).
+- **SECURITY.md** — Vulnerability reporting.
 
 ## CORS allowlist
 

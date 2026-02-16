@@ -22,10 +22,10 @@ When returning a 200 payload, call `Ok(...)` instead of constructing an
 - Avoid returning raw `ObjectResult` unless you explicitly set `StatusCode` for
   non-standard responses.
 
-# Go to the directory where you want to store all repos
-cd ~/Projects/AtlasHomestays  # or any preferred location
+## Clone (workspace setup)
 
-# Clone each repository
+From the directory where you want to store all repos:
+
 git clone https://github.com/sreekaratla81/atlas-guest-portal.git
 git clone https://github.com/sreekaratla81/atlas-admin-portal.git
 git clone https://github.com/sreekaratla81/atlas-api.git
@@ -33,7 +33,7 @@ git clone https://github.com/sreekaratla81/atlas-staff-app.git
 git clone https://github.com/sreekaratla81/atlas-sql.git
 git clone https://github.com/sreekaratla81/atlas-shared-utils.git
 
-## NuGet packages
+## NuGet packages (atlas-api)
 
 The repo includes a `NuGet.config` that pins the global packages folder to
 `./.nuget/packages`. This keeps restore paths ASCII-only, which avoids Visual
@@ -240,3 +240,9 @@ These defaults are centralized in `Directory.Build.props` and applied in `covera
 ### Optional strict check before release
 
 Use `.github/workflows/unitests-coverage-strict.yml` (`workflow_dispatch`) when you want enforced coverage checks. This manual workflow fails if line coverage is below 90%, which is useful as a release-readiness gate.
+
+## Troubleshooting
+
+- **LocalDb not found** — Ensure SQL Server LocalDb is installed. Integration tests require it. Set `ATLAS_TestDb` if using a different connection string.
+- **Migration check fails in CI** — Verify `ATLAS_DEV_SQL_CONNECTION_STRING` (and prod if applicable) are set in GitHub Actions secrets.
+- **Swagger not loading** — Swagger is disabled in Production; use Development or Staging.

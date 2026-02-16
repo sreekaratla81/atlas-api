@@ -107,10 +107,9 @@ Configure production runtime settings in Azure App Service and GitHub Actions:
 - **Azure App Service → Connection strings:** add `DefaultConnection` with type
   `SQLAzure` (or `SQLServer` for non-Azure SQL Server targets) and the expected
   database connection string.
-- **Azure App Service → Application settings:** set `Jwt__Key` for JWT signing,
-  `Smtp__FromEmail`, `Smtp__Username`, `Smtp__Password` (or use Key Vault references),
-  and any other required application settings (for example, Auth0/client IDs or
-  tenant settings used by the API).
+- **Azure App Service → Application settings:** set `Jwt__Key` for JWT signing;
+  `Smtp__FromEmail`, `Smtp__Username`, `Smtp__Password`; `Msg91__AuthKey`, `Msg91__SenderId` for SMS;
+  `AzureServiceBus__ConnectionString` for eventing; and any other required settings (Auth0/client IDs, tenant settings).
 - **GitHub Actions secrets:** add `ATLAS_DEV_SQL_CONNECTION_STRING` and
   `ATLAS_PROD_SQL_CONNECTION_STRING` for CI/CD and migration workflows.
 
@@ -130,6 +129,7 @@ Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validat
 
 - **AGENTS.md** — Instructions for AI assistants (gate, feature backlog, docs sync).
 - **docs/api-contract.md** — Endpoint reference, request/response shapes, tenant resolution.
+- **docs/api-examples.http** — Runnable HTTP examples (REST Client / IDE).
 - **docs/db-schema.md** — Tables, columns, FKs (aligned with AppDbContext).
 - **CONTRIBUTING.md** — PR checklist and gate commands.
 - **docs/DEVSECOPS-GATES-BASELINE.md** — CI/gate definition per repo, verify in CI, branch protection.
@@ -184,14 +184,15 @@ Production deploys are automated through the GitHub Actions workflows at
 | `.github/workflows/deploy-prod.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD` |
 
 The `AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*`
-patterns map to `*_DEV` and `*_PROD` variables above.
+patterns map to `*_DEV` and `*_PROD` variables above. Set `Smtp__*`, `Msg91__*`, and
+`AzureServiceBus__ConnectionString` in **Azure App Service → Application settings** (or Key Vault references) for email, SMS, and eventing.
 
 ### Validate deploy artifacts locally
 
 To catch missing publish outputs before pushing (and avoid deploy-dev failures in CI), run the same validation the **ci** job uses:
 
 ```powershell
-dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
+dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
 ./scripts/validate-publish.ps1 -PublishPath ./publish
 ```
 

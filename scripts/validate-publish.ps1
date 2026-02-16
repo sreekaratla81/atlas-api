@@ -1,5 +1,5 @@
 # Validates that a dotnet publish output directory contains the required deploy artifacts.
-# Run locally after: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
+# Run locally after: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
 # Usage: ./scripts/validate-publish.ps1 [-PublishPath <path>]
 param(
     [string]$PublishPath = './publish'

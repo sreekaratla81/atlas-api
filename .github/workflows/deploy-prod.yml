@@ -133,8 +133,8 @@ jobs:
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
 
       - name: Publish
-        # win-x64 for Windows App Service.
-        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
+        # win-x86 for 32-bit Azure App Service (Basic tier). Do not switch to win-x64 without upgrading plan.
+        run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
       - name: Normalize SqlClient runtime layout
         shell: pwsh

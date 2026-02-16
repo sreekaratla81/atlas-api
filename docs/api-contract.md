@@ -1,6 +1,6 @@
 # Atlas API Contract
 
-This document is derived from the codebase and is maintained for use as **AI context** (e.g. ChatGPT, Cursor). Keep it in sync when adding or changing controllers or DTOs.
+This document is derived from the codebase and is maintained for use as **AI context** (e.g. ChatGPT, Cursor). Keep it in sync when adding or changing controllers or DTOs. See `api-examples.http` for runnable examples.
 
 ## Base URL
 - **Production**: `https://atlas-homes-api-gxdqfjc2btc0atbv.centralus-01.azurewebsites.net`

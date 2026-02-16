@@ -139,6 +139,7 @@ Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validat
 - **docs/ATLAS-FEATURE-EXECUTION-PROMPT.md** — Workflow for implementing the next feature from the backlog.
 - **docs/eventing-servicebus-implementation-plan.md** — Azure Service Bus eventing architecture and implementation notes.
 - **Swagger UI** — Available at `/swagger` when not running in Production (see `docs/api-contract.md`).
+- **CHANGELOG.md** — Version history and notable changes.
 - **SECURITY.md** — Vulnerability reporting.
 
 ## CORS allowlist

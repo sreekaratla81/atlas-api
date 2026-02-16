@@ -26,12 +26,14 @@ When returning a 200 payload, call `Ok(...)` instead of constructing an
 
 From the directory where you want to store all repos:
 
+```bash
 git clone https://github.com/sreekaratla81/atlas-guest-portal.git
 git clone https://github.com/sreekaratla81/atlas-admin-portal.git
 git clone https://github.com/sreekaratla81/atlas-api.git
 git clone https://github.com/sreekaratla81/atlas-staff-app.git
 git clone https://github.com/sreekaratla81/atlas-sql.git
 git clone https://github.com/sreekaratla81/atlas-shared-utils.git
+```
 
 ## NuGet packages (atlas-api)
 
@@ -126,6 +128,8 @@ The **CI and Deploy to Dev** workflow (`ci-deploy-dev.yml`) runs restore → bui
 Run locally before opening a PR: unit tests as in CONTRIBUTING; for full validation before deploy, run integration tests too (`dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release`). See `CONTRIBUTING.md` and `docs/DEVSECOPS-GATES-BASELINE.md`.
 
 ## Documentation
+
+See `docs/README.md` for the full doc index. Key files:
 
 - **AGENTS.md** — Instructions for AI assistants (gate, feature backlog, docs sync).
 - **docs/api-contract.md** — Endpoint reference, request/response shapes, tenant resolution.

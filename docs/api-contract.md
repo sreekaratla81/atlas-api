@@ -13,10 +13,9 @@ This document is derived from the codebase and is maintained for use as **AI con
 - The only explicit authorization attribute is `[AllowAnonymous]` on `AdminReportsController` (`Atlas.Api/Controllers/AdminReportsController.cs`).
 
 ## Conventions
-- **Swagger / OpenAPI**: Interactive docs at `/swagger` when not in Production. Use for exploratory testing.
+- **Swagger / OpenAPI**: Interactive docs at `/swagger` when not in Production. Use for exploratory testing. Swagger UI is disabled in Production.
 - **Validation errors**: Several endpoints call `ValidationProblem(ModelState)` which produces `ProblemDetails` responses (usually `application/problem+json`) when model or business rules fail. Other errors sometimes return plain strings (see multiple controllers).
 - **Filtering**: No global pagination/sorting. Endpoint-specific filters are documented under each endpoint.
-- **Swagger**: Swagger UI is enabled at `/swagger` only when **not** running in Production (per `Atlas.Api/Program.cs`). This document is derived directly from code.
 
 ## Endpoints
 

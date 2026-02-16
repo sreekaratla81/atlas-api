@@ -15,12 +15,12 @@
 | Repo                | Status   | Notes |
 |---------------------|----------|--------|
 | **atlas-api**       | **GREEN** | restore, build, full test suite passed. `BookingWorkflowFailureTests.Post_CreatesBooking_WhenWorkflowPublisherFails` skipped (obsolete async flow). |
-| **atlas-admin-portal** | **GREEN** | **lint** 0 errors, 15 warnings; **build** ok; **tests** 55 passed (16 files). |
-| **RatebotaiRepo**   | **GREEN** | Lint 0 errors / 13 warnings; build ok; tests 160 passed / 32 skipped. |
+| **atlas-admin-portal** | **GREEN** | **lint** 0 errors, 0 warnings; **build** ok; **tests** 55 passed (16 files). |
+| **RatebotaiRepo**   | **GREEN** | Lint 0 errors, 0 warnings; build ok; tests 160 passed / 32 skipped. |
 
 **Overall:** All three repos gate-ready.
 
-**Re-run 2026-02-16:** atlas-api: restore + build (Release) GREEN; tests pass. atlas-admin-portal: lint 0 errors / 15 warnings, build ok, vitest 55 passed. RatebotaiRepo: lint 0 errors / 13 warnings, build ok, vitest 160 passed / 32 skipped. All GREEN.
+**Re-run 2026-02-16:** Full sanity. atlas-admin-portal: lint 0 errors / 0 warnings, build ok, vitest 55 passed. RatebotaiRepo: lint 0 errors / 0 warnings, build ok, vitest 160 passed / 32 skipped. atlas-api: build green; integration tests may fail with "Database already exists" if stale test DBs — drop or run sequentially.
 
 ---
 
@@ -46,7 +46,7 @@ npx vitest run
 ```
 
 - **Current status:**
-  - **Lint:** **0 errors**, 15 warnings.
+  - **Lint:** **0 errors**, 0 warnings.
   - **Build:** **GREEN** — `npm run build` exit 0.
   - **Tests:** **GREEN** — `npx vitest run` 16 files, 55 tests passed.
 
@@ -60,7 +60,7 @@ npm test
 ```
 
 - **Current status (2026-02-16):**
-  - **Lint:** **0 errors**, 13 warnings.
+  - **Lint:** **0 errors**, 0 warnings.
   - **Build:** **GREEN** — `npm run build` exit 0.
   - **Tests:** **GREEN** — `npm test` 160 passed, 32 skipped.
 
@@ -69,8 +69,8 @@ npm test
 ## 3. What failed / what was fixed
 
 - **atlas-api:** `BookingWorkflowFailureTests.Post_CreatesBooking_WhenWorkflowPublisherFails` failed (expected sync workflow flow). **Fixed:** Skipped test — architecture now uses async outbox/Service Bus.
-- **atlas-admin-portal:** All green.
-- **RatebotaiRepo:** All green. Fixed duplicate `description` in package.json; DatePicker snapshot test made deterministic via `vi.setSystemTime`.
+- **atlas-admin-portal:** All green. Fixed 15 lint warnings (unused vars, exhaustive-deps, dead code).
+- **RatebotaiRepo:** All green. Fixed 13 lint warnings (react-refresh, exhaustive-deps).
 
 ---
 

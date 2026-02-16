@@ -49,7 +49,7 @@ public class QuoteServiceTests
             tenantSettingsService,
             pricingService,
             db,
-            Options.Create(new QuoteOptions { SigningKey = "test-signing-key" }));
+            Microsoft.Extensions.Options.Options.Create(new QuoteOptions { SigningKey = "test-signing-key" }));
     }
 
     private static async Task SeedTenantDataAsync(string dbName, int tenantId)

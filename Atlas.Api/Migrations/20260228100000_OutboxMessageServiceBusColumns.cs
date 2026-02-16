@@ -1,9 +1,13 @@
+using Atlas.Api.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Atlas.Api.Migrations
 {
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260228100000_OutboxMessageServiceBusColumns")]
     public partial class OutboxMessageServiceBusColumns : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

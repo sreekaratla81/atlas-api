@@ -72,9 +72,9 @@ npm test
 
 ## 3. What failed / what was fixed
 
-- **atlas-api:** EF migration `SyncPendingChanges` added (removes obsolete ListingDailyRate FK). Obsolete `Create_PersistsBooking_WhenWorkflowPublisherFails` unit test skipped (controller uses async outbox, no sync publisher call).
+- **atlas-api:** EF migration `SyncPendingChanges` added (removes obsolete ListingDailyRate FK). Obsolete `Create_PersistsBooking_WhenWorkflowPublisherFails` unit test skipped (controller uses async outbox, no sync publisher call). **PricingBreakdown 400 fix:** `GET /pricing/breakdown` now supports guest params (`checkIn`, `checkOut`) per api-contract; previously only admin params (`startDate`, `months`) were supported, so integration test failed in CI with 400.
 - **atlas-admin-portal:** Lint 1 warning (AvailabilityCalendar exhaustive-deps). Build and tests green.
-- **RatebotaiRepo:** validate:legal fixed — `vitest.legal.config.ts` (node env, no jest-dom) for legal tests; `dom-accessibility-api` npm override; SearchPage unused `index` removed. Build and tests green.
+- **RatebotaiRepo:** validate:legal fixed — `vitest.legal.config.ts` (node env, no jest-dom) for legal tests; `dom-accessibility-api` npm override; SearchPage unused `index` removed. **package-lock.json synced** with override (Cloudflare `npm ci` was failing: lock had 0.5.16, package.json override required 0.6.3). Build and tests green.
 
 ---
 
@@ -102,7 +102,7 @@ npm test
    From `RatebotaiRepo/`:  
    Close anything locking `node_modules`.  
    `npm ci` → `npm run lint` → `npm run build` → `npm test`.  
-   Optionally use Node >=22.12.0.
+   **Use `npm ci` (not `npm install`) for the sanity run** — CI and Cloudflare Pages use `npm ci`; if package.json and package-lock.json are out of sync (e.g. after adding overrides), `npm ci` will fail. Run `npm install` to fix lock, then `npm ci` to verify before committing.
 
 4. **atlas-e2e**  
    From `atlas-e2e/`:  

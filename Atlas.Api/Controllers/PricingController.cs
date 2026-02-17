@@ -11,13 +11,16 @@ public class PricingController : ControllerBase
 {
     private readonly IGuestPricingService _guestPricingService;
     private readonly IAdminPricingService _adminPricingService;
+    private readonly PricingService _pricingService;
 
     public PricingController(
         IGuestPricingService guestPricingService,
-        IAdminPricingService adminPricingService)
+        IAdminPricingService adminPricingService,
+        PricingService pricingService)
     {
         _guestPricingService = guestPricingService;
         _adminPricingService = adminPricingService;
+        _pricingService = pricingService;
     }
 
     /// <summary>
@@ -123,25 +126,59 @@ public class PricingController : ControllerBase
     }
 
     /// <summary>
-    /// Get pricing breakdown for a listing and date range. Uses startDate, listingId, and months.
+    /// Guest: Get pricing breakdown (BaseAmount, DiscountAmount, ConvenienceFeeAmount, FinalAmount) for listingId, checkIn, checkOut.
+    /// Admin: Get calendar pricing view for startDate, listingId, months (1-12).
     /// </summary>
     [HttpGet("breakdown")]
-    public async Task<ActionResult<CalendarPricingViewDto>> GetBreakdown(
-        [FromQuery] string startDate,
+    public async Task<IActionResult> GetBreakdown(
+        [FromQuery] string? startDate,
+        [FromQuery] string? checkIn,
+        [FromQuery] string? checkOut,
         [FromQuery] int listingId,
         [FromQuery] int months = 1,
         CancellationToken cancellationToken = default)
     {
         const string dateFormat = "yyyy-MM-dd";
-        if (string.IsNullOrWhiteSpace(startDate))
-        {
-            ModelState.AddModelError(nameof(startDate), "Start date is required (yyyy-MM-dd).");
-            return BadRequest(ModelState);
-        }
 
         if (listingId <= 0)
         {
             ModelState.AddModelError(nameof(listingId), "Listing ID must be greater than 0.");
+            return BadRequest(ModelState);
+        }
+
+        // Guest path: checkIn + checkOut
+        if (!string.IsNullOrWhiteSpace(checkIn) && !string.IsNullOrWhiteSpace(checkOut))
+        {
+            if (!DateTime.TryParseExact(checkIn.Trim(), dateFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ci))
+            {
+                ModelState.AddModelError(nameof(checkIn), "Check-in must be a valid date in yyyy-MM-dd format.");
+                return BadRequest(ModelState);
+            }
+            if (!DateTime.TryParseExact(checkOut.Trim(), dateFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var co))
+            {
+                ModelState.AddModelError(nameof(checkOut), "Check-out must be a valid date in yyyy-MM-dd format.");
+                return BadRequest(ModelState);
+            }
+            if (co.Date <= ci.Date)
+            {
+                ModelState.AddModelError(nameof(checkOut), "Check-out must be after check-in.");
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                var breakdown = await _pricingService.GetPublicBreakdownAsync(listingId, ci, co, "CustomerPays");
+                return Ok(breakdown);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        // Admin path: startDate + months
+        if (string.IsNullOrWhiteSpace(startDate))
+        {
+            ModelState.AddModelError(nameof(startDate), "Start date is required (yyyy-MM-dd), or provide checkIn and checkOut for guest breakdown.");
             return BadRequest(ModelState);
         }
 

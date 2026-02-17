@@ -39,6 +39,23 @@ public class PricingSettingsAndQuotesApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task DailySummary_ReturnsPositivePrice_WhenListingHasPricing()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        await DataSeeder.SeedListingPricingAsync(db, listing, 2500m, 2500m, null, "INR");
+
+        var summary = await Client.GetFromJsonAsync<DailyPricingSummaryDto>(ApiRoute("pricing/daily-summary"));
+        Assert.NotNull(summary);
+        var row = summary!.Listings.FirstOrDefault(l => l.ListingId == listing.Id);
+        Assert.NotNull(row);
+        Assert.True(row.FinalAmount > 0, "daily-summary must return positive FinalAmount when listing has ListingPricing");
+        Assert.True(row.BaseAmount > 0);
+    }
+
+    [Fact]
     public async Task QuoteValidation_FailsAcrossTenants()
     {
         using var scope = Factory.Services.CreateScope();

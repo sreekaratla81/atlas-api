@@ -57,14 +57,32 @@ public class TenantPricingSettingsService : ITenantPricingSettingsService
 
     public async Task<TenantPricingSetting> UpdateCurrentAsync(UpdateTenantPricingSettingsDto request, CancellationToken cancellationToken = default)
     {
-        var settings = await GetCurrentAsync(cancellationToken);
-        settings.ConvenienceFeePercent = request.ConvenienceFeePercent;
-        settings.GlobalDiscountPercent = request.GlobalDiscountPercent;
-        settings.UpdatedBy = request.UpdatedBy;
-        settings.UpdatedAtUtc = DateTime.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        var tenantId = _tenantContextAccessor.TenantId ?? 1;
+        Invalidate(tenantId);
 
-        Invalidate(settings.TenantId);
+        var settings = await _dbContext.TenantPricingSettings
+            .SingleOrDefaultAsync(x => x.TenantId == tenantId, cancellationToken);
+
+        if (settings is null)
+        {
+            settings = new TenantPricingSetting
+            {
+                ConvenienceFeePercent = request.ConvenienceFeePercent,
+                GlobalDiscountPercent = request.GlobalDiscountPercent,
+                UpdatedBy = request.UpdatedBy,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+            _dbContext.TenantPricingSettings.Add(settings);
+        }
+        else
+        {
+            settings.ConvenienceFeePercent = request.ConvenienceFeePercent;
+            settings.GlobalDiscountPercent = request.GlobalDiscountPercent;
+            settings.UpdatedBy = request.UpdatedBy;
+            settings.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
         return settings;
     }
 

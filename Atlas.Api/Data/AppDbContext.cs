@@ -238,6 +238,11 @@ namespace Atlas.Api.Data
                 .HasForeignKey<ListingPricing>(p => p.ListingId)
                 .OnDelete(deleteBehavior);
 
+            // ListingDailyRate is related to Listing only (FK: ListingId). Do not infer a second relationship to ListingPricing
+            // (which would create shadow column ListingPricingListingId that may not exist in the database).
+            modelBuilder.Entity<ListingPricing>()
+                .Ignore(p => p.DailyRates);
+
             modelBuilder.Entity<ListingDailyRate>()
                 .HasOne(r => r.Listing)
                 .WithMany(l => l.DailyRates)

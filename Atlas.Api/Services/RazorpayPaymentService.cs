@@ -203,6 +203,21 @@ namespace Atlas.Api.Services
                 return quoteValidation.Breakdown;
             }
 
+            // Use client-provided total (widget price breakdown total) so Razorpay checkout shows the same amount
+            if (request.Amount.HasValue && request.Amount.Value > 0)
+            {
+                return new Atlas.Api.DTOs.PriceBreakdownDto
+                {
+                    ListingId = booking.ListingId,
+                    Currency = request.Currency,
+                    BaseAmount = request.Amount.Value,
+                    DiscountAmount = 0,
+                    ConvenienceFeeAmount = 0,
+                    FinalAmount = request.Amount.Value,
+                    PricingSource = "Client"
+                };
+            }
+
             if (request.BookingDraft is not null)
             {
                 return await _pricingService.GetPublicBreakdownAsync(request.BookingDraft.ListingId, request.BookingDraft.CheckinDate, request.BookingDraft.CheckoutDate);

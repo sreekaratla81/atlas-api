@@ -1,4 +1,5 @@
 using Atlas.Api.Data;
+using Atlas.Api.Data.Repositories;
 using Atlas.Api.Options;
 using Atlas.Api.Services.EventBus;
 using Atlas.Api.Services.Outbox;
@@ -87,6 +88,11 @@ namespace Atlas.Api
             
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
+            builder.Services.AddScoped<IListingPricingRepository, ListingPricingRepository>();
+            builder.Services.AddScoped<IListingDailyRateRepository, ListingDailyRateRepository>();
+            builder.Services.AddScoped<IListingDailyInventoryRepository, ListingDailyInventoryRepository>();
+            builder.Services.AddScoped<Atlas.Api.Services.IAdminPricingService, Atlas.Api.Services.AdminPricingService>();
+            builder.Services.AddScoped<Atlas.Api.Services.IGuestPricingService, Atlas.Api.Services.GuestPricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ITenantContextAccessor, HttpTenantContextAccessor>();

@@ -143,7 +143,7 @@ public class AdminPricingService : IAdminPricingService
         return result;
     }
 
-    public async Task<ListingPricing> UpdateBasePricingAsync(UpdateBasePricingDto dto, CancellationToken cancellationToken = default)
+    public async Task<(ListingPricing Entity, bool Created)> UpdateBasePricingAsync(UpdateBasePricingDto dto, CancellationToken cancellationToken = default)
     {
         var existing = await _db.ListingPricings.FindAsync(new object[] { dto.ListingId }, cancellationToken);
 
@@ -155,7 +155,7 @@ public class AdminPricingService : IAdminPricingService
             existing.Currency = dto.Currency;
             existing.UpdatedAtUtc = DateTime.UtcNow;
             await _db.SaveChangesAsync(cancellationToken);
-            return existing;
+            return (existing, false);
         }
 
         var listingExists = await _db.Listings.AnyAsync(l => l.Id == dto.ListingId, cancellationToken);
@@ -173,7 +173,7 @@ public class AdminPricingService : IAdminPricingService
         };
         _db.ListingPricings.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
-        return entity;
+        return (entity, true);
     }
 
     public async Task<ListingDailyRate> UpsertDailyRateAsync(UpsertDailyRateDto dto, int? updatedByUserId, CancellationToken cancellationToken = default)

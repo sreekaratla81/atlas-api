@@ -33,7 +33,7 @@ public class PricingController : ControllerBase
     {
         try
         {
-            var updated = await _adminPricingService.UpdateBasePricingAsync(dto, cancellationToken);
+            var (updated, _) = await _adminPricingService.UpdateBasePricingAsync(dto, cancellationToken);
             return Ok(new
             {
                 listingId = updated.ListingId,
@@ -47,6 +47,46 @@ public class PricingController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Create or update base pricing for a single listing. If listingId already has pricing, it is updated; otherwise a new row is created. TenantId and UpdatedAtUtc are set server-side.
+    /// </summary>
+    [HttpPost("base")]
+    public async Task<IActionResult> PostBasePricing(
+        [FromBody] ListingPricingItemDto item,
+        CancellationToken cancellationToken = default)
+    {
+        if (item == null)
+            return BadRequest(new { message = "Request body is required." });
+
+        try
+        {
+            var dto = new UpdateBasePricingDto
+            {
+                ListingId = item.ListingId,
+                BaseNightlyRate = item.BaseNightlyRate,
+                WeekendNightlyRate = item.WeekendNightlyRate,
+                ExtraGuestRate = item.ExtraGuestRate,
+                Currency = item.Currency ?? "INR"
+            };
+            var (updated, created) = await _adminPricingService.UpdateBasePricingAsync(dto, cancellationToken);
+            return Ok(new
+            {
+                listingId = updated.ListingId,
+                success = true,
+                created,
+                baseNightlyRate = updated.BaseNightlyRate,
+                weekendNightlyRate = updated.WeekendNightlyRate,
+                extraGuestRate = updated.ExtraGuestRate,
+                currency = updated.Currency,
+                updatedAtUtc = updated.UpdatedAtUtc
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { listingId = item.ListingId, success = false, message = ex.Message });
         }
     }
 

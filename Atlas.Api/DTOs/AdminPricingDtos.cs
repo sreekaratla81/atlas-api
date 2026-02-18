@@ -74,6 +74,27 @@ public class UpdateBasePricingDto
 }
 
 /// <summary>
+/// Request body for POST pricing/base (ListingId, BaseNightlyRate, WeekendNightlyRate, ExtraGuestRate, Currency). TenantId and UpdatedAtUtc are set server-side.
+/// </summary>
+public class ListingPricingItemDto
+{
+    public int ListingId { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public decimal BaseNightlyRate { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public decimal? WeekendNightlyRate { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public decimal? ExtraGuestRate { get; set; }
+
+    [MaxLength(10)]
+    public string Currency { get; set; } = "INR";
+}
+
+
+/// <summary>
 /// Admin: Upsert daily rate override (create or update by listingId + date).
 /// </summary>
 public class UpsertDailyRateDto

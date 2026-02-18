@@ -74,7 +74,7 @@ public class UpdateBasePricingDto
 }
 
 /// <summary>
-/// Request body for POST pricing/base (ListingId, BaseNightlyRate, WeekendNightlyRate, ExtraGuestRate, Currency). TenantId and UpdatedAtUtc are set server-side.
+/// Request body for POST pricing/send (ListingId, BaseNightlyRate, WeekendNightlyRate, ExtraGuestRate, Currency). TenantId and UpdatedAtUtc are set server-side.
 /// </summary>
 public class ListingPricingItemDto
 {

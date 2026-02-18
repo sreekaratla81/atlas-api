@@ -53,7 +53,7 @@ public class PricingController : ControllerBase
     /// <summary>
     /// Create or update base pricing for a single listing. If listingId already has pricing, it is updated; otherwise a new row is created. TenantId and UpdatedAtUtc are set server-side.
     /// </summary>
-    [HttpPost("base")]
+    [HttpPost("send")]
     public async Task<IActionResult> PostBasePricing(
         [FromBody] ListingPricingItemDto item,
         CancellationToken cancellationToken = default)

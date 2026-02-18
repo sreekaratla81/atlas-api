@@ -27,7 +27,7 @@ jobs:
       SQL_ADMIN_USER: ${{ secrets.SQL_ADMIN_USER }}
       SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
 
-      PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
+      # PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
       DEV_DB_NAME: ${{ secrets.DEV_DB_NAME }}
 
     steps:
@@ -52,9 +52,9 @@ jobs:
       - name: Make backup script executable
         run: chmod +x scripts/backup-bacpac.sh
 
-      - name: Backup PROD
-        run: |
-          bash scripts/backup-bacpac.sh "prod" "${PROD_DB_NAME}" "${{ steps.date.outputs.DATE_DDMMYYYY }}"
+      # - name: Backup PROD
+      #   run: |
+      #     bash scripts/backup-bacpac.sh "prod" "${PROD_DB_NAME}" "${{ steps.date.outputs.DATE_DDMMYYYY }}"
 
       - name: Backup DEV
         run: |

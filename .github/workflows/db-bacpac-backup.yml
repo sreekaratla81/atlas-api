@@ -1,0 +1,61 @@
+name: Daily Azure SQL BACPAC Backups (Dev + Prod)
+
+on:
+  schedule:
+    # 02:00 AM IST = 20:30 UTC (previous day)
+    - cron: "30 20 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: db-bacpac-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    env:
+      STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}
+      STORAGE_ACCOUNT_KEY: ${{ secrets.STORAGE_ACCOUNT_KEY }}
+      STORAGE_CONTAINER: atlas-db-snapshots
+
+      SQL_SERVER_NAME: ${{ secrets.SQL_SERVER_NAME }}
+      SQL_ADMIN_USER: ${{ secrets.SQL_ADMIN_USER }}
+      SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+
+      PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
+      DEV_DB_NAME: ${{ secrets.DEV_DB_NAME }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Compute date (dd-mm-yyyy)
+        id: date
+        run: |
+          echo "DATE_DDMMYYYY=$(date -u +'%d-%m-%Y')" >> $GITHUB_OUTPUT
+
+      - name: Make backup script executable
+        run: chmod +x scripts/backup-bacpac.sh
+
+      - name: Backup PROD
+        run: |
+          bash scripts/backup-bacpac.sh "prod" "${PROD_DB_NAME}" "${{ steps.date.outputs.DATE_DDMMYYYY }}"
+
+      - name: Backup DEV
+        run: |
+          bash scripts/backup-bacpac.sh "dev" "${DEV_DB_NAME}" "${{ steps.date.outputs.DATE_DDMMYYYY }}"

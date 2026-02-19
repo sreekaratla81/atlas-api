@@ -7,3 +7,7 @@ Atlas.Api/appsettings.Development.json
 /.vs/AtlasHomestays
 /.nuget/
 /.vs/
+
+
+# Local development secrets
+appsettings.Development.local.json

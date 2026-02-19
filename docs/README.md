@@ -8,6 +8,7 @@ This folder is the single source of truth for API, schema, and operations. **The
 - [DB Schema](db-schema.md) — tables, columns, FKs, indexes (aligned with AppDbContext)
 
 ## Gates & feature roadmap
+- [marketing-readiness-gates.md](marketing-readiness-gates.md) — must-pass scenarios before marketing, test inventory, 10-min smoke checklist
 - [DEVSECOPS-GATES-BASELINE.md](DEVSECOPS-GATES-BASELINE.md) — gate definition, commands per repo, verify in CI, branch protection
 - [ATLAS-HIGH-VALUE-BACKLOG.md](ATLAS-HIGH-VALUE-BACKLOG.md) — prioritized feature roadmap and implementation status
 - [ATLAS-FEATURE-EXECUTION-PROMPT.md](ATLAS-FEATURE-EXECUTION-PROMPT.md) — workflow for implementing the next feature from the backlog

@@ -18,11 +18,11 @@ public class TenantProvider : ITenantProvider
         _environment = environment;
     }
 
+    /// <summary>Resolves tenant from X-Tenant-Slug header only. No host or subdomain-based resolution.</summary>
+    /// <remarks>In Production, requests without the header get 400 (see TenantResolutionMiddleware). Default tenant is used only in Development/IntegrationTest so the issue is caught in dev before prod.</remarks>
     public async Task<Tenant?> ResolveTenantAsync(HttpContext httpContext, CancellationToken cancellationToken = default)
     {
-        var host = httpContext.Request.Host.Host ?? "";
         var slug = ResolveTenantSlugFromHeader(httpContext)
-            ?? ResolveTenantSlugFromDevApiHost(host)
             ?? ResolveDefaultSlug();
 
         if (string.IsNullOrWhiteSpace(slug))
@@ -46,16 +46,7 @@ public class TenantProvider : ITenantProvider
         return string.IsNullOrWhiteSpace(headerSlug) ? null : headerSlug;
     }
 
-    /// <summary>When the request hits the known dev API host (e.g. atlas-homes-api-dev-xxx.azurewebsites.net), resolve to default tenant so direct browser and clients without X-Tenant-Slug still work.</summary>
-    private static string? ResolveTenantSlugFromDevApiHost(string host)
-    {
-        if (string.IsNullOrWhiteSpace(host)) return null;
-        var lower = host.Trim().ToLowerInvariant();
-        if (lower.Contains("atlas-homes-api-dev"))
-            return DefaultTenantSlug;
-        return null;
-    }
-
+    /// <summary>Default tenant only in non-Production so missing header fails in prod and is caught by tests in dev.</summary>
     private string? ResolveDefaultSlug()
     {
         return _environment.IsDevelopment() ||

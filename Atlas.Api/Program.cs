@@ -42,7 +42,6 @@ namespace Atlas.Api
                 {
                     policy
                         .WithOrigins(allowedOrigins)
-                        .SetIsOriginAllowedToAllowWildcardSubdomains()
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials();
@@ -65,6 +64,17 @@ namespace Atlas.Api
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Atlas API", Version = "v1" });
                 c.CustomSchemaIds(type => type.FullName);
                 c.IgnoreObsoleteProperties();
+                c.AddSecurityDefinition(TenantProvider.TenantSlugHeaderName, new OpenApiSecurityScheme
+                {
+                    In = ParameterLocation.Header,
+                    Name = TenantProvider.TenantSlugHeaderName,
+                    Description = "Tenant slug (e.g. atlas). Required in Production.",
+                    Type = SecuritySchemeType.ApiKey
+                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = TenantProvider.TenantSlugHeaderName } }, Array.Empty<string>() }
+                });
             });
 
             // Configure Razorpay

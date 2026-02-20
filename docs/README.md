@@ -8,11 +8,14 @@ This folder is the single source of truth for API, schema, and operations. **The
 - [DB Schema](db-schema.md) — tables, columns, FKs, indexes (aligned with AppDbContext)
 
 ## Gates & feature roadmap
-- [marketing-readiness-gates.md](marketing-readiness-gates.md) — must-pass scenarios before marketing, test inventory, 10-min smoke checklist
-- [DEVSECOPS-GATES-BASELINE.md](DEVSECOPS-GATES-BASELINE.md) — gate definition, commands per repo, verify in CI, branch protection
-- [ATLAS-HIGH-VALUE-BACKLOG.md](ATLAS-HIGH-VALUE-BACKLOG.md) — prioritized feature roadmap and implementation status
-- [ATLAS-FEATURE-EXECUTION-PROMPT.md](ATLAS-FEATURE-EXECUTION-PROMPT.md) — workflow for implementing the next feature from the backlog
-- [ATLAS-BACKLOG-ANALYSIS.md](ATLAS-BACKLOG-ANALYSIS.md) — how the backlog was derived and what’s already implemented
+
+Cross-repo docs (gates, backlog, feature execution) live at the **workspace root**, not in this folder:
+- `DEVSECOPS-GATES-BASELINE.md` — 16-gate DevSecOps model, CI gates, branch protection
+- `ATLAS-HIGH-VALUE-BACKLOG.md` — prioritized feature roadmap and implementation status
+- `ATLAS-FEATURE-EXECUTION-PROMPT.md` — workflow for implementing the next feature
+- `docs/marketing-readiness-gates.md` — must-pass marketing scenarios
+- `docs/ATLAS-BACKLOG-ANALYSIS.md` — how the backlog was derived
+- `atlas-e2e/docs/PROD_READINESS_CHECKLIST.md` — **single source of truth** for the release gate
 
 ## Eventing & Service Bus
 - [Eventing / Azure Service Bus implementation plan](eventing-servicebus-implementation-plan.md)

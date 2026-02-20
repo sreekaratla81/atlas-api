@@ -10,4 +10,4 @@ Atlas.Api/appsettings.Development.json
 
 
 # Local development secrets
-appsettings.Development.local.json
+appsettings.Development.local.test.json

@@ -352,7 +352,9 @@ namespace Atlas.Api.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                // Create a new availability block
+                // Create a new availability block.
+                // AvailabilityService excludes listings when block.Status == "Active".
+                // Use "Active" when blocking (inventory=false) so guest availability excludes the listing.
                 var newBlock = new AvailabilityBlock
                 {
                     ListingId = listingId,
@@ -360,7 +362,7 @@ namespace Atlas.Api.Controllers
                     EndDate = date.Date.AddDays(1),  // Exclusive end date (next day)
                     BlockType = "Inventory",
                     Source = "Admin",
-                    Status = inventory ? "Open" : "Blocked",
+                    Status = inventory ? "Open" : "Active",
                     Inventory = inventory,
                     CreatedAtUtc = DateTime.UtcNow,
                     UpdatedAtUtc = DateTime.UtcNow

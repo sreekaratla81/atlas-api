@@ -135,7 +135,7 @@ namespace Atlas.Api.Services
 
         private static decimal ResolveBaseRate(ListingPricing pricing, DateTime date)
         {
-            var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+            var isWeekend = date.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
 
             if (isWeekend)
             {

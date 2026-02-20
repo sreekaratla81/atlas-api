@@ -285,7 +285,7 @@ public class AdminCalendarController : ControllerBase
             {
                 var key = (listing, date.Date);
                 var isBlocked = blocks.Any(b => b.ListingId == listing && b.StartDate.Date <= date.Date && b.EndDate.Date > date.Date && !b.Inventory);
-                var basePrice = (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                var basePrice = (date.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday)
                     ? pricing?.WeekendNightlyRate ?? pricing?.BaseNightlyRate ?? 0m
                     : pricing?.BaseNightlyRate ?? 0m;
 

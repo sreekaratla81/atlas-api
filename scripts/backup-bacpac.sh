@@ -9,7 +9,7 @@ CONTAINER="${STORAGE_CONTAINER}"
 ACCOUNT="${STORAGE_ACCOUNT_NAME}"
 KEY="${STORAGE_ACCOUNT_KEY}"
 
-SERVER_FQDN="${SQL_SERVER_NAME}.database.windows.net"
+
 
 DATED_BLOB="${ENV_NAME}/${DB_NAME}-${DATE_DDMMYYYY}.bacpac"
 LATEST_BLOB="${ENV_NAME}/${DB_NAME}-latest.bacpac"
@@ -18,7 +18,8 @@ DATED_URI="https://${ACCOUNT}.blob.core.windows.net/${CONTAINER}/${DATED_BLOB}"
 echo "==> Exporting ${ENV_NAME}/${DB_NAME} to ${DATED_BLOB}"
 
 az sql db export \
-  --server "${SERVER_FQDN}" \
+  --resource-group "${AZURE_RESOURCE_GROUP}" \
+  --server "${SQL_SERVER_NAME}" \
   --name "${DB_NAME}" \
   --admin-user "${SQL_ADMIN_USER}" \
   --admin-password "${SQL_ADMIN_PASSWORD}" \

@@ -59,3 +59,4 @@ jobs:
       - name: Backup DEV
         run: |
           bash scripts/backup-bacpac.sh "dev" "${DEV_DB_NAME}" "${{ steps.date.outputs.DATE_DDMMYYYY }}"
+

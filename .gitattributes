@@ -1,6 +1,10 @@
 * text=auto eol=crlf
 *.{cmd,[cC][mM][dD]} text eol=crlf
 *.{bat,[bB][aA][tT]} text eol=crlf
+
+# Linux shell scripts (important for GitHub Actions)
+*.sh text eol=lf
+
 *.cs diff=csharp
 *.csproj diff=csharp
 *.sln diff=csharp

@@ -53,3 +53,17 @@ If you see `Invalid column name 'Inventory'`, it indicates schema drift between 
 ```
 dotnet run --project Atlas.DbMigrator -- --connection "$env:ATLAS_DB_CONNECTION"
 ```
+
+## “Invalid object name 'Tenants'” in production (500 on /listings)
+
+This means the **production database has not had EF migrations applied** (or was created before tenant support). The API’s `TenantProvider` queries the `Tenants` table on every request; if the table is missing, you get a 500.
+
+**Fix: apply migrations to the prod database.**
+
+- **Option A – GitHub Actions:** Run the **Build and Deploy to Prod** workflow via **workflow_dispatch**, and choose environment **prod**. That run will check for pending migrations and apply them, then deploy.
+- **Option B – Local:** With the prod connection string (e.g. from Azure or secrets), run:
+  ```bash
+  dotnet run --project Atlas.DbMigrator -- --connection "<ATLAS_PROD_SQL_CONNECTION_STRING>"
+  ```
+
+**Note:** On a normal **push** to `main`, the deploy workflow does **not** run the migration step; only a **manual** workflow run (workflow_dispatch) applies migrations. So after adding new tables or columns, either trigger the prod workflow manually once or run DbMigrator against prod as above.

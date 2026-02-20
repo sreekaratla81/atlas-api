@@ -29,6 +29,20 @@ public class ListingsApiTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetPublic_ReturnsPublicListingDto_WithoutWifiPassword()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await SeedListingAsync(db);
+
+        var response = await Client.GetAsync(ApiRoute("listings/public"));
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("wifiPassword", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("WifiPassword", json);
+    }
+
+    [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
         var response = await Client.GetAsync(ApiRoute("listings/1"));
@@ -54,7 +68,7 @@ public class ListingsApiTests : IntegrationTestBase
             MaxGuests = 2
         };
 
-        var response = await Client.PostAsJsonAsync(ApiRoute("listings"), listing);
+        var response = await Client.PostAsJsonAsync(ApiRoute("listings"), new { listing.PropertyId, listing.Name, listing.Floor, listing.Type, listing.Status, listing.WifiName, listing.WifiPassword, listing.MaxGuests });
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -70,7 +84,7 @@ public class ListingsApiTests : IntegrationTestBase
         var (_, listing) = await SeedListingAsync(db);
         listing.Name = "Updated";
 
-        var response = await Client.PutAsJsonAsync(ApiRoute($"listings/{listing.Id}"), listing);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"listings/{listing.Id}"), new { listing.Id, listing.PropertyId, listing.Name, listing.Floor, listing.Type, listing.Status, listing.WifiName, listing.WifiPassword, listing.MaxGuests });
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();

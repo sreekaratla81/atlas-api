@@ -1,5 +1,6 @@
 # atlas-api
-.NET Core backend that powers all frontend apps, integrates with Azure SQL
+
+.NET 8 backend that powers Atlas Homestays frontend apps and integrates with Azure SQL, Azure Service Bus, Razorpay, and MSG91.
 
 ## Controller conventions
 
@@ -21,24 +22,30 @@ When returning a 200 payload, call `Ok(...)` instead of constructing an
 - Avoid returning raw `ObjectResult` unless you explicitly set `StatusCode` for
   non-standard responses.
 
-# Go to the directory where you want to store all repos
-cd ~/Projects/AtlasHomestays  # or any preferred location
+## Clone (workspace setup)
 
-# Clone each repository
+From the directory where you want to store all Atlas Homestays repos:
+
+```bash
 git clone https://github.com/sreekaratla81/atlas-guest-portal.git
 git clone https://github.com/sreekaratla81/atlas-admin-portal.git
 git clone https://github.com/sreekaratla81/atlas-api.git
 git clone https://github.com/sreekaratla81/atlas-staff-app.git
 git clone https://github.com/sreekaratla81/atlas-sql.git
 git clone https://github.com/sreekaratla81/atlas-shared-utils.git
+```
 
-## NuGet packages
+## NuGet packages (atlas-api)
 
 The repo includes a `NuGet.config` that pins the global packages folder to
 `./.nuget/packages`. This keeps restore paths ASCII-only, which avoids Visual
 Studio errors about package paths containing unexpected characters (e.g. when
 your Windows username includes accents). If you see missing package errors,
 delete the `.nuget/packages` folder and restore again.
+
+## Test Fix Summary
+
+- **BookingsController.GetAll** now accepts optional `listingId` and `bookingId` query parameters (API gap implementation). Unit tests in `Atlas.Api.Tests/BookingsControllerTests.cs` were updated to pass the new optional parameters (`null`, `null`) so all tests remain green.
 
 ## Running Integration Tests
 
@@ -91,6 +98,8 @@ expands it at runtime.
 
 Set `ATLAS_DEV_SQL_CONNECTION_STRING` and `ATLAS_PROD_SQL_CONNECTION_STRING` via
 your secret manager, GitHub Actions secrets, or Azure App Service configuration.
+See [docs/migrations-troubleshooting.md](docs/migrations-troubleshooting.md) for common migration issues.
+
 Logs are redacted and should not include connection string secrets.
 
 ## Runtime configuration
@@ -100,20 +109,42 @@ Configure production runtime settings in Azure App Service and GitHub Actions:
 - **Azure App Service → Connection strings:** add `DefaultConnection` with type
   `SQLAzure` (or `SQLServer` for non-Azure SQL Server targets) and the expected
   database connection string.
-- **Azure App Service → Application settings:** set `Jwt__Key` for JWT signing
-  and any other required application settings (for example, Auth0/client IDs or
-  tenant settings used by the API).
+- **Azure App Service → Application settings:** set `Jwt__Key` for JWT signing;
+  `Smtp__FromEmail`, `Smtp__Username`, `Smtp__Password`; `Msg91__AuthKey`, `Msg91__SenderId` for SMS;
+  `AzureServiceBus__ConnectionString` for eventing; and any other required settings (Auth0/client IDs, tenant settings).
 - **GitHub Actions secrets:** add `ATLAS_DEV_SQL_CONNECTION_STRING` and
   `ATLAS_PROD_SQL_CONNECTION_STRING` for CI/CD and migration workflows.
 
 Reminder: never commit connection strings, JWT keys, or `.env` files to the
 repository—use secret managers or platform configuration instead.
 
+- **Health:** `GET /health` returns 200 with `{ "status": "healthy" }` for liveness (e.g. load balancer or Azure App Service). See `docs/api-contract.md`.
+- **Azure Service Bus (eventing):** Set `AzureServiceBus__ConnectionString` in App Service or environment. Topics: `booking.events`, `stay.events`. With empty connection string, event bus uses in-memory publisher (suitable for local dev).
+
 ## CI validation
 
-CI runs expect `dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release`
-to pass. Make sure this command succeeds locally before opening a pull
-request.
+The **CI and Deploy to Dev** workflow (`ci-deploy-dev.yml`) runs restore → build (Release) → unit tests → **integration tests** (including UI contract tests). Integration tests use LocalDb on `windows-latest` and validate host startup and the same flows the guest/admin portals use (see `docs/API-TESTING-BEFORE-DEPLOY.md`).
+
+Run locally before opening a PR: follow `CONTRIBUTING.md`. For full validation before deploy, run integration tests too (`dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release`). See `docs/DEVSECOPS-GATES-BASELINE.md` for the workspace sanity runbook.
+
+## Documentation
+
+See `docs/README.md` for the full doc index. Key files:
+
+- **AGENTS.md** — Instructions for AI assistants (gate, feature backlog, docs sync).
+- **docs/api-contract.md** — Endpoint reference, request/response shapes, tenant resolution.
+- **docs/api-examples.http** — Runnable HTTP examples (REST Client / IDE).
+- **docs/db-schema.md** — Tables, columns, FKs (aligned with AppDbContext).
+- **CONTRIBUTING.md** — PR checklist and gate commands.
+- **docs/DEVSECOPS-GATES-BASELINE.md** — CI/gate definition per repo, verify in CI, branch protection.
+- **docs/API-TESTING-BEFORE-DEPLOY.md** — Unit vs integration vs UI contract tests; run integration tests before deploy.
+- **docs/ci-cd-branch-mapping.md** — Branch → workflow → app mapping and secrets.
+- **docs/ATLAS-HIGH-VALUE-BACKLOG.md** — Prioritized feature roadmap and current implementation status.
+- **docs/ATLAS-FEATURE-EXECUTION-PROMPT.md** — Workflow for implementing the next feature from the backlog.
+- **docs/eventing-servicebus-implementation-plan.md** — Azure Service Bus eventing architecture and implementation notes.
+- **Swagger UI** — Available at `/swagger` when not running in Production (see `docs/api-contract.md`).
+- **CHANGELOG.md** — Version history and notable changes.
+- **SECURITY.md** — Vulnerability reporting.
 
 ## CORS allowlist
 
@@ -138,11 +169,9 @@ add explicit domains to the allowlist instead.
 ## Deployment
 
 Production deploys are automated through the GitHub Actions workflows at
-`.github/workflows/deploy.yml` and `.github/workflows/dev_atlas-homes-api-dev.yml`.
+`.github/workflows/ci-deploy-dev.yml` (dev) and `.github/workflows/deploy-prod.yml` (prod).
 
-- **Triggers:** Pushes to `main` (prod) and `dev` (dev) automatically build,
-  test, publish, and deploy to Azure App Service. You can also trigger manual
-  runs from the GitHub UI.
+- **Triggers:** **Prod** — `deploy-prod.yml` runs on push to `main` (when `DEPLOY_PROD_ON_MAIN` is set) or via **workflow_dispatch** (choose prod). **Dev** — `ci-deploy-dev.yml` runs on push to `dev` (ci job then deploy-dev job; one build, deploy only after tests pass); it can also be run via **workflow_dispatch**. See `docs/ci-cd-branch-mapping.md` for branch → workflow → app mapping.
 - **Migration/deploy flow:** Both workflows validate DbMigrator connection
   secrets and run a migration check gate. Dev deploy paths can apply pending
   migrations before deployment. Production migration application is gated to
@@ -155,11 +184,23 @@ Production deploys are automated through the GitHub Actions workflows at
 
 | Workflow file | Required/used secret identifiers (exact names from workflow YAML) |
 | --- | --- |
-| `.github/workflows/dev_atlas-homes-api-dev.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`, `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`, `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9` |
-| `.github/workflows/deploy.yml` | `AZURE_WEBAPP_PUBLISH_PROFILE_DEV`, `AZURE_WEBAPP_PUBLISH_PROFILE_PROD`, `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD`, `AZUREAPPSERVICE_CLIENTID_549666B25F124F47A8A02ABB67C651ED`, `AZUREAPPSERVICE_TENANTID_B891A9E8DB8C42D095F9439D8E364707`, `AZUREAPPSERVICE_SUBSCRIPTIONID_21B2EDBA7F42470F91A861E168D2DAC9` |
+| `.github/workflows/ci-deploy-dev.yml` (deploy-dev job) | `ATLAS_DEV_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV` |
+| `.github/workflows/deploy-prod.yml` | `ATLAS_DEV_SQL_CONNECTION_STRING`, `ATLAS_PROD_SQL_CONNECTION_STRING`, `AZURE_CLIENT_ID_DEV`, `AZURE_TENANT_ID_DEV`, `AZURE_SUBSCRIPTION_ID_DEV`, `AZURE_CLIENT_ID_PROD`, `AZURE_TENANT_ID_PROD`, `AZURE_SUBSCRIPTION_ID_PROD` |
 
 The `AZURE_CLIENT_ID_*`, `AZURE_TENANT_ID_*`, and `AZURE_SUBSCRIPTION_ID_*`
-patterns map to `*_DEV` and `*_PROD` variables above.
+patterns map to `*_DEV` and `*_PROD` variables above. Set `Smtp__*`, `Msg91__*`, and
+`AzureServiceBus__ConnectionString` in **Azure App Service → Application settings** (or Key Vault references) for email, SMS, and eventing.
+
+### Validate deploy artifacts locally
+
+To catch missing publish outputs before pushing (and avoid deploy-dev failures in CI), run the same validation the **ci** job uses:
+
+```powershell
+dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x64 --self-contained true
+./scripts/validate-publish.ps1 -PublishPath ./publish
+```
+
+If any required file is missing, the script exits non-zero and lists what’s missing. Note: the deploy-dev job downloads the artifact on the runner where layout can be `./net-app` or `./net-app/publish`; the workflow now resolves this automatically. Local validation only checks `./publish` (same as the ci job), so it would not have caught a “path not found” that was due to layout differences after download—the workflow fix handles both layouts.
 
 ### CI/CD troubleshooting
 
@@ -203,3 +244,9 @@ These defaults are centralized in `Directory.Build.props` and applied in `covera
 ### Optional strict check before release
 
 Use `.github/workflows/unitests-coverage-strict.yml` (`workflow_dispatch`) when you want enforced coverage checks. This manual workflow fails if line coverage is below 90%, which is useful as a release-readiness gate.
+
+## Troubleshooting
+
+- **LocalDb not found** — Ensure SQL Server LocalDb is installed. Integration tests require it. Set `ATLAS_TestDb` if using a different connection string.
+- **Migration check fails in CI** — Verify `ATLAS_DEV_SQL_CONNECTION_STRING` (and prod if applicable) are set in GitHub Actions secrets.
+- **Swagger not loading** — Swagger is disabled in Production; use Development or Staging.

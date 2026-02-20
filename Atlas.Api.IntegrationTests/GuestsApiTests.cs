@@ -32,7 +32,7 @@ public class GuestsApiTests : IntegrationTestBase
     public async Task Post_CreatesGuest()
     {
         var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com", IdProofUrl = "N/A" };
-        var response = await Client.PostAsJsonAsync(ApiRoute("guests"), guest);
+        var response = await Client.PostAsJsonAsync(ApiRoute("guests"), new { guest.Name, guest.Phone, guest.Email, guest.IdProofUrl });
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -48,7 +48,7 @@ public class GuestsApiTests : IntegrationTestBase
         db.Guests.Add(guest);
         await db.SaveChangesAsync();
         guest.Name = "Updated";
-        var response = await Client.PutAsJsonAsync(ApiRoute($"guests/{guest.Id}"), guest);
+        var response = await Client.PutAsJsonAsync(ApiRoute($"guests/{guest.Id}"), new { guest.Id, guest.Name, guest.Phone, guest.Email, guest.IdProofUrl });
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
         using var scope2 = Factory.Services.CreateScope();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();

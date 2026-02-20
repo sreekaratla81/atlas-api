@@ -1,0 +1,36 @@
+using Atlas.Api.DTOs;
+using Atlas.Api.Services;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Atlas.Api.Controllers;
+
+[ApiController]
+[Route("quotes")]
+public class QuotesController : ControllerBase
+{
+    private readonly IQuoteService _quoteService;
+
+    public QuotesController(IQuoteService quoteService)
+    {
+        _quoteService = quoteService;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<QuoteIssueResponseDto>> Issue([FromBody] CreateQuoteRequestDto request, CancellationToken cancellationToken)
+    {
+        var response = await _quoteService.IssueAsync(request, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("validate")]
+    public async Task<ActionResult<QuoteValidateResponseDto>> Validate([FromQuery] string token, CancellationToken cancellationToken)
+    {
+        var response = await _quoteService.ValidateAsync(token, cancellationToken);
+        if (!response.IsValid)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+}

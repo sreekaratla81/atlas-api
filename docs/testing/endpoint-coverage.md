@@ -59,3 +59,17 @@ This matrix tracks happy-path and failure-path coverage for each contract endpoi
 | GET /admin/reports/bookings/source | `AdminReportsApiTests.GetBookingSource_ReturnsOk` | Gap (no failure coverage) | Nightly |  |
 | GET /admin/reports/bookings/calendar | `AdminReportsApiTests.GetCalendarBookings_ReturnsOk` | Gap (no failure coverage) | Nightly |  |
 | OPTIONS /test-cors | Gap (no coverage) | Gap (no coverage) | — | Add smoke test verifying 200 response. |
+| GET /ops/db-info | `OpsApiTests` (if present) | Gap | Nightly | Ops health/db info. |
+| GET /listings/public | Gap | Gap | — | Tenant-scoped public listings. |
+| GET /availability/listing-availability | Gap | Gap | — | Listing calendar availability. |
+| POST /availability/blocks | Gap | Gap | — | Block date range; 422 on conflict. |
+| PATCH /availability/update-inventory | Gap | Gap | — | Single-date inventory. |
+| GET /tenant/settings/pricing | `PricingSettingsAndQuotesApiTests` | Gap | Nightly | Tenant pricing config. |
+| PUT /tenant/settings/pricing | `PricingSettingsAndQuotesApiTests` | Gap | Nightly | Update tenant pricing. |
+| GET /pricing/breakdown | `PricingServiceTests` / integration | Gap | — | Server pricing breakdown. |
+| POST /quotes | `PricingSettingsAndQuotesApiTests` / `QuoteServiceTests` | Gap | Nightly | Issue quote token. |
+| GET /quotes/validate | `PricingSettingsAndQuotesApiTests` | Gap | Nightly | Validate quote token. |
+| GET /admin/calendar/availability | `AdminCalendarApiTests` | Gap | Nightly | Calendar cells (tenant-scoped). |
+| PUT /admin/calendar/availability | `AdminCalendarApiTests` | Gap | Nightly | Bulk upsert calendar. |
+| POST /api/Razorpay/order | (payment flow tests) | Gap | — | Create Razorpay order. |
+| POST /api/Razorpay/verify | (payment flow tests) | Gap | — | Verify payment. |

@@ -2,9 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.Models
 {
-    public class BankAccount
+    public class BankAccount : ITenantOwnedEntity
     {
         public int Id { get; set; }
+
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         [MaxLength(100)]
         public required string BankName { get; set; } = string.Empty;

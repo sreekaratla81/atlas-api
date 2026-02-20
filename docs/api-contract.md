@@ -1,21 +1,26 @@
 # Atlas API Contract
 
+This document is derived from the codebase and is maintained for use as **AI context** (e.g. ChatGPT, Cursor). Keep it in sync when adding or changing controllers or DTOs. See `api-examples.http` for runnable examples.
+
 ## Base URL
 - **Production**: `https://atlas-homes-api-gxdqfjc2btc0atbv.centralus-01.azurewebsites.net`
-- **Local (placeholder)**: `https://localhost:<port>`
+- **Local**: `https://localhost:<port>` (e.g. 5001)
 
-**Non-production path base:** In non-production environments, the application uses `UsePathBase("/api")` (see `Atlas.Api/Program.cs`). This means local base URLs should include `/api` (for example: `https://localhost:<port>/api`). Endpoints that already include an `api/` route prefix will therefore be reachable at `/api/api/...` locally. Use the `ApiRoute` helper when constructing URLs (for example in integration tests or API clients) so the path base is applied only once regardless of environment. Avoid adding new `api/` prefixes to controller routes; prefer bare resource names unless there is a strong compatibility reason otherwise.
+**Path conventions:** The app does **not** use a global path base. Most routes are under the root (e.g. `/properties`, `/listings`, `/bookings`, `/availability`, `/admin/reports`). A few controllers use the `api/` prefix in their route: **Payments** (`/api/payments`), **Incidents** (`/api/incidents`), **Users** (`/api/users`), **Razorpay** (`/api/Razorpay`). When calling locally, use base `https://localhost:<port>` and append the path (e.g. `GET /properties`, `GET /api/payments`).
 
 ## Authentication / Authorization
 - JWT authentication middleware is present in `Atlas.Api/Program.cs` but **commented out**, and `UseAuthentication()`/`UseAuthorization()` are not enabled. As coded, endpoints do **not** require authentication.
 - The only explicit authorization attribute is `[AllowAnonymous]` on `AdminReportsController` (`Atlas.Api/Controllers/AdminReportsController.cs`).
 
 ## Conventions
+- **Swagger / OpenAPI**: Interactive docs at `/swagger` when not in Production. Use for exploratory testing. Swagger UI is disabled in Production.
 - **Validation errors**: Several endpoints call `ValidationProblem(ModelState)` which produces `ProblemDetails` responses (usually `application/problem+json`) when model or business rules fail. Other errors sometimes return plain strings (see multiple controllers).
 - **Filtering**: No global pagination/sorting. Endpoint-specific filters are documented under each endpoint.
-- **Swagger**: Swagger UI is enabled at `/swagger` (per `Atlas.Api/Program.cs`), but this document is derived directly from code.
 
 ## Endpoints
+
+### Health
+- **`GET /health`** — Liveness probe; returns 200 with `{ "status": "healthy" }`. No authentication. Use for load balancer or platform health checks.
 
 ### Operations (`Atlas.Api/Controllers/OpsController.cs`)
 
@@ -25,6 +30,13 @@
 - **Response**: JSON object containing `environment` (ASPNETCORE_ENVIRONMENT), `server` (SQL Server name), `database` (database name), and `marker` (value from the `EnvironmentMarker` table indicating DEV/PROD alignment).
 - **Notes**: Intended for safety checks; avoids returning connection strings or credentials.
 - **Status codes**: 200 on success; 500-style `ProblemDetails` if the marker record is missing.
+
+#### `GET /ops/outbox`
+- **Purpose**: Read-only list of outbox messages for ops diagnostics. Tenant-scoped via EF filters.
+- **Query params**: `fromUtc` (DateTime?, optional), `toUtc` (DateTime?, optional), `published` (bool?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<OutboxMessageDto>>` — `Id`, `TenantId`, `Topic`, `EntityId`, `EventType`, `CreatedAtUtc`, `PublishedAtUtc`, `AttemptCount`, `LastError` (no full payload). Legacy `AggregateType`/`AggregateId` deprecated in favor of `Topic`/`EntityId`.
+- **Status codes**: 200, 500
 
 ### Availability (`Atlas.Api/Controllers/AvailabilityController.cs`)
 
@@ -38,6 +50,23 @@
 - **Request body**: none
 - **Response**: `ActionResult<AvailabilityResponseDto>` (availability summary with listings and nightly rates)
 - **Status codes**: 200, 400, 404, 500 (not explicitly annotated; inferred from code paths)
+
+#### `GET /availability/listing-availability`
+- **Purpose**: Get listing availability for a date range (e.g. for calendar UI).
+- **Query params**: `listingId` (int, required), `startDate` (DateTime, required), `months` (int, optional, default 2, 1–12)
+- **Request body**: none
+- **Response**: `ActionResult<ListingAvailabilityResponseDto>`
+- **Status codes**: 200, 400, 500
+
+#### `POST /availability/blocks`
+- **Purpose**: Block availability for a listing in a date range (creates/removes blocks; overlapping blocked periods return 422).
+- **Request body**: `AvailabilityBlockRequestDto` with `ListingId`, `StartDate`, `EndDate`
+- **Response**: 200 with `{ message, blockedDates }` or 422 on conflict, 500 on error
+
+#### `PATCH /availability/update-inventory`
+- **Purpose**: Set inventory (available/blocked) for a single listing date.
+- **Query params**: `listingId` (int), `date` (DateTime), `inventory` (bool)
+- **Response**: 200 OK or 400/404/500
 
 ### Properties (`Atlas.Api/Controllers/PropertiesController.cs`)
 
@@ -88,6 +117,12 @@
 - **Request body**: none
 - **Response**: `ActionResult<Listing>` (listing)
 - **Status codes**: 200, 404, 500 (not explicitly annotated)
+
+#### `GET /listings/public`
+- **Purpose**: List listings for public/guest-facing use (tenant-scoped). Returns a safe DTO only; excludes WifiName, WifiPassword, TenantId, and internal-only fields.
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<PublicListingDto>>` — each item has `Id`, `PropertyId`, `PropertyName`, `PropertyAddress`, `Name`, `Floor`, `Type`, `CheckInTime`, `CheckOutTime`, `Status`, `MaxGuests`.
+- **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `POST /listings`
 - **Purpose**: Create a listing.
@@ -150,10 +185,19 @@
 - **Query params**:
   - `checkinStart` (DateTime?, optional)
   - `checkinEnd` (DateTime?, optional)
+  - `listingId` (int?, optional)
+  - `bookingId` (int?, optional; when set, returns at most one booking)
   - `include` (string?, optional; supports `guest`)
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<BookingListDto>>` (booking summaries)
 - **Status codes**: 200, 500 (not explicitly annotated)
+
+#### `GET /bookings/by-reference`
+- **Purpose**: Get a booking by external reservation id (e.g. for guest confirmation page). Tenant-scoped.
+- **Query params**: `externalReservationId` (string, required)
+- **Request body**: none
+- **Response**: `ActionResult<BookingDto>` (same shape as `GET /bookings/{id}`); 404 if not found or tenant mismatch.
+- **Status codes**: 200, 400 (missing param), 404, 500
 
 #### `GET /bookings/{id}`
 - **Purpose**: Get a booking by id.
@@ -164,14 +208,16 @@
 #### `POST /bookings`
 - **Purpose**: Create a booking.
 - **Request body**: `CreateBookingRequest`
-  - **Required fields**: `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `AmountReceived`, `GuestsPlanned`, `GuestsActual`, `ExtraGuestCharge`, `PaymentStatus` (non-nullable or `[Required]` in `Atlas.Api/DTOs/CreateBookingRequest.cs`)
+  - **Required**: `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `AmountReceived`, `GuestsPlanned`, `GuestsActual`, `ExtraGuestCharge`, `PaymentStatus`
+  - **Optional**: `BookingStatus`, `TotalAmount`, `Currency`, `ExternalReservationId`, `ConfirmationSentAtUtc`, `RefundFreeUntilUtc`, `BankAccountId`, `Notes`, and other datetime fields
 - **Response**: `ActionResult<BookingDto>` (created booking)
 - **Status codes**: 201, 400, 404, 500 (not explicitly annotated)
 
 #### `PUT /bookings/{id}`
 - **Purpose**: Update a booking.
 - **Request body**: `UpdateBookingRequest`
-  - **Required fields**: `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `PaymentStatus`, `AmountReceived` (non-nullable or `[Required]` in `Atlas.Api/DTOs/UpdateBookingRequest.cs`)
+  - **Required**: `Id` (match route), `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `PaymentStatus`, `AmountReceived`
+  - **Optional**: `BookingStatus`, `TotalAmount`, `Currency`, `BankAccountId`, `GuestsPlanned`, `GuestsActual`, `ExtraGuestCharge`, `CommissionAmount`, `Notes`, and other datetime fields
 - **Response**: `IActionResult`
 - **Status codes**: 204, 400, 404, 500 (not explicitly annotated)
 
@@ -236,9 +282,10 @@
 ### Payments (`Atlas.Api/Controllers/PaymentsController.cs`)
 
 #### `GET /api/payments`
-- **Purpose**: List payments.
+- **Purpose**: List payments with optional filters and pagination.
+- **Query params**: `bookingId` (int?, optional), `receivedFrom` (DateTime?, optional), `receivedTo` (DateTime?, optional), `page` (int, default 1), `pageSize` (int, default 100, max 500)
 - **Request body**: none
-- **Response**: `ActionResult<IEnumerable<Payment>>` (payments)
+- **Response**: `ActionResult<IEnumerable<Payment>>` (payments, ordered by ReceivedOn descending)
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /api/payments/{id}`
@@ -250,14 +297,16 @@
 #### `POST /api/payments`
 - **Purpose**: Create a payment.
 - **Request body**: `Payment`
-  - **Required fields**: `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`, `Note` (non-nullable/required in `Atlas.Api/Models/Payment.cs`)
+  - **Required**: `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`
+  - **Optional**: `Note`, `RazorpayOrderId`, `RazorpayPaymentId`, `RazorpaySignature`, `Status` (default `pending`). `TenantId` is set server-side from tenant context.
 - **Response**: `ActionResult<Payment>` (created payment)
 - **Status codes**: 201, 400 (not explicitly annotated)
 
 #### `PUT /api/payments/{id}`
 - **Purpose**: Update a payment.
 - **Request body**: `Payment`
-  - **Required fields**: `Id` (route/body must match), `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`, `Note`
+  - **Required**: `Id` (route/body must match), `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`
+  - **Optional**: `Note`, Razorpay fields, `Status`
 - **Response**: `IActionResult`
 - **Status codes**: 204, 400, 404 (not explicitly annotated)
 
@@ -334,6 +383,57 @@
 - **Request body**: none
 - **Response**: `IActionResult`
 - **Status codes**: 204, 404 (not explicitly annotated)
+
+### Message Templates (`Atlas.Api/Controllers/MessageTemplatesController.cs`)
+
+#### `GET /api/message-templates`
+- **Purpose**: List message templates with optional filters and pagination. Tenant-scoped.
+- **Query params**: `eventType` (string?, optional), `channel` (string?, optional), `isActive` (bool?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<MessageTemplateResponseDto>>`
+- **Status codes**: 200, 500
+
+#### `GET /api/message-templates/{id}`
+- **Purpose**: Get a message template by id.
+- **Request body**: none
+- **Response**: `ActionResult<MessageTemplateResponseDto>`; 404 if not found.
+- **Status codes**: 200, 404, 500
+
+#### `POST /api/message-templates`
+- **Purpose**: Create a message template. TenantId is set server-side.
+- **Request body**: `MessageTemplateCreateUpdateDto` — `EventType`, `Channel`, `ScopeType`, `Language`, `Body` (required); `TemplateKey`, `ScopeId`, `TemplateVersion`, `IsActive`, `Subject` (optional).
+- **Response**: 201 with `MessageTemplateResponseDto`
+- **Status codes**: 201, 400, 422, 500
+
+#### `PUT /api/message-templates/{id}`
+- **Purpose**: Update a message template.
+- **Request body**: `MessageTemplateCreateUpdateDto` (same as POST)
+- **Response**: 200 with `MessageTemplateResponseDto`
+- **Status codes**: 200, 400, 404, 422, 500
+
+#### `DELETE /api/message-templates/{id}`
+- **Purpose**: Delete a message template.
+- **Request body**: none
+- **Response**: 204
+- **Status codes**: 204, 404, 500
+
+### Communication Logs (`Atlas.Api/Controllers/CommunicationLogsController.cs`)
+
+#### `GET /api/communication-logs`
+- **Purpose**: List communication logs with filters and pagination. Tenant-scoped.
+- **Query params**: `bookingId` (int?, optional), `guestId` (int?, optional), `fromUtc` (DateTime?, optional), `toUtc` (DateTime?, optional), `channel` (string?, optional), `status` (string?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<CommunicationLogDto>>` — Id, TenantId, BookingId, GuestId, Channel, EventType, ToAddress, TemplateId, TemplateVersion, Status, AttemptCount, CreatedAtUtc, SentAtUtc, LastError.
+- **Status codes**: 200, 500
+
+### Automation Schedules (`Atlas.Api/Controllers/AutomationSchedulesController.cs`)
+
+#### `GET /api/automation-schedules`
+- **Purpose**: List automation schedules with filters and pagination. Tenant-scoped.
+- **Query params**: `bookingId` (int?, optional), `status` (string?, optional), `eventType` (string?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
+- **Request body**: none
+- **Response**: `ActionResult<IEnumerable<AutomationScheduleDto>>` — Id, TenantId, BookingId, EventType, DueAtUtc, Status, PublishedAtUtc, CompletedAtUtc, AttemptCount, LastError.
+- **Status codes**: 200, 500
 
 ### Reports (`Atlas.Api/Controllers/ReportsController.cs`)
 
@@ -434,3 +534,124 @@
 - **Request body**: none
 - **Response**: `IResult` (OK)
 - **Status codes**: 200 (not explicitly annotated)
+
+## Tenant Resolution
+- Requests must provide tenant context via the `X-Tenant-Slug` header (no host/subdomain-based resolution).
+- Resolution precedence is:
+  1. `X-Tenant-Slug` header
+  2. known dev API host (e.g. `atlas-homes-api-dev-*.azurewebsites.net`) → `atlas`
+  3. default tenant (`atlas`) only in development/local/test environments
+- In production, requests without a resolvable tenant are rejected before reaching controllers.
+
+### Admin Calendar (`Atlas.Api/Controllers/AdminCalendarController.cs`)
+
+#### `GET /admin/calendar/availability`
+- **Purpose**: Return availability calendar cells for one property (optionally one listing), tenant-scoped.
+- **Tenant scoping behavior**: Listing/pricing/rate/inventory/block queries are constrained by EF global filters (`TenantId`), so only rows owned by the resolved tenant are included.
+- **Query params**:
+  - `propertyId` (int, required, must be > 0)
+  - `from` (DateTime, required; normalized to date)
+  - `days` (int, optional, default `30`, must be > 0)
+  - `listingId` (int, optional)
+- **Response body**: `200 OK` with `AdminCalendarAvailabilityCellDto[]`
+  - `date` (`date`)
+  - `listingId` (`int`)
+  - `roomsAvailable` (`int`; sourced from `ListingDailyInventory.RoomsAvailable`, defaults to `1`, forced to `0` when blocked)
+  - `effectivePrice` (`decimal(18,2)` semantic; `priceOverride` when present, otherwise base/weekend price from `ListingPricing`)
+  - `priceOverride` (`decimal(18,2)?`; nullable daily override from `ListingDailyRate.NightlyRate`)
+  - `isBlocked` (`bit`/bool)
+- **Validation / errors**:
+  - `400` when `propertyId <= 0` or `days <= 0`
+  - `404` when `listingId` is provided but not visible to the current tenant
+
+#### `PUT /admin/calendar/availability`
+- **Purpose**: Bulk upsert listing daily availability and optional price overrides, tenant-scoped.
+- **Tenant scoping behavior**: `TenantId` is assigned by the DbContext tenant ownership rule; clients must not pass `tenantId` in payloads.
+- **Request body**: `AdminCalendarAvailabilityBulkUpsertRequestDto`
+  - `cells` (required, min length 1)
+  - each cell:
+    - `listingId` (`int`, required)
+    - `date` (`date`, required)
+    - `roomsAvailable` (`int`, required, must be `>= 0`; persisted to `ListingDailyInventory.RoomsAvailable`)
+    - `priceOverride` (`decimal(18,2)?`, optional, must be `>= 0` when supplied; persisted to `ListingDailyRate.NightlyRate`, removed when omitted/null)
+- **Response body**: `200 OK` with `AdminCalendarAvailabilityBulkUpsertResponseDto`
+  - `updatedCells` (`int`)
+  - `deduplicated` (`bool`)
+  - `cells` (`AdminCalendarAvailabilityCellDto[]`)
+    - each returned cell includes `roomsAvailable` (`int`) and `priceOverride` (`decimal(18,2)?`) explicitly.
+- **Validation / errors**:
+  - `400` for model validation failures, including negative `roomsAvailable` or negative `priceOverride`
+  - `404` when one or more referenced listings are not visible to the current tenant
+  - `409` when an `Idempotency-Key` is reused with a different payload hash
+
+
+## Tenant Pricing Settings API
+
+### GET `/tenant/settings/pricing`
+Returns current tenant pricing configuration.
+
+Response:
+```json
+{
+  "convenienceFeePercent": 3.0,
+  "globalDiscountPercent": 0.0,
+  "updatedAtUtc": "2026-02-20T10:00:00Z",
+  "updatedBy": "ops-user"
+}
+```
+
+### PUT `/tenant/settings/pricing`
+Updates tenant pricing configuration.
+
+Request:
+```json
+{
+  "convenienceFeePercent": 5,
+  "globalDiscountPercent": 10,
+  "updatedBy": "ops-user"
+}
+```
+
+Validation: both percentages must be in `0..100`.
+
+## Pricing API
+
+### GET `/pricing/breakdown`
+Query params: `listingId`, `checkIn`, `checkOut`.
+
+Returns server-computed breakdown:
+- `BaseAmount`
+- `DiscountAmount = BaseAmount * GlobalDiscountPercent / 100`
+- `ConvenienceFeeAmount = (BaseAmount - DiscountAmount) * ConvenienceFeePercent / 100` when `FeeMode=CustomerPays`
+- `FinalAmount = BaseAmount - DiscountAmount + ConvenienceFeeAmount`
+
+Rounding strategy: amount components are rounded to 2 decimal places using midpoint-away-from-zero. Razorpay order amount uses paise conversion from `FinalAmount * 100`.
+
+## Quotes API
+
+### POST `/quotes`
+Issues signed HMAC-SHA256 quote token.
+
+Request payload includes:
+- tenant identity (resolved server-side)
+- `listingId`, `checkIn`, `checkOut`, `guests`
+- `quotedBaseAmount`
+- `feeMode` (`CustomerPays`/`Absorb`)
+- `expiresAtUtc`
+- nonce (generated server-side)
+
+### GET `/quotes/validate?token=...`
+Validates signature, expiry, and tenant match.
+Returns breakdown if valid.
+
+Policy: global discount is **not** applied to quoted bookings by default unless quote is explicitly issued with `applyGlobalDiscount=true`.
+
+## Razorpay contract changes
+
+### POST `/api/Razorpay/order`
+- Client must send booking draft or quote token.
+- Client amount is ignored for pricing decisions (backward-compatible field retained).
+- Server computes final amount from public pricing or validated quote.
+
+### POST `/api/Razorpay/verify`
+On successful verification, booking/payment pricing breakdown fields are persisted for audit + reconciliation.

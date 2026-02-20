@@ -1,19 +1,51 @@
 using Atlas.Api.Models;
+using Atlas.Api.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace Atlas.Api.Data
 {
     public class AppDbContext : DbContext
     {
+        private const int DefaultTenantId = 1;
+        private readonly ITenantContextAccessor? _tenantContextAccessor;
+
         public AppDbContext(DbContextOptions<AppDbContext> options)
+            : this(options, null)
+        {
+        }
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, ITenantContextAccessor? tenantContextAccessor)
             : base(options)
         {
+            _tenantContextAccessor = tenantContextAccessor;
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Strategy: global tenant query filters centralize tenant isolation so all EF queries stay in-tenant by default.
+            ApplyTenantQueryFilter<Property>(modelBuilder);
+            ApplyTenantQueryFilter<Listing>(modelBuilder);
+            ApplyTenantQueryFilter<Booking>(modelBuilder);
+            ApplyTenantQueryFilter<Guest>(modelBuilder);
+            ApplyTenantQueryFilter<Payment>(modelBuilder);
+            ApplyTenantQueryFilter<User>(modelBuilder);
+            ApplyTenantQueryFilter<ListingPricing>(modelBuilder);
+            ApplyTenantQueryFilter<ListingDailyRate>(modelBuilder);
+            ApplyTenantQueryFilter<ListingDailyInventory>(modelBuilder);
+            ApplyTenantQueryFilter<AvailabilityBlock>(modelBuilder);
+            ApplyTenantQueryFilter<MessageTemplate>(modelBuilder);
+            ApplyTenantQueryFilter<CommunicationLog>(modelBuilder);
+            ApplyTenantQueryFilter<OutboxMessage>(modelBuilder);
+            ApplyTenantQueryFilter<AutomationSchedule>(modelBuilder);
+            ApplyTenantQueryFilter<BankAccount>(modelBuilder);
+            ApplyTenantQueryFilter<TenantPricingSetting>(modelBuilder);
+            ApplyTenantQueryFilter<QuoteRedemption>(modelBuilder);
+            ApplyTenantQueryFilter<WhatsAppInboundMessage>(modelBuilder);
+            ApplyTenantQueryFilter<ConsumedEvent>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -64,10 +96,44 @@ namespace Atlas.Api.Data
                 .Property(b => b.BookingSource)
                 .HasColumnType("varchar(50)")
                 .HasMaxLength(50);
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.BaseAmount)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.DiscountAmount)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.ConvenienceFeeAmount)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.FinalAmount)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.PricingSource)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30)
+                .HasDefaultValue("Public")
+                .IsRequired();
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.QuoteTokenNonce)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50);
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.QuoteExpiresAtUtc)
+                .HasColumnType("datetime");
 
             modelBuilder.Entity<Payment>(entity =>
             {
                 entity.Property(p => p.Amount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(p => p.BaseAmount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(p => p.DiscountAmount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(p => p.ConvenienceFeeAmount)
                     .HasPrecision(18, 2);
 
                 entity.Property(p => p.Method)
@@ -163,10 +229,6 @@ namespace Atlas.Api.Data
                 .HasDefaultValueSql("GETUTCDATE()");
 
             modelBuilder.Entity<ListingDailyRate>()
-                .HasIndex(r => new { r.ListingId, r.Date })
-                .IsUnique();
-
-            modelBuilder.Entity<ListingDailyRate>()
                 .Property(r => r.Date)
                 .HasColumnType("date");
 
@@ -176,10 +238,55 @@ namespace Atlas.Api.Data
                 .HasForeignKey<ListingPricing>(p => p.ListingId)
                 .OnDelete(deleteBehavior);
 
+            // ListingDailyRate is related to Listing only (FK: ListingId). Do not infer a second relationship to ListingPricing
+            // (which would create shadow column ListingPricingListingId that may not exist in the database).
+            modelBuilder.Entity<ListingPricing>()
+                .Ignore(p => p.DailyRates);
+
             modelBuilder.Entity<ListingDailyRate>()
                 .HasOne(r => r.Listing)
                 .WithMany(l => l.DailyRates)
                 .HasForeignKey(r => r.ListingId)
+                .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .ToTable("ListingDailyInventory");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .ToTable(t => t.HasCheckConstraint("CK_ListingDailyInventory_RoomsAvailable_NonNegative", "[RoomsAvailable] >= 0"));
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.Date)
+                .HasColumnType("date");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.RoomsAvailable)
+                .HasColumnType("int");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.Source)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired();
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.Reason)
+                .HasMaxLength(200)
+                .HasColumnType("varchar(200)");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .Property(i => i.UpdatedAtUtc)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .HasIndex(i => new { i.TenantId, i.ListingId, i.Date })
+                .IsUnique();
+
+            modelBuilder.Entity<ListingDailyInventory>()
+                .HasOne(i => i.Listing)
+                .WithMany(l => l.DailyInventories)
+                .HasForeignKey(i => i.ListingId)
                 .OnDelete(deleteBehavior);
 
             modelBuilder.Entity<AvailabilityBlock>()
@@ -241,6 +348,36 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<EnvironmentMarker>()
                 .HasIndex(em => em.Marker)
                 .IsUnique();
+
+            modelBuilder.Entity<Tenant>()
+                .ToTable("Tenants");
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.Name)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.Slug)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.Status)
+                .HasColumnType("varchar(20)")
+                .HasMaxLength(20)
+                .IsRequired();
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.CreatedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<Tenant>()
+                .HasIndex(t => t.Slug)
+                .IsUnique();
+
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
@@ -335,7 +472,8 @@ namespace Atlas.Api.Data
                 .HasColumnType("datetime");
 
             modelBuilder.Entity<CommunicationLog>()
-                .HasIndex(cl => cl.IdempotencyKey)
+                .HasIndex(cl => new { cl.TenantId, cl.IdempotencyKey })
+                .HasDatabaseName("IX_CommunicationLog_TenantId_IdempotencyKey")
                 .IsUnique();
 
             modelBuilder.Entity<CommunicationLog>()
@@ -412,27 +550,56 @@ namespace Atlas.Api.Data
                 .ToTable("OutboxMessage");
 
             modelBuilder.Entity<OutboxMessage>()
-                .Property(o => o.AggregateType)
-                .HasMaxLength(50)
-                .HasColumnType("varchar(50)")
-                .IsRequired();
-
-            modelBuilder.Entity<OutboxMessage>()
-                .Property(o => o.AggregateId)
-                .HasMaxLength(50)
-                .HasColumnType("varchar(50)")
+                .Property(o => o.Topic)
+                .HasMaxLength(80)
+                .HasColumnType("varchar(80)")
                 .IsRequired();
 
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.EventType)
-                .HasMaxLength(50)
-                .HasColumnType("varchar(50)")
+                .HasMaxLength(80)
+                .HasColumnType("varchar(80)")
                 .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.Status)
+                .HasMaxLength(20)
+                .HasColumnType("varchar(20)")
+                .IsRequired()
+                .HasDefaultValue("Pending");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.CorrelationId)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.EntityId)
+                .HasMaxLength(100)
+                .HasColumnType("varchar(100)");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.OccurredUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.NextAttemptUtc)
+                .HasColumnType("datetime");
 
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.PayloadJson)
                 .HasColumnType("text")
                 .IsRequired();
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.AggregateType)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.AggregateId)
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)");
 
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.HeadersJson)
@@ -449,6 +616,54 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.LastError)
                 .HasColumnType("text");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .HasIndex(o => new { o.Status, o.NextAttemptUtc })
+                .HasDatabaseName("IX_OutboxMessage_Status_NextAttemptUtc");
+
+            modelBuilder.Entity<OutboxMessage>()
+                .HasIndex(o => new { o.TenantId, o.CreatedAtUtc })
+                .HasDatabaseName("IX_OutboxMessage_TenantId_CreatedAtUtc");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .ToTable("ConsumedEvent");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.ConsumerName)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.EventId)
+                .HasColumnType("varchar(150)")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.EventType)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.ProcessedAtUtc)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.PayloadHash)
+                .HasColumnType("varchar(128)")
+                .HasMaxLength(128);
+
+            modelBuilder.Entity<ConsumedEvent>()
+                .Property(x => x.Status)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30);
 
             modelBuilder.Entity<AutomationSchedule>()
                 .ToTable("AutomationSchedule");
@@ -484,6 +699,229 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<AutomationSchedule>()
                 .Property(a => a.LastError)
                 .HasColumnType("text");
+
+            modelBuilder.Entity<AutomationSchedule>()
+                .HasOne(a => a.Booking)
+                .WithMany()
+                .HasForeignKey(a => a.BookingId)
+                .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .ToTable("TenantPricingSettings");
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .HasKey(x => x.TenantId);
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .Property(x => x.ConvenienceFeePercent)
+                .HasColumnType("decimal(5,2)")
+                .HasDefaultValue(3.00m);
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .Property(x => x.GlobalDiscountPercent)
+                .HasColumnType("decimal(5,2)")
+                .HasDefaultValue(0.00m);
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .Property(x => x.UpdatedAtUtc)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<TenantPricingSetting>()
+                .Property(x => x.UpdatedBy)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .ToTable("QuoteRedemption");
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .Property(x => x.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .Property(x => x.Nonce)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .Property(x => x.RedeemedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<QuoteRedemption>()
+                .HasOne(x => x.Booking)
+                .WithMany()
+                .HasForeignKey(x => x.BookingId)
+                .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .ToTable("WhatsAppInboundMessage");
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.Id)
+                .HasColumnType("bigint");
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.Provider)
+                .HasColumnType("varchar(50)")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.ProviderMessageId)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.FromNumber)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30)
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.ToNumber)
+                .HasColumnType("varchar(30)")
+                .HasMaxLength(30)
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.ReceivedAtUtc)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.PayloadJson)
+                .HasColumnType("text")
+                .IsRequired();
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .Property(x => x.CorrelationId)
+                .HasColumnType("varchar(100)")
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .HasOne(x => x.Booking)
+                .WithMany()
+                .HasForeignKey(x => x.BookingId)
+                .OnDelete(deleteBehavior);
+
+            modelBuilder.Entity<WhatsAppInboundMessage>()
+                .HasOne(x => x.Guest)
+                .WithMany()
+                .HasForeignKey(x => x.GuestId)
+                .OnDelete(deleteBehavior);
+
+            ConfigureTenantOwnership(modelBuilder, deleteBehavior);
+        }
+
+        private static void ConfigureTenantOwnership(ModelBuilder modelBuilder, DeleteBehavior deleteBehavior)
+        {
+            ConfigureTenantOwnedEntity<Property>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<Listing>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<Booking>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<Guest>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<Payment>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<User>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ListingPricing>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ListingDailyRate>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ListingDailyInventory>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<AvailabilityBlock>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<MessageTemplate>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<CommunicationLog>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<OutboxMessage>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<AutomationSchedule>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<BankAccount>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<TenantPricingSetting>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<QuoteRedemption>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<WhatsAppInboundMessage>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ConsumedEvent>(modelBuilder, deleteBehavior);
+
+            modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
+            modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
+            modelBuilder.Entity<Payment>().HasIndex(x => new { x.TenantId, x.BookingId });
+            modelBuilder.Entity<ListingPricing>().HasIndex(x => new { x.TenantId, x.ListingId }).IsUnique();
+            modelBuilder.Entity<ListingDailyRate>().HasIndex(x => new { x.TenantId, x.ListingId, x.Date }).IsUnique();
+            modelBuilder.Entity<ListingDailyInventory>().HasIndex(x => new { x.TenantId, x.ListingId, x.Date }).IsUnique();
+            modelBuilder.Entity<AvailabilityBlock>().HasIndex(x => new { x.TenantId, x.ListingId, x.StartDate, x.EndDate });
+            modelBuilder.Entity<MessageTemplate>().HasIndex(x => new { x.TenantId, x.EventType, x.Channel });
+            modelBuilder.Entity<CommunicationLog>().HasIndex(x => new { x.TenantId, x.BookingId });
+            modelBuilder.Entity<AutomationSchedule>().HasIndex(x => new { x.TenantId, x.BookingId, x.EventType, x.DueAtUtc }).IsUnique();
+            modelBuilder.Entity<BankAccount>().HasIndex(x => new { x.TenantId, x.AccountNumber });
+            modelBuilder.Entity<TenantPricingSetting>().HasIndex(x => x.TenantId).IsUnique();
+            modelBuilder.Entity<QuoteRedemption>().HasIndex(x => new { x.TenantId, x.Nonce }).IsUnique();
+            modelBuilder.Entity<WhatsAppInboundMessage>().HasIndex(x => new { x.TenantId, x.Provider, x.ProviderMessageId }).IsUnique();
+            modelBuilder.Entity<WhatsAppInboundMessage>().HasIndex(x => new { x.TenantId, x.ReceivedAtUtc });
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ConsumerName, x.EventId }).IsUnique();
+            modelBuilder.Entity<ConsumedEvent>().HasIndex(x => new { x.TenantId, x.ProcessedAtUtc });
+        }
+
+        private static void ConfigureTenantOwnedEntity<TEntity>(ModelBuilder modelBuilder, DeleteBehavior deleteBehavior)
+            where TEntity : class, ITenantOwnedEntity
+        {
+            modelBuilder.Entity<TEntity>()
+                .Property(x => x.TenantId)
+                .IsRequired();
+
+            modelBuilder.Entity<TEntity>()
+                .HasIndex(x => x.TenantId);
+
+            modelBuilder.Entity<TEntity>()
+                .HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(deleteBehavior);
+        }
+
+        public override int SaveChanges()
+        {
+            ApplyTenantOwnershipRules();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyTenantOwnershipRules();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void ApplyTenantOwnershipRules()
+        {
+            var tenantId = GetResolvedTenantId();
+
+            foreach (var entry in ChangeTracker.Entries<ITenantOwnedEntity>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.TenantId = tenantId;
+                    continue;
+                }
+
+                if (entry.Entity.TenantId != tenantId)
+                {
+                    throw new InvalidOperationException("Tenant mismatch detected for a tenant-owned entity.");
+                }
+
+                entry.Property(nameof(ITenantOwnedEntity.TenantId)).IsModified = false;
+            }
+        }
+
+        private int GetResolvedTenantId()
+        {
+            return _tenantContextAccessor?.TenantId ?? DefaultTenantId;
+        }
+
+        private void ApplyTenantQueryFilter<TEntity>(ModelBuilder modelBuilder)
+            where TEntity : class, ITenantOwnedEntity
+        {
+            modelBuilder.Entity<TEntity>().HasQueryFilter(CreateTenantFilterExpression<TEntity>());
+        }
+
+        private Expression<Func<TEntity, bool>> CreateTenantFilterExpression<TEntity>()
+            where TEntity : class, ITenantOwnedEntity
+        {
+            return entity => entity.TenantId == GetResolvedTenantId();
         }
 
         private static DeleteBehavior ResolveDeleteBehavior()
@@ -506,10 +944,16 @@ namespace Atlas.Api.Data
         public DbSet<AvailabilityBlock> AvailabilityBlocks { get; set; }
         public DbSet<ListingPricing> ListingPricings { get; set; }
         public DbSet<ListingDailyRate> ListingDailyRates { get; set; }
+        public DbSet<ListingDailyInventory> ListingDailyInventories { get; set; }
         public DbSet<MessageTemplate> MessageTemplates { get; set; }
         public DbSet<CommunicationLog> CommunicationLogs { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
         public DbSet<AutomationSchedule> AutomationSchedules { get; set; }
+        public DbSet<TenantPricingSetting> TenantPricingSettings { get; set; }
+        public DbSet<QuoteRedemption> QuoteRedemptions { get; set; }
+        public DbSet<WhatsAppInboundMessage> WhatsAppInboundMessages { get; set; }
+        public DbSet<ConsumedEvent> ConsumedEvents { get; set; }
         public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
+        public DbSet<Tenant> Tenants { get; set; }
     }
 }

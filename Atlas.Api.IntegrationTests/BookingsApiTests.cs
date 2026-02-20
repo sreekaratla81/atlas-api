@@ -1,7 +1,9 @@
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http.Json;
 using System.Linq;
 
 namespace Atlas.Api.IntegrationTests;
@@ -97,6 +99,67 @@ public class BookingsApiTests : IntegrationTestBase
     {
         var response = await Client.GetAsync(ApiRoute("bookings/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetByReference_Returns400_WhenMissingParam()
+    {
+        var response = await Client.GetAsync(ApiRoute("bookings/by-reference"));
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetByReference_Returns404_WhenNotFound()
+    {
+        var response = await Client.GetAsync(ApiRoute("bookings/by-reference?externalReservationId=no-such-id"));
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetByReference_ReturnsBooking_WhenExternalIdExists()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var (property, listing, guest, booking) = await SeedBookingAsync(db);
+        booking.ExternalReservationId = "EXT-REF-123";
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync(ApiRoute("bookings/by-reference?externalReservationId=EXT-REF-123"));
+        response.EnsureSuccessStatusCode();
+        var dto = await response.Content.ReadFromJsonAsync<BookingDto>();
+        Assert.NotNull(dto);
+        Assert.Equal(booking.Id, dto.Id);
+        Assert.Equal("EXT-REF-123", dto.ExternalReservationId);
+    }
+
+    [Fact]
+    public async Task GetAll_WithListingId_Filters()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var (property, listing, guest, booking) = await SeedBookingAsync(db);
+
+        var response = await Client.GetAsync(ApiRoute($"bookings?listingId={listing.Id}"));
+        response.EnsureSuccessStatusCode();
+        var list = await response.Content.ReadFromJsonAsync<List<BookingListDto>>();
+        Assert.NotNull(list);
+        Assert.Single(list);
+        Assert.Equal(booking.Id, list[0].Id);
+    }
+
+    [Fact]
+    public async Task GetAll_WithBookingId_Filters()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var (property, listing, guest, booking) = await SeedBookingAsync(db);
+
+        var response = await Client.GetAsync(ApiRoute($"bookings?bookingId={booking.Id}"));
+        response.EnsureSuccessStatusCode();
+        var list = await response.Content.ReadFromJsonAsync<List<BookingListDto>>();
+        Assert.NotNull(list);
+        Assert.Single(list);
+        Assert.Equal(booking.Id, list[0].Id);
     }
 
     [Fact]

@@ -2,9 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.Models
 {
-    public class MessageTemplate
+    public class MessageTemplate : ITenantOwnedEntity
     {
         public int Id { get; set; }
+
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         public string? TemplateKey { get; set; }
 

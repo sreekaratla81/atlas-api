@@ -32,7 +32,7 @@ public class UsersApiTests : IntegrationTestBase
     public async Task Post_CreatesUser()
     {
         var user = new User { Name = "User", Phone = "1", Email = "u@example.com", PasswordHash = "hash", Role = "admin" };
-        var response = await Client.PostAsJsonAsync(ApiControllerRoute("users"), user);
+        var response = await Client.PostAsJsonAsync(ApiControllerRoute("users"), new { user.Name, user.Phone, user.Email, user.PasswordHash, user.Role });
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope = Factory.Services.CreateScope();
@@ -48,7 +48,7 @@ public class UsersApiTests : IntegrationTestBase
         var user = await DataSeeder.SeedUserAsync(db);
         user.Name = "Updated";
 
-        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"users/{user.Id}"), user);
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"users/{user.Id}"), new { user.Id, user.Name, user.Phone, user.Email, user.PasswordHash, user.Role });
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();

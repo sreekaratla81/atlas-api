@@ -4,9 +4,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Atlas.Api.Models
 {
-    public class Payment
+    public class Payment : ITenantOwnedEntity
     {
         public int Id { get; set; }
+
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
         
         [Required]
         public int BookingId { get; set; }
@@ -17,6 +20,15 @@ namespace Atlas.Api.Models
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? BaseAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? DiscountAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? ConvenienceFeeAmount { get; set; }
         
         [Required]
         [MaxLength(50)]

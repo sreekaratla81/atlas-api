@@ -43,6 +43,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Enforce: prod deploy only from main branch (push or workflow_dispatch)
+      - name: Guard prod deploy from main only
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod' && github.ref != 'refs/heads/main'
+        shell: pwsh
+        run: |
+          Write-Error "Prod deploy is only allowed from the main branch. Current ref: $env:GITHUB_REF. Run this workflow from main, or choose environment 'dev' to deploy to dev."
+          exit 1
+
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:
@@ -125,7 +133,7 @@ jobs:
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
 
       - name: Publish
-        # Self-contained win-x86 for 32-bit Free/Shared tier (avoids 500.31 ANCM + 500.32 load failure).
+        # win-x86 for 32-bit Azure App Service (Basic tier). Do not switch to win-x64 without upgrading plan.
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
       - name: Normalize SqlClient runtime layout

@@ -19,6 +19,8 @@ This repo now uses transform-based behavior so diagnostics are only enabled for 
 
 Use Development/Debug publish for short-lived diagnostics, then re-deploy Release to disable verbose startup logging.
 
+For a quick liveness check without opening Kudu, call `GET /health`; it returns 200 with `{ "status": "healthy" }` when the app is running.
+
 ## 2) Capture and summarize startup exception from `D:\home\LogFiles`
 
 Run from Kudu PowerShell / App Service console:

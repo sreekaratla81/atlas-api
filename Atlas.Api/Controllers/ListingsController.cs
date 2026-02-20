@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers
@@ -39,13 +40,27 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("public")]
-        public async Task<ActionResult<IEnumerable<Listing>>> GetPublicListings()
+        public async Task<ActionResult<IEnumerable<PublicListingDto>>> GetPublicListings()
         {
             try
             {
                 var listings = await _context.Listings
-                    .Include(l => l.Property)
+                    .AsNoTracking()
                     .Where(l => l.Status == "Active")
+                    .Select(l => new PublicListingDto
+                    {
+                        Id = l.Id,
+                        PropertyId = l.PropertyId,
+                        PropertyName = l.Property != null ? l.Property.Name : "",
+                        PropertyAddress = l.Property != null ? l.Property.Address : null,
+                        Name = l.Name,
+                        Floor = l.Floor,
+                        Type = l.Type,
+                        CheckInTime = l.CheckInTime,
+                        CheckOutTime = l.CheckOutTime,
+                        Status = l.Status,
+                        MaxGuests = l.MaxGuests
+                    })
                     .ToListAsync();
                 return Ok(listings);
             }
@@ -76,10 +91,11 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Listing>> Create(Listing item)
         {
+            item.TenantId = 0;
             try
             {
                 // Ensure the associated Property exists and attach it to the context
-                var property = await _context.Properties.FindAsync(item.PropertyId);
+                var property = await _context.Properties.FirstOrDefaultAsync(x => x.Id == item.PropertyId);
                 if (property == null)
                 {
                     return BadRequest();
@@ -105,7 +121,29 @@ namespace Atlas.Api.Controllers
             try
             {
                 if (id != item.Id) return BadRequest();
-                _context.Entry(item).State = EntityState.Modified;
+
+                var existing = await _context.Listings.FirstOrDefaultAsync(x => x.Id == id);
+                if (existing == null) return NotFound();
+                item.TenantId = existing.TenantId;
+
+                var property = await _context.Properties.FirstOrDefaultAsync(x => x.Id == item.PropertyId);
+                if (property == null)
+                {
+                    return NotFound();
+                }
+
+                existing.PropertyId = item.PropertyId;
+                existing.Property = property;
+                existing.Name = item.Name;
+                existing.Floor = item.Floor;
+                existing.Type = item.Type;
+                existing.CheckInTime = item.CheckInTime;
+                existing.CheckOutTime = item.CheckOutTime;
+                existing.Status = item.Status;
+                existing.WifiName = item.WifiName;
+                existing.WifiPassword = item.WifiPassword;
+                existing.MaxGuests = item.MaxGuests;
+
                 await _context.SaveChangesAsync();
                 return NoContent();
             }
@@ -121,7 +159,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var item = await _context.Listings.FindAsync(id);
+                var item = await _context.Listings.FirstOrDefaultAsync(x => x.Id == id);
                 if (item == null) return NotFound();
                 _context.Listings.Remove(item);
                 await _context.SaveChangesAsync();

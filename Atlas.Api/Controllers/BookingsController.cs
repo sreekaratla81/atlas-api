@@ -1,11 +1,13 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using Atlas.Api.Data;
+using Atlas.Api.DTOs;
+using Atlas.Api.Events;
+using Atlas.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Atlas.Api.Data;
-using Atlas.Api.Models;
-using Atlas.Api.DTOs;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace Atlas.Api.Controllers
 {
@@ -36,6 +38,8 @@ namespace Atlas.Api.Controllers
         public async Task<ActionResult<IEnumerable<BookingListDto>>> GetAll(
             [FromQuery] DateTime? checkinStart,
             [FromQuery] DateTime? checkinEnd,
+            [FromQuery] int? listingId,
+            [FromQuery] int? bookingId,
             [FromQuery] string? include)
         {
             try
@@ -49,6 +53,12 @@ namespace Atlas.Api.Controllers
 
                 if (checkinEnd.HasValue)
                     query = query.Where(b => b.CheckinDate <= checkinEnd.Value);
+
+                if (listingId.HasValue)
+                    query = query.Where(b => b.ListingId == listingId.Value);
+
+                if (bookingId.HasValue)
+                    query = query.Where(b => b.Id == bookingId.Value);
 
                 var includes = (include ?? string.Empty)
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -104,6 +114,27 @@ namespace Atlas.Api.Controllers
             }
         }
 
+        [HttpGet("by-reference")]
+        public async Task<ActionResult<BookingDto>> GetByExternalReservationId([FromQuery] string? externalReservationId)
+        {
+            if (string.IsNullOrWhiteSpace(externalReservationId))
+                return BadRequest(new { error = "externalReservationId is required." });
+            try
+            {
+                var item = await _context.Bookings
+                    .AsNoTracking()
+                    .Include(b => b.Listing)
+                    .Include(b => b.Guest)
+                    .FirstOrDefaultAsync(b => b.ExternalReservationId == externalReservationId);
+                return item == null ? NotFound() : Ok(MapToDto(item));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving booking by externalReservationId");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<BookingDto>> Get(int id)
         {
@@ -127,14 +158,14 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var listing = await _context.Listings.FindAsync(request.ListingId);
+                var listing = await _context.Listings.FirstOrDefaultAsync(x => x.Id == request.ListingId);
                 if (listing == null)
                 {
                     ModelState.AddModelError(nameof(request.ListingId), "Listing not found");
                     return BadRequest(ModelState);
                 }
 
-                var guest = await _context.Guests.FindAsync(request.GuestId);
+                var guest = await _context.Guests.FirstOrDefaultAsync(x => x.Id == request.GuestId);
                 if (guest == null)
                 {
                     ModelState.AddModelError(nameof(request.GuestId), "Guest not found");
@@ -193,9 +224,6 @@ namespace Atlas.Api.Controllers
 
                 _context.Bookings.Add(booking);
 
-                List<CommunicationLog> communicationLogs = new();
-                OutboxMessage? outboxMessage = null;
-
                 if (IsConfirmedStatus(booking.BookingStatus))
                 {
                     _context.AvailabilityBlocks.Add(new AvailabilityBlock
@@ -212,33 +240,10 @@ namespace Atlas.Api.Controllers
                         UpdatedAtUtc = DateTime.UtcNow
                     });
 
-                    (outboxMessage, communicationLogs) = await EnqueueBookingConfirmedWorkflowAsync(booking, guest);
+                    AddBookingConfirmedOutbox(booking, guest);
                 }
 
                 await _context.SaveChangesAsync();
-
-                if (outboxMessage != null)
-                {
-                    try
-                    {
-                        await _bookingWorkflowPublisher.PublishBookingConfirmedAsync(booking, guest, communicationLogs, outboxMessage);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Booking confirmed workflow failed for booking {BookingId}", booking.Id);
-                        outboxMessage.AttemptCount += 1;
-                        outboxMessage.LastError = ex.Message;
-
-                        foreach (var log in communicationLogs)
-                        {
-                            log.Status = "Failed";
-                            log.AttemptCount += 1;
-                            log.LastError = ex.Message;
-                        }
-
-                        await _context.SaveChangesAsync();
-                    }
-                }
 
                 var dto = MapToDto(booking);
                 return CreatedAtAction(nameof(Get), new { id = booking.Id }, dto);
@@ -261,17 +266,17 @@ namespace Atlas.Api.Controllers
                 }
                 if (id != booking.Id) return BadRequest();
 
-                var existingBooking = await _context.Bookings.FindAsync(id);
+                var existingBooking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (existingBooking == null) return NotFound();
 
-                var listing = await _context.Listings.FindAsync(booking.ListingId);
+                var listing = await _context.Listings.FirstOrDefaultAsync(x => x.Id == booking.ListingId);
                 if (listing == null)
                 {
                     ModelState.AddModelError(nameof(booking.ListingId), "Listing not found");
                     return ValidationProblem(ModelState);
                 }
 
-                var guest = await _context.Guests.FindAsync(booking.GuestId);
+                var guest = await _context.Guests.FirstOrDefaultAsync(x => x.Id == booking.GuestId);
                 if (guest == null)
                 {
                     ModelState.AddModelError(nameof(booking.GuestId), "Guest not found");
@@ -346,6 +351,13 @@ namespace Atlas.Api.Controllers
 
                 await SyncAvailabilityBlockAsync(existingBooking);
 
+                if (IsConfirmedStatus(existingBooking.BookingStatus))
+                {
+                    var guestForConfirm = await _context.Guests.AsNoTracking().FirstOrDefaultAsync(g => g.Id == existingBooking.GuestId);
+                    if (guestForConfirm != null)
+                        AddBookingConfirmedOutbox(existingBooking, guestForConfirm);
+                }
+
                 try
                 {
                     await _context.SaveChangesAsync();
@@ -369,7 +381,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var item = await _context.Bookings.FindAsync(id);
+                var item = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (item == null) return NotFound();
                 _context.Bookings.Remove(item);
                 await _context.SaveChangesAsync();
@@ -387,7 +399,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var booking = await _context.Bookings.FindAsync(id);
+                var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (booking == null)
                 {
                     return NotFound();
@@ -403,6 +415,8 @@ namespace Atlas.Api.Controllers
                 booking.CancelledAtUtc = DateTime.UtcNow;
 
                 await SyncAvailabilityBlockAsync(booking);
+                var guestForCancel = await _context.Guests.AsNoTracking().FirstOrDefaultAsync(g => g.Id == booking.GuestId);
+                AddOutboxMessage("booking.events", EventTypes.BookingCancelled, booking.Id.ToString(), new { bookingId = booking.Id, guestId = booking.GuestId, cancelledAtUtc = booking.CancelledAtUtc, guest = guestForCancel != null ? new { guestForCancel.Phone, guestForCancel.Email } : (object?)null });
                 await _context.SaveChangesAsync();
 
                 return Ok(MapToDto(booking));
@@ -419,7 +433,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var booking = await _context.Bookings.FindAsync(id);
+                var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (booking == null)
                 {
                     return NotFound();
@@ -434,6 +448,7 @@ namespace Atlas.Api.Controllers
                 booking.BookingStatus = "CheckedIn";
                 booking.CheckedInAtUtc = DateTime.UtcNow;
 
+                AddOutboxMessage("stay.events", EventTypes.StayCheckedIn, booking.Id.ToString(), new { bookingId = booking.Id, listingId = booking.ListingId, checkedInAtUtc = DateTime.UtcNow });
                 await _context.SaveChangesAsync();
 
                 return Ok(MapToDto(booking));
@@ -450,7 +465,7 @@ namespace Atlas.Api.Controllers
         {
             try
             {
-                var booking = await _context.Bookings.FindAsync(id);
+                var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (booking == null)
                 {
                     return NotFound();
@@ -465,6 +480,7 @@ namespace Atlas.Api.Controllers
                 booking.BookingStatus = "CheckedOut";
                 booking.CheckedOutAtUtc = DateTime.UtcNow;
 
+                AddOutboxMessage("stay.events", EventTypes.StayCheckedOut, booking.Id.ToString(), new { bookingId = booking.Id, listingId = booking.ListingId, checkedOutAtUtc = DateTime.UtcNow });
                 await _context.SaveChangesAsync();
 
                 return Ok(MapToDto(booking));
@@ -584,90 +600,42 @@ namespace Atlas.Api.Controllers
             }
         }
 
-        private async Task<(OutboxMessage? OutboxMessage, List<CommunicationLog> CommunicationLogs)> EnqueueBookingConfirmedWorkflowAsync(Booking booking, Guest guest)
+        private void AddOutboxMessage(string topic, string eventType, string entityId, object payload, string? correlationId = null)
         {
-            var templates = await _context.MessageTemplates
-                .AsNoTracking()
-                .Where(t => t.TemplateKey == "booking-confirmed" && t.IsActive)
-                .ToListAsync();
-
-            var (smsTemplate, smsTemplateId) = SelectTemplate("SMS");
-            var (whatsAppTemplate, whatsAppTemplateId) = SelectTemplate("WhatsApp");
-            var (emailTemplate, emailTemplateId) = SelectTemplate("Email");
-
-            var logs = new List<CommunicationLog>();
-
-            var correlationId = Guid.NewGuid().ToString();
-            const string provider = "System";
-            const string eventType = "booking-confirmed";
-
-            void AddLog(string channel, string recipient, int? templateId)
+            var correlation = correlationId ?? Guid.NewGuid().ToString();
+            var payloadJson = JsonSerializer.Serialize(payload);
+            var row = new OutboxMessage
             {
-                var idempotencyKey = $"{booking.Id}:{channel}:{recipient}:{Guid.NewGuid()}";
-                var log = new CommunicationLog
-                {
-                    Booking = booking,
-                    BookingId = booking.Id,
-                    GuestId = guest.Id,
-                    Channel = channel,
-                    EventType = eventType,
-                    ToAddress = recipient,
-                    TemplateId = templateId,
-                    TemplateVersion = templateId.HasValue ? 1 : 0,
-                    CorrelationId = correlationId,
-                    IdempotencyKey = idempotencyKey,
-                    Provider = provider,
-                    Status = "Pending",
-                    AttemptCount = 0,
-                    CreatedAtUtc = DateTime.UtcNow
-                };
-                logs.Add(log);
-                _context.CommunicationLogs.Add(log);
-            }
-
-            if (!string.IsNullOrWhiteSpace(guest.Phone))
-            {
-                AddLog("SMS", guest.Phone, smsTemplateId);
-                AddLog("WhatsApp", guest.Phone, whatsAppTemplateId);
-            }
-
-            if (!string.IsNullOrWhiteSpace(guest.Email))
-            {
-                AddLog("Email", guest.Email, emailTemplateId);
-            }
-
-            var payload = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                bookingId = booking.Id,
-                guestId = booking.GuestId,
-                bookingStatus = booking.BookingStatus,
-                occurredAtUtc = DateTime.UtcNow,
-                templates = new
-                {
-                    sms = smsTemplate,
-                    whatsApp = whatsAppTemplate,
-                    email = emailTemplate
-                }
-            });
-
-            var outboxMessage = new OutboxMessage
-            {
-                AggregateType = "Booking",
-                AggregateId = booking.Id.ToString(),
-                EventType = "booking-confirmed",
-                PayloadJson = payload,
+                Topic = topic,
+                EventType = eventType,
+                EntityId = entityId,
+                PayloadJson = payloadJson,
+                CorrelationId = correlation,
+                OccurredUtc = DateTime.UtcNow,
+                SchemaVersion = 1,
+                Status = "Pending",
+                NextAttemptUtc = DateTime.UtcNow,
                 CreatedAtUtc = DateTime.UtcNow,
                 AttemptCount = 0
             };
-            _context.OutboxMessages.Add(outboxMessage);
+            _context.OutboxMessages.Add(row);
+        }
 
-            (MessageTemplate? template, int? templateId) SelectTemplate(string channel)
+        private void AddBookingConfirmedOutbox(Booking booking, Guest guest)
+        {
+            var payload = new
             {
-                var template = templates.FirstOrDefault(t => t.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase));
-                return (template, template?.Id);
-            }
-
-            return (outboxMessage, logs);
+                bookingId = booking.Id,
+                guestId = guest.Id,
+                listingId = booking.ListingId,
+                bookingStatus = booking.BookingStatus,
+                checkinDate = booking.CheckinDate,
+                checkoutDate = booking.CheckoutDate,
+                guestPhone = guest.Phone,
+                guestEmail = guest.Email,
+                occurredAtUtc = DateTime.UtcNow
+            };
+            AddOutboxMessage("booking.events", EventTypes.BookingConfirmed, booking.Id.ToString(), payload);
         }
     }
 }

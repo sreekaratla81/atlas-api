@@ -32,7 +32,8 @@ public class ConfigurationValidationTests
         var config = BuildConfig(new Dictionary<string, string?>
         {
             ["ConnectionStrings:DefaultConnection"] = "Server=(localdb)\\MSSQLLocalDB;Database=AtlasTest;Trusted_Connection=True;",
-            ["Jwt:Key"] = "__SET_VIA_ENV_OR_AZURE__"
+            ["Jwt:Key"] = "__SET_VIA_ENV_OR_AZURE__",
+            ["Startup:StrictRequiredConfig"] = "true"
         });
 
         var exception = Assert.Throws<InvalidOperationException>(() => Program.ValidateRequiredConfiguration(config, env));

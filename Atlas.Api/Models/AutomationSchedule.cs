@@ -2,12 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.Models
 {
-    public class AutomationSchedule
+    public class AutomationSchedule : ITenantOwnedEntity
     {
         public long Id { get; set; }
 
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
+
         [Required]
         public int BookingId { get; set; }
+
+        public Booking? Booking { get; set; }
 
         [Required]
         public string EventType { get; set; } = string.Empty;

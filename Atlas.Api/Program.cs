@@ -1,4 +1,8 @@
 using Atlas.Api.Data;
+using Atlas.Api.Data.Repositories;
+using Atlas.Api.Options;
+using Atlas.Api.Services.EventBus;
+using Atlas.Api.Services.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
@@ -10,6 +14,8 @@ using System.Linq;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Atlas.Api.Models.Dtos.Razorpay;
+using Atlas.Api.Services.Tenancy;
+using Microsoft.Extensions.Options;
 
 namespace Atlas.Api
 {
@@ -64,17 +70,34 @@ namespace Atlas.Api
             // Configure Razorpay
             builder.Services.Configure<RazorpayConfig>(builder.Configuration.GetSection("Razorpay"));
             
+            // Configure SMTP for email service
+            builder.Services.Configure<Atlas.Api.Services.SmtpConfig>(builder.Configuration.GetSection("Smtp"));
+            
             // Add HttpClient for Razorpay
             builder.Services.AddHttpClient("Razorpay", client =>
             {
                 client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
             });
             
+            builder.Services.AddMemoryCache();
+            builder.Services.Configure<QuoteOptions>(builder.Configuration.GetSection("Quotes"));
             builder.Services.AddScoped<IRazorpayPaymentService, RazorpayPaymentService>();
+            builder.Services.AddScoped<ITenantPricingSettingsService, TenantPricingSettingsService>();
+            builder.Services.AddScoped<IQuoteService, QuoteService>();
+            builder.Services.AddScoped<Atlas.Api.Services.IEmailService, Atlas.Api.Services.EmailService>();
             
             builder.Services.AddScoped<Atlas.Api.Services.AvailabilityService>();
             builder.Services.AddScoped<Atlas.Api.Services.PricingService>();
+            builder.Services.AddScoped<IListingPricingRepository, ListingPricingRepository>();
+            builder.Services.AddScoped<IListingDailyRateRepository, ListingDailyRateRepository>();
+            builder.Services.AddScoped<IListingDailyInventoryRepository, ListingDailyInventoryRepository>();
+            builder.Services.AddScoped<Atlas.Api.Services.IAdminPricingService, Atlas.Api.Services.AdminPricingService>();
+            builder.Services.AddScoped<Atlas.Api.Services.IGuestPricingService, Atlas.Api.Services.GuestPricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<ITenantContextAccessor, HttpTenantContextAccessor>();
+            builder.Services.AddScoped<ITenantProvider, TenantProvider>();
+            // Do not register TenantResolutionMiddleware in DI; RequestDelegate is provided by the pipeline in UseMiddleware<T>()
 
             ValidateRequiredConfiguration(builder.Configuration, env);
 
@@ -100,10 +123,29 @@ namespace Atlas.Api
                 }
             });
 
+            builder.Services.Configure<AzureServiceBusOptions>(builder.Configuration.GetSection(AzureServiceBusOptions.SectionName));
+            builder.Services.AddSingleton<InMemoryEventBusPublisher>();
+            builder.Services.AddSingleton<AzureServiceBusPublisher>();
+            builder.Services.AddSingleton<IEventBusPublisher>(sp =>
+            {
+                var opts = sp.GetRequiredService<IOptions<AzureServiceBusOptions>>();
+                return !string.IsNullOrWhiteSpace(opts.Value.ConnectionString)
+                    ? sp.GetRequiredService<AzureServiceBusPublisher>()
+                    : sp.GetRequiredService<InMemoryEventBusPublisher>();
+            });
+            builder.Services.AddHostedService<OutboxDispatcherHostedService>();
+            builder.Services.AddHostedService<Atlas.Api.Services.Consumers.BookingEventsNotificationConsumer>();
+            builder.Services.AddHostedService<Atlas.Api.Services.Consumers.StayEventsNotificationConsumer>();
+
+            builder.Services.Configure<Atlas.Api.Services.Msg91Settings>(builder.Configuration.GetSection("Msg91"));
+            builder.Services.AddHttpClient("MSG91");
+            builder.Services.AddScoped<Atlas.Api.Services.Notifications.INotificationProvider, Atlas.Api.Services.Notifications.Msg91NotificationProvider>();
+            builder.Services.AddScoped<Atlas.Api.Services.Notifications.NotificationOrchestrator>();
+
             var jwtKey = builder.Configuration["Jwt:Key"];
             _ = jwtKey;
 
-            // TODO: Re-enable authentication before going to production
+            // Auth disabled for local/dev; re-enable before prod (see ATLAS-HIGH-VALUE-BACKLOG execution rules)
             // builder.Services.AddAuthentication("Bearer")
             //     .AddJwtBearer("Bearer", options =>
             //     {
@@ -145,12 +187,15 @@ namespace Atlas.Api
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
+            if (!app.Environment.IsProduction())
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Atlas API v1");
-                c.RoutePrefix = "swagger";
-            });
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Atlas API v1");
+                    c.RoutePrefix = "swagger";
+                });
+            }
 
             app.UseRouting();
 
@@ -170,13 +215,17 @@ namespace Atlas.Api
 
             app.UseCors(CorsPolicy);
 
+            app.UseMiddleware<TenantResolutionMiddleware>();
+
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();
 
+            // Authentication is intentionally disabled until JWT is configured; then uncomment UseAuthentication/UseAuthorization.
             // app.UseAuthentication();
             // app.UseAuthorization();
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
+            app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
             // No path base: match dev URLs exactly — /listings/5, /availability/listing-availability, /api/Razorpay/order (only base URL differs between dev and prod).
             app.MapControllers();

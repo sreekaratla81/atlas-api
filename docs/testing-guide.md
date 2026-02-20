@@ -24,7 +24,7 @@ When the test run completes, the fixture drops the database unless told to retai
 ### Database reset strategy
 Integration tests use the core `Respawn` package with `DbAdapter.SqlServer` to wipe data between tests. During first use, the respawner migrates the database, scopes to the `dbo` schema, and ignores the `__EFMigrationsHistory` table. Before each test, the respawner truncates the included tables and reseeds a minimal baseline record so every scenario starts from the same state.
 
-The `IntegrationTestBase` fixture runs the respawner before every test to guarantee isolation. Tests must not depend on execution order or shared state and should assume the database is clean (aside from baseline seed data) at the start of each test.
+The `IntegrationTestBase` fixture runs the respawner before every test to guarantee isolation. After each reset, baseline seed data is applied: a default tenant (Id=1, Slug=atlas, Status=active), an environment marker, and a default property when empty. The default tenant is required for tenant resolution and for SaveChanges auto-population of TenantId. Tests must not depend on execution order or shared state and should assume the database is clean (aside from baseline seed data) at the start of each test.
 
 ### Running integration tests locally
 1. Ensure you have access to SQL Server; by default the suite uses `(localdb)\MSSQLLocalDB`. If you set `Atlas_TestDb`, the connection string must target LocalDb and use a database name that starts with `AtlasHomestays_TestDb_` (for example, `AtlasHomestays_TestDb_202401010101`). This guard prevents accidentally pointing tests at production data.

@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,16 @@ public class OpsApiTests : IntegrationTestBase
 {
     public OpsApiTests(SqlServerTestDatabase database) : base(database)
     {
+    }
+
+    [Fact]
+    public async Task GetHealth_ReturnsOkWithHealthyStatus()
+    {
+        var response = await Client.GetAsync(ApiRoute("health"));
+        response.EnsureSuccessStatusCode();
+        var payload = await response.Content.ReadFromJsonAsync<HealthResponse>();
+        Assert.NotNull(payload);
+        Assert.Equal("healthy", payload!.status);
     }
 
     [Fact]
@@ -28,5 +39,22 @@ public class OpsApiTests : IntegrationTestBase
         Assert.Equal("DEV", payload.marker);
     }
 
+    [Fact]
+    public async Task GetOutbox_ReturnsOk()
+    {
+        var response = await Client.GetAsync(ApiRoute("ops/outbox"));
+        response.EnsureSuccessStatusCode();
+        var list = await response.Content.ReadFromJsonAsync<List<OutboxMessageDto>>();
+        Assert.NotNull(list);
+    }
+
+    [Fact]
+    public async Task GetOutbox_WithFilters_ReturnsOk()
+    {
+        var response = await Client.GetAsync(ApiRoute("ops/outbox?page=1&pageSize=5"));
+        response.EnsureSuccessStatusCode();
+    }
+
+    private sealed record HealthResponse(string status);
     private sealed record DbInfoResponse(string environment, string server, string database, string marker);
 }

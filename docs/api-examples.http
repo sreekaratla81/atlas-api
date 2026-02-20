@@ -1,5 +1,12 @@
-@baseUrl = https://localhost:5001/api
+# Atlas API examples — use with REST Client (VS Code) or similar.
+# Base URL: no path base; most routes are at root. Payments/Incidents/Users/Razorpay use /api prefix.
+@baseUrl = https://localhost:5001
 @token = <paste-jwt-here-if-needed>
+# Optional: for tenant-scoped endpoints (multi-tenant)
+# X-Tenant-Slug: atlas
+
+### Health (liveness)
+GET {{baseUrl}}/health
 
 ### Create Property
 POST {{baseUrl}}/properties
@@ -126,7 +133,7 @@ Content-Type: application/json
 ### Delete Guest
 DELETE {{baseUrl}}/guests/1
 
-### Create Booking
+### Create Booking (required: listingId, guestId, checkinDate, checkoutDate, bookingSource, amountReceived, guestsPlanned, guestsActual, extraGuestCharge, paymentStatus)
 POST {{baseUrl}}/bookings
 Content-Type: application/json
 
@@ -153,6 +160,13 @@ Content-Type: application/json
 
 ### Get Booking
 GET {{baseUrl}}/bookings/1
+
+### Get Booking by external reservation id (guest confirmation)
+GET {{baseUrl}}/bookings/by-reference?externalReservationId=RES-12345
+
+### List Bookings with filters
+GET {{baseUrl}}/bookings?listingId=1&checkinStart=2025-01-01&checkinEnd=2025-12-31
+GET {{baseUrl}}/bookings?bookingId=1
 
 ### Update Booking
 PUT {{baseUrl}}/bookings/1
@@ -189,3 +203,74 @@ DELETE {{baseUrl}}/bookings/1
 
 ### Admin Report: Monthly Earnings
 GET {{baseUrl}}/admin/reports/earnings/monthly
+
+### Ops: DB info
+GET {{baseUrl}}/ops/db-info
+
+### Ops: Outbox (read-only diagnostics; optional filters)
+GET {{baseUrl}}/ops/outbox
+GET {{baseUrl}}/ops/outbox?page=1&pageSize=20&published=false
+
+### Availability (property, date range, guests)
+GET {{baseUrl}}/availability?propertyId=1&checkIn=2025-06-01&checkOut=2025-06-05&guests=2
+
+### Listings (public)
+GET {{baseUrl}}/listings/public
+
+### Tenant pricing settings (tenant-scoped; set X-Tenant-Slug if multi-tenant)
+GET {{baseUrl}}/tenant/settings/pricing
+
+### Pricing breakdown (query: listingId, checkIn, checkOut)
+GET {{baseUrl}}/pricing/breakdown?listingId=1&checkIn=2025-06-01&checkOut=2025-06-05
+
+### Payments (route has /api prefix; optional filters and pagination)
+GET {{baseUrl}}/api/payments
+GET {{baseUrl}}/api/payments?bookingId=1&page=1&pageSize=20
+GET {{baseUrl}}/api/payments?receivedFrom=2025-01-01&receivedTo=2025-12-31
+GET {{baseUrl}}/api/payments/1
+
+### Bank accounts
+GET {{baseUrl}}/bankaccounts
+GET {{baseUrl}}/bankaccounts/1
+
+### Admin calendar availability (query: propertyId, from, days, optional listingId)
+GET {{baseUrl}}/admin/calendar/availability?propertyId=1&from=2025-06-01&days=30
+
+### Message templates (admin)
+GET {{baseUrl}}/api/message-templates
+GET {{baseUrl}}/api/message-templates?eventType=BookingConfirmed&channel=Email
+GET {{baseUrl}}/api/message-templates/1
+POST {{baseUrl}}/api/message-templates
+Content-Type: application/json
+
+{
+  "eventType": "BookingConfirmed",
+  "channel": "Email",
+  "scopeType": "Tenant",
+  "language": "en",
+  "body": "Hello {{GuestName}}, your booking is confirmed.",
+  "subject": "Booking confirmed",
+  "isActive": true
+}
+
+PUT {{baseUrl}}/api/message-templates/1
+Content-Type: application/json
+
+{
+  "eventType": "BookingConfirmed",
+  "channel": "Email",
+  "scopeType": "Tenant",
+  "language": "en",
+  "body": "Updated body.",
+  "isActive": true
+}
+
+DELETE {{baseUrl}}/api/message-templates/1
+
+### Communication logs (admin; optional filters and pagination)
+GET {{baseUrl}}/api/communication-logs
+GET {{baseUrl}}/api/communication-logs?bookingId=1&page=1&pageSize=20
+
+### Automation schedules (admin; optional filters and pagination)
+GET {{baseUrl}}/api/automation-schedules
+GET {{baseUrl}}/api/automation-schedules?bookingId=1&status=Pending

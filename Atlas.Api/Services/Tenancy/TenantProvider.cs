@@ -18,11 +18,13 @@ public class TenantProvider : ITenantProvider
         _environment = environment;
     }
 
-    /// <summary>Resolves tenant from X-Tenant-Slug header only. No host or subdomain-based resolution.</summary>
-    /// <remarks>In Production, requests without the header get 400 (see TenantResolutionMiddleware). Default tenant is used only in Development/IntegrationTest so the issue is caught in dev before prod.</remarks>
+    /// <summary>Resolves tenant: 1) X-Tenant-Slug header, 2) known Atlas API host (Azure), 3) default only in non-Production.</summary>
+    /// <remarks>Known-host fallback ensures /listings and Swagger work when called directly at our Azure URL without the header (single-tenant deployment). No subdomain parsing.</remarks>
     public async Task<Tenant?> ResolveTenantAsync(HttpContext httpContext, CancellationToken cancellationToken = default)
     {
+        var host = httpContext.Request.Host.Host ?? "";
         var slug = ResolveTenantSlugFromHeader(httpContext)
+            ?? ResolveSlugFromKnownAtlasApiHost(host)
             ?? ResolveDefaultSlug();
 
         if (string.IsNullOrWhiteSpace(slug))
@@ -46,7 +48,17 @@ public class TenantProvider : ITenantProvider
         return string.IsNullOrWhiteSpace(headerSlug) ? null : headerSlug;
     }
 
-    /// <summary>Default tenant only in non-Production so missing header fails in prod and is caught by tests in dev.</summary>
+    /// <summary>When the request is to our Atlas API host on Azure (dev or prod), use default tenant so direct browser and Swagger work.</summary>
+    private static string? ResolveSlugFromKnownAtlasApiHost(string host)
+    {
+        if (string.IsNullOrWhiteSpace(host)) return null;
+        var lower = host.Trim().ToLowerInvariant();
+        if (lower.Contains("atlas-homes-api") && lower.Contains("azurewebsites.net"))
+            return DefaultTenantSlug;
+        return null;
+    }
+
+    /// <summary>Default tenant only in Development/IntegrationTest/Testing/Local.</summary>
     private string? ResolveDefaultSlug()
     {
         return _environment.IsDevelopment() ||

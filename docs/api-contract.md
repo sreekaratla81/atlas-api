@@ -536,11 +536,9 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 (not explicitly annotated)
 
 ## Tenant Resolution
-- Tenant is determined **only** by the `X-Tenant-Slug` header. There is no host- or subdomain-based tenant resolution.
-- Resolution:
-  1. `X-Tenant-Slug` header (required in Production)
-  2. Default tenant (`atlas`) only in Development / IntegrationTest / Testing / Local
-- In Production, requests without the header to tenant-scoped routes get `400` with `{"error":"Tenant could not be resolved."}`. This is enforced by unit tests so the behavior is caught in dev/CI before prod.
+- Tenant is resolved in order: **1)** `X-Tenant-Slug` header, **2)** known Atlas API host on Azure (`atlas-homes-api*.azurewebsites.net`), **3)** default tenant only in Development/IntegrationTest/Testing/Local. There is no subdomain-based resolution.
+- Known-host fallback: When the request is to the Atlas API Azure host (dev or prod), the default tenant is used so `/listings`, Swagger, and direct browser calls work without the header.
+- In Production, requests from **unknown hosts** without the header get `400` with `{"error":"Tenant could not be resolved."}`.
 - Paths that skip tenant resolution (no header needed): `/health`, `/swagger`, `/swagger/*`.
 
 ### Admin Calendar (`Atlas.Api/Controllers/AdminCalendarController.cs`)

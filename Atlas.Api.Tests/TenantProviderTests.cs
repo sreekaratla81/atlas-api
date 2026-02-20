@@ -80,7 +80,7 @@ public class TenantProviderTests
     }
 
     [Fact]
-    public async Task ResolveTenantAsync_NoHostOrSubdomainResolution_InProduction()
+    public async Task ResolveTenantAsync_ResolvesDefaultInProduction_WhenHostIsKnownAtlasApi()
     {
         await using var dbContext = CreateDbContext();
         dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
@@ -88,7 +88,24 @@ public class TenantProviderTests
 
         var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
         var context = new DefaultHttpContext();
-        context.Request.Host = new HostString("atlas-homes-api-dev-xxx.azurewebsites.net");
+        context.Request.Host = new HostString("atlas-homes-api-gxdqfjc2btc0atbv.centralus-01.azurewebsites.net");
+
+        var tenant = await provider.ResolveTenantAsync(context);
+
+        Assert.NotNull(tenant);
+        Assert.Equal("atlas", tenant!.Slug);
+    }
+
+    [Fact]
+    public async Task ResolveTenantAsync_ReturnsNullInProduction_WhenHostIsUnknownAndNoHeader()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+        await dbContext.SaveChangesAsync();
+
+        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString("other-api.example.com");
 
         var tenant = await provider.ResolveTenantAsync(context);
 

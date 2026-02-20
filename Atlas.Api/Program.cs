@@ -179,6 +179,12 @@ namespace Atlas.Api
                 {
                     exceptionHandlerApp.Run(async context =>
                     {
+                        var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+                        if (feature?.Error != null)
+                        {
+                            var logger = context.RequestServices.GetService<ILogger<Program>>();
+                            logger?.LogError(feature.Error, "Unhandled exception: {Path}", context.Request.Path);
+                        }
                         var allowedOrigins = BuildAllowedOrigins(context.RequestServices.GetRequiredService<IConfiguration>(), context.RequestServices.GetRequiredService<IWebHostEnvironment>());
                         var origin = context.Request.Headers.Origin.ToString();
                         if (!string.IsNullOrEmpty(origin) && allowedOrigins.Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)))

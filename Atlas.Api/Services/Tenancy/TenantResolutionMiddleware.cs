@@ -11,6 +11,12 @@ public class TenantResolutionMiddleware
 
     public async Task InvokeAsync(HttpContext context, ITenantProvider tenantProvider, IWebHostEnvironment environment)
     {
+        if (SkipTenantResolution(context.Request.Path))
+        {
+            await _next(context);
+            return;
+        }
+
         var tenant = await tenantProvider.ResolveTenantAsync(context, context.RequestAborted);
         if (tenant is null)
         {
@@ -27,6 +33,14 @@ public class TenantResolutionMiddleware
 
         context.Items[typeof(Atlas.Api.Models.Tenant)] = tenant;
         await _next(context);
+    }
+
+    /// <summary>Paths that do not require tenant (health, Swagger UI). No subdomain or host-based tenant.</summary>
+    private static bool SkipTenantResolution(PathString path)
+    {
+        var value = path.Value ?? "";
+        return value.Equals("/health", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsLocalOrDevelopment(IWebHostEnvironment environment)

@@ -56,6 +56,27 @@ public class TenantResolutionMiddlewareTests
         Assert.Equal(tenant, context.Items[typeof(Tenant)]);
     }
 
+    [Fact]
+    public async Task InvokeAsync_SkipsTenantResolution_ForHealthAndSwagger()
+    {
+        var tenantProvider = new Mock<ITenantProvider>();
+
+        var nextCalled = false;
+        var middleware = new TenantResolutionMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/health";
+
+        await middleware.InvokeAsync(context, tenantProvider.Object, new TestWebHostEnvironment("Production"));
+
+        Assert.True(nextCalled);
+        tenantProvider.Verify(p => p.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private sealed class TestWebHostEnvironment(string environmentName) : IWebHostEnvironment
     {
         public string ApplicationName { get; set; } = string.Empty;

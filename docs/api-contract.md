@@ -536,12 +536,12 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 (not explicitly annotated)
 
 ## Tenant Resolution
-- Requests must provide tenant context via the `X-Tenant-Slug` header (no host/subdomain-based resolution).
-- Resolution precedence is:
-  1. `X-Tenant-Slug` header
-  2. known dev API host (e.g. `atlas-homes-api-dev-*.azurewebsites.net`) → `atlas`
-  3. default tenant (`atlas`) only in development/local/test environments
-- In production, requests without a resolvable tenant are rejected before reaching controllers.
+- Tenant is determined **only** by the `X-Tenant-Slug` header. There is no host- or subdomain-based tenant resolution.
+- Resolution:
+  1. `X-Tenant-Slug` header (required in Production)
+  2. Default tenant (`atlas`) only in Development / IntegrationTest / Testing / Local
+- In Production, requests without the header to tenant-scoped routes get `400` with `{"error":"Tenant could not be resolved."}`. This is enforced by unit tests so the behavior is caught in dev/CI before prod.
+- Paths that skip tenant resolution (no header needed): `/health`, `/swagger`, `/swagger/*`.
 
 ### Admin Calendar (`Atlas.Api/Controllers/AdminCalendarController.cs`)
 

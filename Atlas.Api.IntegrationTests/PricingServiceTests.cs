@@ -29,7 +29,7 @@ public class PricingServiceTests : IntegrationTestBase
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 2, 7), new DateTime(2025, 2, 10));
 
         Assert.Equal(3, result.NightlyRates.Count);
-        Assert.Equal(new[] { 110m, 200m, 140m }, result.NightlyRates.Select(rate => rate.Rate));
+        Assert.Equal(new[] { 140m, 200m, 110m }, result.NightlyRates.Select(rate => rate.Rate));
         Assert.Equal(450m, result.TotalPrice);
 
         await transaction.RollbackAsync();

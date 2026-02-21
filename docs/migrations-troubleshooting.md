@@ -67,3 +67,7 @@ This means the **production database has not had EF migrations applied** (or was
   ```
 
 **Note:** On a normal **push** to `main`, the deploy workflow does **not** run the migration step; only a **manual** workflow run (workflow_dispatch) applies migrations. So after adding new tables or columns, either trigger the prod workflow manually once or run DbMigrator against prod as above.
+
+## PendingModelSync / CalendarPricingDto: "Cannot find the object CalendarPricingDto" in integration tests
+
+The migration `20260220132813_PendingModelSync` previously tried to ALTER table `CalendarPricingDto` unconditionally. That table is created by `RestoreSnapshot` (a later migration), so on a fresh test DB the ALTER fails. The fix: PendingModelSync now wraps the ALTER in `IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CalendarPricingDto')` so it only runs when the table exists. This allows migrations to apply successfully on both fresh DBs and DBs with the table. Run integration tests locally (or the atlas-e2e release gate) to validate migrations before pushing.

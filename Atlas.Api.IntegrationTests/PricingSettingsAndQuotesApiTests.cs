@@ -30,7 +30,7 @@ public class PricingSettingsAndQuotesApiTests : IntegrationTestBase
         });
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
 
-        var breakdown = await Client.GetFromJsonAsync<PriceBreakdownDto>(ApiRoute($"pricing/breakdown?listingId={listing.Id}&checkIn=2025-03-01&checkOut=2025-03-03"));
+        var breakdown = await Client.GetFromJsonAsync<PriceBreakdownDto>(ApiRoute($"pricing/guest-breakdown?listingId={listing.Id}&checkIn=2025-03-01&checkOut=2025-03-03"));
         Assert.NotNull(breakdown);
         Assert.Equal(2000m, breakdown!.BaseAmount);
         Assert.Equal(200m, breakdown.DiscountAmount);

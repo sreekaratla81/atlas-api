@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,25 +11,25 @@ namespace Atlas.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "Date",
-                table: "CalendarPricingDto",
-                type: "datetime2",
-                nullable: false,
-                oldClrType: typeof(DateTime),
-                oldType: "date");
+            // CalendarPricingDto is created by RestoreSnapshot (runs after this migration).
+            // Only alter if table exists (e.g. from prior migration history).
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CalendarPricingDto')
+                BEGIN
+                    ALTER TABLE [CalendarPricingDto] ALTER COLUMN [Date] datetime2 NOT NULL;
+                END
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "Date",
-                table: "CalendarPricingDto",
-                type: "date",
-                nullable: false,
-                oldClrType: typeof(DateTime),
-                oldType: "datetime2");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CalendarPricingDto')
+                BEGIN
+                    ALTER TABLE [CalendarPricingDto] ALTER COLUMN [Date] date NOT NULL;
+                END
+            ");
         }
     }
 }

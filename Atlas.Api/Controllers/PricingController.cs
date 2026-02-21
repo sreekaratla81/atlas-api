@@ -207,6 +207,41 @@ public class PricingController : ControllerBase
     }
 
     /// <summary>
+    /// Guest-facing price breakdown for a check-in/check-out range.
+    /// Applies base/weekend rates, daily overrides, global discount, and convenience fee.
+    /// </summary>
+    [HttpGet("guest-breakdown")]
+    public async Task<ActionResult<PriceBreakdownDto>> GetGuestBreakdown(
+        [FromQuery] int listingId,
+        [FromQuery] DateTime checkIn,
+        [FromQuery] DateTime checkOut,
+        [FromQuery] string feeMode = "CustomerPays",
+        CancellationToken cancellationToken = default)
+    {
+        if (listingId <= 0)
+        {
+            ModelState.AddModelError(nameof(listingId), "Listing ID must be greater than 0.");
+            return BadRequest(ModelState);
+        }
+
+        if (checkOut.Date <= checkIn.Date)
+        {
+            ModelState.AddModelError(nameof(checkOut), "Checkout must be after check-in.");
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _pricingService.GetPublicBreakdownAsync(listingId, checkIn, checkOut, feeMode);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Guest: Get availability and nightly rate for a listing in a date range.
     /// ListingDailyRate overrides base/weekend rate. Returns roomsAvailable and isAvailable per day.
     /// </summary>

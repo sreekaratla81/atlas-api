@@ -2,15 +2,22 @@
 
 ## Before you open a PR
 
-1. **Run the gate locally** (see [README → CI validation](README.md#ci-validation)):
+1. **Run the release gate** (the single pre-commit gate for all repos):
    ```bash
-   dotnet restore
-   dotnet build -c Release --no-incremental
-   dotnet test ./Atlas.Api.Tests/Atlas.Api.Tests.csproj -c Release
-   dotnet test ./Atlas.DbMigrator.Tests/Atlas.DbMigrator.Tests.csproj -c Release
-   dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release
+   cd atlas-e2e; npm run release-gate
    ```
-2. **Open a PR** to `main` or `dev`.
-3. **Ensure the CI workflow passes** — `.github/workflows/ci-deploy-dev.yml` (CI and Deploy to Dev) runs the same checks on push/PR; it must pass before merge.
+   This validates atlas-api build + unit/integration tests, portal lint + tests + builds, migrations, smoke curls, and E2E. See [atlas-e2e/docs/PROD_READINESS_CHECKLIST.md](../atlas-e2e/docs/PROD_READINESS_CHECKLIST.md) for the full 16-gate DevSecOps mapping.
 
-For deployment and secrets, see [README → Deployment](README.md#deployment) and `docs/ci-cd-branch-mapping.md`. To pick and implement the next high-value feature, see `docs/ATLAS-HIGH-VALUE-BACKLOG.md` and `docs/ATLAS-FEATURE-EXECUTION-PROMPT.md`. **For AI agents:** see [AGENTS.md](AGENTS.md) for gate and feature-backlog pointers.
+2. **Open a PR** to `main` or `dev`.
+
+3. **Ensure the CI workflow passes** — `.github/workflows/ci-deploy-dev.yml` runs the same checks on push/PR; it must pass before merge.
+
+### Quick reference: atlas-api only (for troubleshooting individual failures)
+
+```bash
+dotnet restore
+dotnet build -c Release --no-incremental
+dotnet test -c Release --no-build
+```
+
+For deployment and secrets, see [README → Deployment](README.md#deployment) and `docs/ci-cd-branch-mapping.md`. To pick and implement the next high-value feature, see workspace root `ATLAS-HIGH-VALUE-BACKLOG.md` and `ATLAS-FEATURE-EXECUTION-PROMPT.md`. **For AI agents:** see [AGENTS.md](AGENTS.md) for gate and feature-backlog pointers.

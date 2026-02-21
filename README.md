@@ -125,7 +125,7 @@ repository—use secret managers or platform configuration instead.
 
 The **CI and Deploy to Dev** workflow (`ci-deploy-dev.yml`) runs restore → build (Release) → unit tests → **integration tests** (including UI contract tests). Integration tests use LocalDb on `windows-latest` and validate host startup and the same flows the guest/admin portals use (see `docs/API-TESTING-BEFORE-DEPLOY.md`).
 
-Run locally before opening a PR: follow `CONTRIBUTING.md`. For full validation before deploy, run integration tests too (`dotnet test ./Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj -c Release`). See `docs/DEVSECOPS-GATES-BASELINE.md` for the workspace sanity runbook.
+Run locally before opening a PR: follow `CONTRIBUTING.md`. For full validation, run the release gate: `cd atlas-e2e; npm run release-gate`. See workspace root `DEVSECOPS-GATES-BASELINE.md` for the 16-gate model.
 
 ## Documentation
 
@@ -135,12 +135,9 @@ See `docs/README.md` for the full doc index. Key files:
 - **docs/api-contract.md** — Endpoint reference, request/response shapes, tenant resolution.
 - **docs/api-examples.http** — Runnable HTTP examples (REST Client / IDE).
 - **docs/db-schema.md** — Tables, columns, FKs (aligned with AppDbContext).
-- **CONTRIBUTING.md** — PR checklist and gate commands.
-- **docs/DEVSECOPS-GATES-BASELINE.md** — CI/gate definition per repo, verify in CI, branch protection.
+- **CONTRIBUTING.md** — PR checklist and release gate command.
 - **docs/API-TESTING-BEFORE-DEPLOY.md** — Unit vs integration vs UI contract tests; run integration tests before deploy.
 - **docs/ci-cd-branch-mapping.md** — Branch → workflow → app mapping and secrets.
-- **docs/ATLAS-HIGH-VALUE-BACKLOG.md** — Prioritized feature roadmap and current implementation status.
-- **docs/ATLAS-FEATURE-EXECUTION-PROMPT.md** — Workflow for implementing the next feature from the backlog.
 - **docs/eventing-servicebus-implementation-plan.md** — Azure Service Bus eventing architecture and implementation notes.
 - **Swagger UI** — Available at `/swagger` when not running in Production (see `docs/api-contract.md`).
 - **CHANGELOG.md** — Version history and notable changes.

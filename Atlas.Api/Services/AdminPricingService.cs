@@ -207,7 +207,7 @@ public class AdminPricingService : IAdminPricingService
 
     private static decimal ResolveBaseRate(decimal baseRate, decimal weekendRate, DateTime date)
     {
-        var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+        var isWeekend = date.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
         return isWeekend ? weekendRate : baseRate;
     }
 }

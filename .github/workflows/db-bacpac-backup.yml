@@ -29,6 +29,7 @@ jobs:
 
       # PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
       DEV_DB_NAME: ${{ secrets.DEV_DB_NAME }}
+      AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
 
     steps:
       - name: Checkout
@@ -59,4 +60,3 @@ jobs:
       - name: Backup DEV
         run: |
           bash scripts/backup-bacpac.sh "dev" "${DEV_DB_NAME}" "${{ steps.date.outputs.DATE_DDMMYYYY }}"
-

@@ -69,9 +69,9 @@ public class PricingServiceTests
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 3), new DateTime(2025, 1, 5));
 
         Assert.Equal(2, result.NightlyRates.Count);
-        Assert.Equal(110m, result.NightlyRates[0].Rate);
+        Assert.Equal(150m, result.NightlyRates[0].Rate);
         Assert.Equal(200m, result.NightlyRates[1].Rate);
-        Assert.Equal(310m, result.TotalPrice);
+        Assert.Equal(350m, result.TotalPrice);
     }
 
     [Fact]
@@ -125,8 +125,8 @@ public class PricingServiceTests
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 2), new DateTime(2025, 1, 5));
 
         Assert.Equal(3, result.NightlyRates.Count);
-        Assert.Equal(320m, result.TotalPrice);
-        Assert.Equal(new[] { 100m, 100m, 120m }, result.NightlyRates.Select(rate => rate.Rate));
+        Assert.Equal(340m, result.TotalPrice);
+        Assert.Equal(new[] { 100m, 120m, 120m }, result.NightlyRates.Select(rate => rate.Rate));
     }
 
     [Fact]
@@ -189,8 +189,8 @@ public class PricingServiceTests
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 3), new DateTime(2025, 1, 6));
 
-        Assert.Equal(new[] { 100m, 150m, 200m }, result.NightlyRates.Select(r => r.Rate));
-        Assert.Equal(450m, result.TotalPrice);
+        Assert.Equal(new[] { 150m, 150m, 200m }, result.NightlyRates.Select(r => r.Rate));
+        Assert.Equal(500m, result.TotalPrice);
     }
 }
 

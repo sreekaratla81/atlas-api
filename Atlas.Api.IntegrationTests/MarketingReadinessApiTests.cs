@@ -51,7 +51,7 @@ public class MarketingReadinessApiTests : IntegrationTestBase
         await DataSeeder.SeedListingPricingAsync(db, listing, 500m, 500m, null, "INR");
 
         var breakdown = await Client.GetFromJsonAsync<PriceBreakdownDto>(
-            ApiRoute($"pricing/breakdown?listingId={listing.Id}&checkIn=2025-03-01&checkOut=2025-03-03"));
+            ApiRoute($"pricing/guest-breakdown?listingId={listing.Id}&checkIn=2025-03-01&checkOut=2025-03-03"));
         Assert.NotNull(breakdown);
         Assert.True(breakdown!.BaseAmount > 0, "BaseAmount must be > 0");
         Assert.True(breakdown.FinalAmount > 0, "FinalAmount must be > 0");
@@ -69,7 +69,7 @@ public class MarketingReadinessApiTests : IntegrationTestBase
         await DataSeeder.SeedListingDailyRateAsync(db, listing, new DateTime(2025, 3, 2), 250m, "INR");
 
         var breakdown = await Client.GetFromJsonAsync<PriceBreakdownDto>(
-            ApiRoute($"pricing/breakdown?listingId={listing.Id}&checkIn=2025-03-01&checkOut=2025-03-04"));
+            ApiRoute($"pricing/guest-breakdown?listingId={listing.Id}&checkIn=2025-03-01&checkOut=2025-03-04"));
         Assert.NotNull(breakdown);
         Assert.True(breakdown!.BaseAmount > 0);
         Assert.True(breakdown.FinalAmount > 0);

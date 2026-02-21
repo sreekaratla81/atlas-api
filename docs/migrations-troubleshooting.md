@@ -70,4 +70,16 @@ This means the **production database has not had EF migrations applied** (or was
 
 ## PendingModelSync / CalendarPricingDto: "Cannot find the object CalendarPricingDto" in integration tests
 
-The migration `20260220132813_PendingModelSync` previously tried to ALTER table `CalendarPricingDto` unconditionally. That table is created by `RestoreSnapshot` (a later migration), so on a fresh test DB the ALTER fails. The fix: PendingModelSync now wraps the ALTER in `IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CalendarPricingDto')` so it only runs when the table exists. This allows migrations to apply successfully on both fresh DBs and DBs with the table. Run integration tests locally (or the atlas-e2e release gate) to validate migrations before pushing.
+The migration `20260220132813_PendingModelSync` previously tried to ALTER table `CalendarPricingDto` unconditionally. On a fresh test DB that table may not exist yet, so the ALTER fails. The fix: PendingModelSync wraps the ALTER in `IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CalendarPricingDto')` so it only runs when the table exists. This allows migrations to apply successfully on both fresh DBs and DBs with the table. Run integration tests locally (or the atlas-e2e release gate) to validate migrations before pushing.
+
+## Avoid RestoreSnapshot-style migrations (duplicate CreateTable)
+
+When `AppDbContextModelSnapshot` gets out of sync with the migration history, running `dotnet ef migrations add RestoreSnapshot` (or similar) can cause EF to generate a migration that **recreates the entire schema**—`CreateTable` for all tables. Since `InitialBaseline` already creates those tables, applying such a migration fails with "There is already an object named 'X' in the database." This anti-pattern has occurred multiple times.
+
+**Correct approach when snapshot is out of sync:**
+1. Run `dotnet ef migrations add SyncSnapshot` (or a descriptive name).
+2. Inspect the generated migration.
+3. If it contains `CreateTable` for tables that `InitialBaseline` creates, **clear the `Up()` method**—make it empty. The Designer file updates the snapshot; that's all you need.
+4. See `20260216034208_SyncModelSnapshot.cs` for an example of an intentionally empty migration.
+
+**Tables created by InitialBaseline** (do not re-create these in later migrations): AutomationSchedule, BankAccounts, EnvironmentMarker, Guests, Incidents, MessageTemplate, OutboxMessage, Properties, Users, Listings, Bookings, ListingPricing, AvailabilityBlock, CommunicationLog, Payments, ListingDailyRate.

@@ -11,7 +11,7 @@ namespace Atlas.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // CalendarPricingDto is created by RestoreSnapshot (runs after this migration).
+            // CalendarPricingDto may not exist on fresh DBs; only alter if present.
             // Only alter if table exists (e.g. from prior migration history).
             migrationBuilder.Sql(@"
                 IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CalendarPricingDto')

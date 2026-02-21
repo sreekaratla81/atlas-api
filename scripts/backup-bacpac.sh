@@ -35,7 +35,6 @@ az storage blob copy start \
   --destination-container "${CONTAINER}" \
   --destination-blob "${LATEST_BLOB}" \
   --source-uri "${DATED_URI}" \
-  --overwrite true \
   --output none
 
 echo "==> Retention: keep last 5 dated backups for ${ENV_NAME}/${DB_NAME}"

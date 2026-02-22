@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs;
 
+/// <summary>Outbox message data for ops diagnostics.</summary>
 public class OutboxMessageDto
 {
     public Guid Id { get; set; }

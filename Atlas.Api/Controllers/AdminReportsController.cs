@@ -1,3 +1,4 @@
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.Models.Reports;
 using Microsoft.AspNetCore.Authorization;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>Admin-level reports: bookings, payouts, earnings, sources.</summary>
     [ApiController]
     [Route("admin/reports")]
     [Produces("application/json")]
@@ -23,6 +25,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("bookings")]
+        [ProducesResponseType(typeof(IEnumerable<BookingInfo>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<BookingInfo>>> GetBookings(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -50,6 +53,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("listings")]
+        [ProducesResponseType(typeof(IEnumerable<ListingInfo>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<ListingInfo>>> GetListings()
         {
             var result = await _context.Listings.Select(l => new ListingInfo
@@ -57,13 +61,14 @@ namespace Atlas.Api.Controllers
                 ListingId = l.Id,
                 Name = l.Name,
                 UnitCode = l.Type,
-                IsActive = l.Status == "Active"
+                IsActive = l.Status == ListingStatuses.Active
             }).ToListAsync();
 
             return Ok(result);
         }
 
         [HttpGet("payouts")]
+        [ProducesResponseType(typeof(IEnumerable<DailyPayout>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<DailyPayout>>> GetPayouts(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -86,13 +91,14 @@ namespace Atlas.Api.Controllers
                     ListingId = g.Key.ListingId,
                     Listing = string.Empty,
                     Amount = g.Sum(x => x.p.Amount),
-                    Status = "Sent"
+                    Status = CommunicationStatuses.Sent
                 }).ToListAsync();
 
             return Ok(result);
         }
 
         [HttpGet("earnings/monthly")]
+        [ProducesResponseType(typeof(IEnumerable<MonthlyEarningsSummary>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<MonthlyEarningsSummary>>> GetMonthlyEarnings()
         {
             try
@@ -116,14 +122,7 @@ namespace Atlas.Api.Controllers
                     {
                         Key = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("yyyy-MM"),
                         TotalNet = g.Sum(x => x.AmountReceived),
-                        TotalFees = g.Sum(x =>
-                            (x.BookingSource ?? string.Empty).ToLowerInvariant() switch
-                            {
-                                "airbnb" => x.AmountReceived * 0.16m,
-                                "booking.com" => x.AmountReceived * 0.15m,
-                                "agoda" => x.AmountReceived * 0.18m,
-                                _ => 0m
-                            })
+                        TotalFees = g.Sum(x => x.AmountReceived * CommissionRates.ForSource(x.BookingSource))
                     })
                     .ToDictionary(g => g.Key, g => new { g.TotalNet, g.TotalFees });
 
@@ -144,6 +143,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost("earnings/monthly")]
+        [ProducesResponseType(typeof(IEnumerable<MonthlyEarningsSummary>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<MonthlyEarningsSummary>>> GetMonthlyEarnings([FromBody] ReportFilter filter)
         {
             try
@@ -171,14 +171,7 @@ namespace Atlas.Api.Controllers
                     {
                         Key = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("yyyy-MM"),
                         TotalNet = g.Sum(x => x.AmountReceived),
-                        TotalFees = g.Sum(x =>
-                            (x.BookingSource ?? string.Empty).ToLowerInvariant() switch
-                            {
-                                "airbnb" => x.AmountReceived * 0.16m,
-                                "booking.com" => x.AmountReceived * 0.15m,
-                                "agoda" => x.AmountReceived * 0.18m,
-                                _ => 0m
-                            })
+                        TotalFees = g.Sum(x => x.AmountReceived * CommissionRates.ForSource(x.BookingSource))
                     })
                     .ToDictionary(g => g.Key, g => new { g.TotalNet, g.TotalFees });
 
@@ -199,6 +192,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("payouts/daily")]
+        [ProducesResponseType(typeof(IEnumerable<DailyPayout>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<DailyPayout>>> GetDailyPayoutReport(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -222,13 +216,14 @@ namespace Atlas.Api.Controllers
                     Listing = g.Key.Name,
                     ListingId = g.Key.ListingId,
                     Amount = g.Sum(x => x.p.Amount),
-                    Status = "Sent"
+                    Status = CommunicationStatuses.Sent
                 }).ToListAsync();
 
             return Ok(result);
         }
 
         [HttpGet("bookings/source")]
+        [ProducesResponseType(typeof(IEnumerable<SourceBookingSummary>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<SourceBookingSummary>>> GetBookingSourceReport(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -253,6 +248,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("bookings/calendar")]
+        [ProducesResponseType(typeof(IEnumerable<CalendarBooking>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<CalendarBooking>>> GetCalendarBookings(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,

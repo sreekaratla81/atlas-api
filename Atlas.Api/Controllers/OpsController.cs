@@ -1,3 +1,4 @@
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>Operational diagnostics: outbox messages, database info.</summary>
     [ApiController]
     [Route("ops")]
     [Produces("application/json")]
@@ -23,6 +25,7 @@ namespace Atlas.Api.Controllers
 
         /// <summary>Returns paginated outbox messages for ops diagnostics. Tenant-scoped.</summary>
         [HttpGet("outbox")]
+        [ProducesResponseType(typeof(IEnumerable<OutboxMessageDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<OutboxMessageDto>>> GetOutbox(
             [FromQuery] DateTime? fromUtc,
             [FromQuery] DateTime? toUtc,
@@ -42,7 +45,9 @@ namespace Atlas.Api.Controllers
             if (toUtc.HasValue)
                 query = query.Where(o => o.CreatedAtUtc <= toUtc.Value);
             if (published.HasValue)
-                query = query.Where(o => (published.Value ? o.Status == "Published" : o.Status != "Published"));
+                query = query.Where(o => (published.Value ? o.Status == OutboxStatuses.Published : o.Status != OutboxStatuses.Published));
+
+            var totalCount = await query.CountAsync(cancellationToken);
 
             var items = await query
                 .OrderByDescending(o => o.CreatedAtUtc)
@@ -63,11 +68,17 @@ namespace Atlas.Api.Controllers
                     LastError = o.LastError
                 })
                 .ToListAsync(cancellationToken);
+
+            Response.Headers.Append("X-Total-Count", totalCount.ToString());
+            Response.Headers.Append("X-Page", page.ToString());
+            Response.Headers.Append("X-Page-Size", pageSize.ToString());
             return Ok(items);
         }
 
         /// <summary>Returns environment metadata (server, database, marker) without exposing secrets.</summary>
         [HttpGet("db-info")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDatabaseInfo(CancellationToken cancellationToken)
         {
             var connection = _dbContext.Database.GetDbConnection();

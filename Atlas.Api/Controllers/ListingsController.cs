@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>CRUD operations for listings within properties.</summary>
     [ApiController]
     [Route("listings")]
     [Produces("application/json")]
@@ -25,15 +27,15 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<Listing>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<Listing>>> GetAll()
+        [ProducesResponseType(typeof(IEnumerable<ListingResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<ListingResponseDto>>> GetAll()
         {
             try
             {
                 var listings = await _context.Listings
                     .Include(l => l.Property)
                     .ToListAsync();
-                return Ok(listings);
+                return Ok(listings.Select(MapToDto));
             }
             catch (Exception ex)
             {
@@ -50,7 +52,7 @@ namespace Atlas.Api.Controllers
             {
                 var listings = await _context.Listings
                     .AsNoTracking()
-                    .Where(l => l.Status == "Active")
+                    .Where(l => l.Status == ListingStatuses.Active)
                     .Select(l => new PublicListingDto
                     {
                         Id = l.Id,
@@ -76,16 +78,16 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(Listing), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ListingResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Listing>> Get(int id)
+        public async Task<ActionResult<ListingResponseDto>> Get(int id)
         {
             try
             {
                 var item = await _context.Listings
                     .Include(l => l.Property)
                     .FirstOrDefaultAsync(l => l.Id == id);
-                return item == null ? NotFound() : Ok(item);
+                return item == null ? NotFound() : Ok(MapToDto(item));
             }
             catch (Exception ex)
             {
@@ -184,5 +186,16 @@ namespace Atlas.Api.Controllers
                 return StatusCode(500, new { error = "Internal server error" });
             }
         }
+
+        private static ListingResponseDto MapToDto(Listing listing) => new()
+        {
+            Id = listing.Id,
+            PropertyId = listing.PropertyId,
+            Name = listing.Name,
+            Floor = listing.Floor,
+            Type = listing.Type,
+            Status = listing.Status,
+            MaxGuests = listing.MaxGuests
+        };
     }
 }

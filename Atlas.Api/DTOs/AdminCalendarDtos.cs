@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs;
 
+/// <summary>Single calendar cell: availability and pricing for one listing-date.</summary>
 public class AdminCalendarAvailabilityCellDto
 {
     public DateTime Date { get; set; }
@@ -12,6 +13,7 @@ public class AdminCalendarAvailabilityCellDto
     public bool IsBlocked { get; set; }
 }
 
+/// <summary>Request body for bulk-upserting admin calendar availability cells.</summary>
 public class AdminCalendarAvailabilityBulkUpsertRequestDto
 {
     [Required]
@@ -19,6 +21,7 @@ public class AdminCalendarAvailabilityBulkUpsertRequestDto
     public List<AdminCalendarAvailabilityCellUpsertDto> Cells { get; set; } = new();
 }
 
+/// <summary>Single cell within a bulk upsert request.</summary>
 public class AdminCalendarAvailabilityCellUpsertDto
 {
     [Required]
@@ -34,6 +37,7 @@ public class AdminCalendarAvailabilityCellUpsertDto
     public decimal? PriceOverride { get; set; }
 }
 
+/// <summary>Response after bulk-upserting admin calendar availability cells.</summary>
 public class AdminCalendarAvailabilityBulkUpsertResponseDto
 {
     public int UpdatedCells { get; set; }

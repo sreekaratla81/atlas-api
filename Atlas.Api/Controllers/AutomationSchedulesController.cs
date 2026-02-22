@@ -6,6 +6,7 @@ using Atlas.Api.DTOs;
 
 namespace Atlas.Api.Controllers;
 
+/// <summary>Automation schedule management.</summary>
 [ApiController]
 [Route("api/automation-schedules")]
 [Produces("application/json")]
@@ -20,6 +21,7 @@ public class AutomationSchedulesController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<AutomationScheduleDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<AutomationScheduleDto>>> GetAll(
         [FromQuery] int? bookingId,
         [FromQuery] string? status,
@@ -40,6 +42,8 @@ public class AutomationSchedulesController : ControllerBase
         if (!string.IsNullOrWhiteSpace(eventType))
             query = query.Where(a => a.EventType == eventType);
 
+        var totalCount = await query.CountAsync();
+
         var items = await query
             .OrderBy(a => a.DueAtUtc)
             .Skip((page - 1) * pageSize)
@@ -58,6 +62,10 @@ public class AutomationSchedulesController : ControllerBase
                 LastError = a.LastError
             })
             .ToListAsync();
+
+        Response.Headers.Append("X-Total-Count", totalCount.ToString());
+        Response.Headers.Append("X-Page", page.ToString());
+        Response.Headers.Append("X-Page-Size", pageSize.ToString());
         return Ok(items);
     }
 }

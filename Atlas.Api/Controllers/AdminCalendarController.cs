@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Atlas.Api.Controllers;
 
+/// <summary>Calendar view of availability and inventory for admin portal.</summary>
 [ApiController]
 [Route("admin/calendar")]
 [Produces("application/json")]
@@ -24,6 +26,8 @@ public class AdminCalendarController : ControllerBase
     }
 
     [HttpGet("availability")]
+    [ProducesResponseType(typeof(IEnumerable<AdminCalendarAvailabilityCellDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<AdminCalendarAvailabilityCellDto>>> GetAvailability(
         [FromQuery] int propertyId,
         [FromQuery] DateTime from,
@@ -69,6 +73,8 @@ public class AdminCalendarController : ControllerBase
     }
 
     [HttpPut("availability")]
+    [ProducesResponseType(typeof(AdminCalendarAvailabilityBulkUpsertResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AdminCalendarAvailabilityBulkUpsertResponseDto>> UpsertAvailability(
         [FromBody] AdminCalendarAvailabilityBulkUpsertRequestDto request)
     {
@@ -161,14 +167,14 @@ public class AdminCalendarController : ControllerBase
                     ListingId = cell.ListingId,
                     Date = day,
                     RoomsAvailable = cell.RoomsAvailable,
-                    Source = "Manual",
+                    Source = BookingSources.Manual,
                     UpdatedAtUtc = now
                 });
             }
             else
             {
                 inventory.RoomsAvailable = cell.RoomsAvailable;
-                inventory.Source = "Manual";
+                inventory.Source = BookingSources.Manual;
                 inventory.UpdatedAtUtc = now;
             }
 
@@ -182,15 +188,15 @@ public class AdminCalendarController : ControllerBase
                         ListingId = cell.ListingId,
                         Date = day,
                         NightlyRate = cell.PriceOverride.Value,
-                        Currency = "INR",
-                        Source = "Manual",
+                        Currency = CurrencyConstants.INR,
+                        Source = BookingSources.Manual,
                         UpdatedAtUtc = now
                     });
                 }
                 else
                 {
                     rate.NightlyRate = cell.PriceOverride.Value;
-                    rate.Source = "Manual";
+                    rate.Source = BookingSources.Manual;
                     rate.UpdatedAtUtc = now;
                 }
             }
@@ -274,7 +280,7 @@ public class AdminCalendarController : ControllerBase
             .Where(b => listingIds.Contains(b.ListingId)
                 && b.StartDate < endDate
                 && b.EndDate > startDate
-                && (b.Status == "Active" || b.Status == "Blocked"))
+                && (b.Status == BlockStatuses.Active || b.Status == BlockStatuses.Blocked))
             .Select(b => new { b.ListingId, b.StartDate, b.EndDate, b.Inventory })
             .ToListAsync();
 

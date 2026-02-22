@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Guest data returned by the API.</summary>
     public class GuestDto
     {
         public int Id { get; set; }

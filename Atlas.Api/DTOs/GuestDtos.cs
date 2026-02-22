@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs;
 
+/// <summary>Request body for creating a guest.</summary>
 public class GuestCreateDto
 {
     [Required]
@@ -20,6 +21,7 @@ public class GuestCreateDto
     public string? IdProofUrl { get; set; }
 }
 
+/// <summary>Request body for updating a guest.</summary>
 public class GuestUpdateDto
 {
     [Required]

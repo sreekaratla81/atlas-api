@@ -12,6 +12,7 @@ public class CalendarPricingViewDto
     public List<CalendarPricingListingDto> Listings { get; set; } = new();
 }
 
+/// <summary>Per-listing pricing row within the calendar pricing view.</summary>
 public class CalendarPricingListingDto
 {
     public int ListingId { get; set; }
@@ -22,6 +23,7 @@ public class CalendarPricingListingDto
     public List<CalendarPricingDayDto> Days { get; set; } = new();
 }
 
+/// <summary>Single day's pricing within the calendar pricing view.</summary>
 public class CalendarPricingDayDto
 {
     public string Date { get; set; } = string.Empty; // yyyy-MM-dd
@@ -42,6 +44,7 @@ public class DailyPricingSummaryDto
     public List<DailyListingPricingDto> Listings { get; set; } = new();
 }
 
+/// <summary>Per-listing pricing for a single day in the daily summary.</summary>
 public class DailyListingPricingDto
 {
     public int ListingId { get; set; }

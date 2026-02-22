@@ -1,3 +1,4 @@
+using Atlas.Api.Constants;
 using Atlas.Api.DTOs;
 using Atlas.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Atlas.Api.Controllers;
 
+/// <summary>Pricing configuration and rate management.</summary>
 [ApiController]
 [Route("pricing")]
 [Produces("application/json")]
@@ -29,6 +31,8 @@ public class PricingController : ControllerBase
     /// Update base pricing for a listing.
     /// </summary>
     [HttpPut("base")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateBasePricing(
         [FromBody] UpdateBasePricingDto dto,
         CancellationToken cancellationToken)
@@ -56,6 +60,9 @@ public class PricingController : ControllerBase
     /// Create or update base pricing for a single listing. If listingId already has pricing, it is updated; otherwise a new row is created. TenantId and UpdatedAtUtc are set server-side.
     /// </summary>
     [HttpPost("send")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> PostBasePricing(
         [FromBody] ListingPricingItemDto item,
         CancellationToken cancellationToken = default)
@@ -71,7 +78,7 @@ public class PricingController : ControllerBase
                 BaseNightlyRate = item.BaseNightlyRate,
                 WeekendNightlyRate = item.WeekendNightlyRate,
                 ExtraGuestRate = item.ExtraGuestRate,
-                Currency = item.Currency ?? "INR"
+                Currency = item.Currency ?? CurrencyConstants.INR
             };
             var (updated, created) = await _adminPricingService.UpdateBasePricingAsync(dto, cancellationToken);
             return Ok(new
@@ -96,6 +103,7 @@ public class PricingController : ControllerBase
     /// Upsert daily rate override for a listing and date.
     /// </summary>
     [HttpPut("daily-rate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> UpsertDailyRate(
         [FromBody] UpsertDailyRateDto dto,
         [FromQuery] int? updatedByUserId,
@@ -116,6 +124,7 @@ public class PricingController : ControllerBase
     /// Upsert daily inventory for a listing and date.
     /// </summary>
     [HttpPut("daily-inventory")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> UpsertDailyInventory(
         [FromBody] UpsertDailyInventoryDto dto,
         [FromQuery] int? updatedByUserId,
@@ -135,6 +144,7 @@ public class PricingController : ControllerBase
     /// Get pricing summary for the current date only. Returns all listings with that day's baseAmount, discountAmount, convenienceFeePercent, finalAmount, globalDiscountPercent. Uses the same logic as pricing/breakdown.
     /// </summary>
     [HttpGet("daily-summary")]
+    [ProducesResponseType(typeof(DailyPricingSummaryDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<DailyPricingSummaryDto>> GetDailySummary(CancellationToken cancellationToken = default)
     {
         var today = DateTime.UtcNow.Date;
@@ -171,6 +181,8 @@ public class PricingController : ControllerBase
     /// Get calendar pricing breakdown for a listing. Query parameters: listingId, startDate (yyyy-MM-dd), months (1-12).
     /// </summary>
     [HttpGet("breakdown")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetBreakdown(
         [FromQuery] int listingId,
         [FromQuery] string? startDate,
@@ -213,6 +225,9 @@ public class PricingController : ControllerBase
     /// Applies base/weekend rates, daily overrides, global discount, and convenience fee.
     /// </summary>
     [HttpGet("guest-breakdown")]
+    [ProducesResponseType(typeof(PriceBreakdownDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PriceBreakdownDto>> GetGuestBreakdown(
         [FromQuery] int listingId,
         [FromQuery] DateTime checkIn,
@@ -248,6 +263,9 @@ public class PricingController : ControllerBase
     /// ListingDailyRate overrides base/weekend rate. Returns roomsAvailable and isAvailable per day.
     /// </summary>
     [HttpGet("availability-rates")]
+    [ProducesResponseType(typeof(GuestAvailabilityRateResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GuestAvailabilityRateResponseDto>> GetAvailabilityAndRates(
         [FromQuery] int listingId,
         [FromQuery] DateTime startDate,

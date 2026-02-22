@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs;
 
+/// <summary>Request body for creating a property.</summary>
 public class PropertyCreateDto
 {
     [Required]
@@ -29,6 +30,7 @@ public class PropertyCreateDto
     public string Status { get; set; } = "Active";
 }
 
+/// <summary>Property data returned by the API. Excludes TenantId.</summary>
 public class PropertyResponseDto
 {
     public int Id { get; set; }

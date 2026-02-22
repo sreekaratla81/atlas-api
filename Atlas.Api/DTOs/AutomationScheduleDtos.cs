@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs;
 
+/// <summary>Automation schedule data returned by the API.</summary>
 public class AutomationScheduleDto
 {
     public long Id { get; set; }

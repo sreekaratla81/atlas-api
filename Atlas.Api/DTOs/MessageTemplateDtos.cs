@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs;
 
+/// <summary>Request body for creating or updating a message template.</summary>
 public class MessageTemplateCreateUpdateDto
 {
     public string? TemplateKey { get; set; }
@@ -35,6 +36,7 @@ public class MessageTemplateCreateUpdateDto
     public string Body { get; set; } = string.Empty;
 }
 
+/// <summary>Message template data returned by the API.</summary>
 public class MessageTemplateResponseDto
 {
     public int Id { get; set; }

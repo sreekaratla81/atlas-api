@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs;
 
+/// <summary>Current tenant-level pricing settings returned by the API.</summary>
 public class TenantPricingSettingsDto
 {
     public decimal ConvenienceFeePercent { get; set; }
@@ -10,6 +11,7 @@ public class TenantPricingSettingsDto
     public string? UpdatedBy { get; set; }
 }
 
+/// <summary>Request body for updating tenant pricing settings.</summary>
 public class UpdateTenantPricingSettingsDto
 {
     [Range(0, 100)]

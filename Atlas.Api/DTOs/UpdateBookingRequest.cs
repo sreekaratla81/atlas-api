@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Request body for updating a booking.</summary>
     public class UpdateBookingRequest
     {
         public int Id { get; set; }

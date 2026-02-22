@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>Razorpay payment integration: order creation, verification, webhooks.</summary>
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("payments")]

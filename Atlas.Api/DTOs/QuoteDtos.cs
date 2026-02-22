@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs;
 
+/// <summary>Request body for issuing a price quote.</summary>
 public class CreateQuoteRequestDto
 {
     public int ListingId { get; set; }
@@ -19,12 +20,14 @@ public class CreateQuoteRequestDto
     public bool ApplyGlobalDiscount { get; set; }
 }
 
+/// <summary>Response containing the issued quote token and price breakdown.</summary>
 public class QuoteIssueResponseDto
 {
     public string Token { get; set; } = string.Empty;
     public PriceBreakdownDto Breakdown { get; set; } = new();
 }
 
+/// <summary>Response indicating whether a quote token is still valid.</summary>
 public class QuoteValidateResponseDto
 {
     public bool IsValid { get; set; }

@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs;
 
+/// <summary>Payment data returned by the API. Excludes RazorpaySignature for security.</summary>
 public class PaymentResponseDto
 {
     public int Id { get; set; }

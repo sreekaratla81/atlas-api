@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.Models
 {
-    public class MessageTemplate : ITenantOwnedEntity
+    public class MessageTemplate : ITenantOwnedEntity, IAuditable
     {
         public int Id { get; set; }
 

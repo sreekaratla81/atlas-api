@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Atlas.Api.Models
 {
-    public class AvailabilityBlock : ITenantOwnedEntity
+    public class AvailabilityBlock : ITenantOwnedEntity, IAuditable
     {
         public long Id { get; set; }
 

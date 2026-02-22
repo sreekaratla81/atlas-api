@@ -6,6 +6,7 @@ using Atlas.Api.DTOs;
 
 namespace Atlas.Api.Controllers;
 
+/// <summary>Communication log retrieval.</summary>
 [ApiController]
 [Route("api/communication-logs")]
 [Produces("application/json")]
@@ -20,6 +21,7 @@ public class CommunicationLogsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<CommunicationLogDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CommunicationLogDto>>> GetAll(
         [FromQuery] int? bookingId,
         [FromQuery] int? guestId,
@@ -49,6 +51,8 @@ public class CommunicationLogsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(c => c.Status == status);
 
+        var totalCount = await query.CountAsync();
+
         var items = await query
             .OrderByDescending(c => c.CreatedAtUtc)
             .Skip((page - 1) * pageSize)
@@ -71,6 +75,10 @@ public class CommunicationLogsController : ControllerBase
                 LastError = c.LastError
             })
             .ToListAsync();
+
+        Response.Headers.Append("X-Total-Count", totalCount.ToString());
+        Response.Headers.Append("X-Page", page.ToString());
+        Response.Headers.Append("X-Page-Size", pageSize.ToString());
         return Ok(items);
     }
 }

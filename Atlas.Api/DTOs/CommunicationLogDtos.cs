@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs;
 
+/// <summary>Communication log entry returned by the API.</summary>
 public class CommunicationLogDto
 {
     public long Id { get; set; }

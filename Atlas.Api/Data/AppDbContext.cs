@@ -610,6 +610,10 @@ namespace Atlas.Api.Data
                 .HasColumnType("datetime");
 
             modelBuilder.Entity<OutboxMessage>()
+                .Property(o => o.UpdatedAtUtc)
+                .HasColumnType("datetime");
+
+            modelBuilder.Entity<OutboxMessage>()
                 .Property(o => o.PublishedAtUtc)
                 .HasColumnType("datetime");
 
@@ -881,13 +885,27 @@ namespace Atlas.Api.Data
         public override int SaveChanges()
         {
             ApplyTenantOwnershipRules();
+            ApplyAuditTimestamps();
             return base.SaveChanges();
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             ApplyTenantOwnershipRules();
+            ApplyAuditTimestamps();
             return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void ApplyAuditTimestamps()
+        {
+            var utcNow = DateTime.UtcNow;
+            foreach (var entry in ChangeTracker.Entries<IAuditable>())
+            {
+                if (entry.State == EntityState.Added && entry.Entity.CreatedAtUtc == default)
+                    entry.Entity.CreatedAtUtc = utcNow;
+                if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+                    entry.Entity.UpdatedAtUtc = utcNow;
+            }
         }
 
         private void ApplyTenantOwnershipRules()

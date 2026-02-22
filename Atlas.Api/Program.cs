@@ -46,7 +46,8 @@ namespace Atlas.Api
                         .WithOrigins(allowedOrigins)
                         .AllowAnyHeader()
                         .AllowAnyMethod()
-                        .AllowCredentials();
+                        .AllowCredentials()
+                        .WithExposedHeaders("X-Total-Count", "X-Page", "X-Page-Size", "X-Correlation-Id");
                 });
             });
 
@@ -190,6 +191,11 @@ namespace Atlas.Api
                 });
             }
 
+            builder.Services.AddResponseCompression(options =>
+            {
+                options.EnableForHttps = true;
+            });
+
             builder.Services.AddHttpLogging(options =>
             {
                 options.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestMethod
@@ -251,6 +257,7 @@ namespace Atlas.Api
             }
 
             app.UseMiddleware<Atlas.Api.Middleware.CorrelationIdMiddleware>();
+            app.UseResponseCompression();
             app.UseHttpLogging();
 
             app.UseSwagger();

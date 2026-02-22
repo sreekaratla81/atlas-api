@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Request body for creating or updating a bank account.</summary>
     public class BankAccountRequestDto
     {
         public string BankName { get; set; } = string.Empty;

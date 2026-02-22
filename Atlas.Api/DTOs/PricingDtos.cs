@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Pricing quote with nightly rate breakdown for a listing.</summary>
     public class PricingQuoteDto
     {
         public int ListingId { get; set; }
@@ -8,12 +9,14 @@ namespace Atlas.Api.DTOs
         public List<PricingNightlyRateDto> NightlyRates { get; set; } = new();
     }
 
+    /// <summary>Single night's rate within a pricing quote.</summary>
     public class PricingNightlyRateDto
     {
         public DateTime Date { get; set; }
         public decimal Rate { get; set; }
     }
 
+    /// <summary>Detailed price breakdown including base, discount, convenience fee, and final amount.</summary>
     public class PriceBreakdownDto
     {
         public int ListingId { get; set; }
@@ -30,6 +33,7 @@ namespace Atlas.Api.DTOs
         public string? QuoteTokenNonce { get; set; }
     }
 
+    /// <summary>Request body for computing a price breakdown.</summary>
     public class PricingBreakdownRequestDto
     {
         public int ListingId { get; set; }

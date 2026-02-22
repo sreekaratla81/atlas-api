@@ -8,6 +8,7 @@ using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>Incident reporting and management.</summary>
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]

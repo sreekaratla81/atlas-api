@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Bank account data returned by the API.</summary>
     public class BankAccountResponseDto
     {
         public int Id { get; set; }

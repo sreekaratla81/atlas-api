@@ -1,3 +1,4 @@
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>Availability checks and block management for listings.</summary>
     [ApiController]
     [Route("availability")]
     [Produces("application/json")]
@@ -27,6 +29,9 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(AvailabilityResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<AvailabilityResponseDto>> GetAvailability(
             [FromQuery] int propertyId,
             [FromQuery] DateTime checkIn,
@@ -78,6 +83,9 @@ namespace Atlas.Api.Controllers
         /// <param name="startDate">Required: Start date for date range (defaults to 30 days)</param>
         /// <param name="months">Optional: Number of months from start date (default: 2)</param>
         [HttpGet("listing-availability")]
+        [ProducesResponseType(typeof(ListingAvailabilityResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ListingAvailabilityResponseDto>> GetListingAvailability(
             [FromQuery] int listingId,
             [FromQuery] DateTime? startDate,
@@ -148,7 +156,7 @@ namespace Atlas.Api.Controllers
                 while (currentDate < calculatedEndDate)
                 {
                     // Default to Available
-                    string status = "Available";
+                    string status = ListingStatuses.Available;
                     int inventory = 1;
 
                     // Find blocks that cover this date
@@ -158,8 +166,8 @@ namespace Atlas.Api.Controllers
                         if (currentDate >= block.StartDate.Date && currentDate < block.EndDate.Date)
                         {
                             // Check if it's a temporary hold that hasn't expired (5 minutes)
-                            bool isHold = block.BlockType.Equals("Hold", StringComparison.OrdinalIgnoreCase) 
-                                       || block.Status.Equals("Hold", StringComparison.OrdinalIgnoreCase);
+                            bool isHold = block.BlockType.Equals(BlockStatuses.Hold, StringComparison.OrdinalIgnoreCase) 
+                                       || block.Status.Equals(BlockStatuses.Hold, StringComparison.OrdinalIgnoreCase);
                             
                             if (isHold)
                             {
@@ -168,18 +176,18 @@ namespace Atlas.Api.Controllers
                                 if (DateTime.UtcNow <= holdExpiryTime)
                                 {
                                     // Hold is still active - takes precedence over Available but not Blocked
-                                    if (status == "Available")
+                                    if (status == ListingStatuses.Available)
                                     {
-                                        status = "Hold";
+                                        status = BlockStatuses.Hold;
                                         inventory = 0;
                                     }
                                 }
                                 // If hold expired, treat as Available (don't override)
                             }
-                            else if (!block.Inventory || block.Status.Equals("Blocked", StringComparison.OrdinalIgnoreCase))
+                            else if (!block.Inventory || block.Status.Equals(BlockStatuses.Blocked, StringComparison.OrdinalIgnoreCase))
                             {
                                 // Permanent block - highest priority, overrides everything
-                                status = "Blocked";
+                                status = BlockStatuses.Blocked;
                                 inventory = 0;
                                 break; // Blocked is final, no need to check other blocks
                             }
@@ -219,6 +227,8 @@ namespace Atlas.Api.Controllers
 
 
         [HttpPost("blocks")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> BlockAvailability(
     [FromBody] AvailabilityBlockRequestDto request)
         {
@@ -286,9 +296,9 @@ namespace Atlas.Api.Controllers
                         StartDate = date,
                         EndDate = date.AddDays(1),
                         Inventory = false,
-                        Status = "Blocked",
-                        BlockType = "GuestBooking",
-                        Source = "GuestPortal",
+                        Status = BlockStatuses.Blocked,
+                        BlockType = AvailabilityConstants.BlockTypes.GuestBooking,
+                        Source = AvailabilityConstants.Sources.GuestPortal,
                         CreatedAtUtc = now,
                         UpdatedAtUtc = now
                     });
@@ -312,6 +322,9 @@ namespace Atlas.Api.Controllers
 
 
         [HttpPatch("update-inventory")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateInventory(
             [FromQuery] int listingId,
             [FromQuery] DateTime date,
@@ -362,9 +375,9 @@ namespace Atlas.Api.Controllers
                     ListingId = listingId,
                     StartDate = date.Date,
                     EndDate = date.Date.AddDays(1),  // Exclusive end date (next day)
-                    BlockType = "Inventory",
-                    Source = "Admin",
-                    Status = inventory ? "Open" : "Active",
+                    BlockType = AvailabilityConstants.BlockTypes.Inventory,
+                    Source = AvailabilityConstants.Sources.Admin,
+                    Status = inventory ? BlockStatuses.Open : BlockStatuses.Active,
                     Inventory = inventory,
                     CreatedAtUtc = DateTime.UtcNow,
                     UpdatedAtUtc = DateTime.UtcNow

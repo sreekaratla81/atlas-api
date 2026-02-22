@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.Models
 {
-    public class OutboxMessage : ITenantOwnedEntity
+    public class OutboxMessage : ITenantOwnedEntity, IAuditable
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -32,6 +32,7 @@ namespace Atlas.Api.Models
 
         public DateTime? NextAttemptUtc { get; set; }
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAtUtc { get; set; }
         public DateTime? PublishedAtUtc { get; set; }
         public int AttemptCount { get; set; }
         public string? LastError { get; set; }

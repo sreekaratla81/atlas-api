@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Availability check response for a property with per-listing pricing.</summary>
     public class AvailabilityResponseDto
     {
         public int PropertyId { get; set; }
@@ -13,6 +14,7 @@ namespace Atlas.Api.DTOs
         public List<AvailabilityListingDto> Listings { get; set; } = new();
     }
 
+    /// <summary>Available listing with nightly rate details.</summary>
     public class AvailabilityListingDto
     {
         public int ListingId { get; set; }
@@ -23,12 +25,14 @@ namespace Atlas.Api.DTOs
         public List<AvailabilityNightlyRateDto> NightlyRates { get; set; } = new();
     }
 
+    /// <summary>Nightly rate for a single date in an availability response.</summary>
     public class AvailabilityNightlyRateDto
     {
         public DateTime Date { get; set; }
         public decimal Price { get; set; }
     }
   
+    /// <summary>Request body for toggling inventory availability.</summary>
     public class UpdateInventoryDto
     {
        
@@ -36,6 +40,7 @@ namespace Atlas.Api.DTOs
         public bool Inventory { get; set; }
     }
 
+    /// <summary>Request body for blocking dates on a listing.</summary>
     public class AvailabilityBlockRequestDto
     {
         [Required(ErrorMessage = "Listing ID is required")]

@@ -9,6 +9,7 @@ using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>CRUD operations for payment records.</summary>
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -44,12 +45,18 @@ namespace Atlas.Api.Controllers
             if (receivedTo.HasValue)
                 query = query.Where(p => p.ReceivedOn <= receivedTo.Value);
 
+            var totalCount = await query.CountAsync();
+
             var items = await query
                 .OrderByDescending(p => p.ReceivedOn)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(p => MapToResponseDto(p))
                 .ToListAsync();
+
+            Response.Headers.Append("X-Total-Count", totalCount.ToString());
+            Response.Headers.Append("X-Page", page.ToString());
+            Response.Headers.Append("X-Page-Size", pageSize.ToString());
             return Ok(items);
         }
 

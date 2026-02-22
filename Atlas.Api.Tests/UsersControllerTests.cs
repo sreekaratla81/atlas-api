@@ -1,5 +1,6 @@
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,24 +22,24 @@ public class UsersControllerTests
     {
         using var context = GetContext(nameof(Create_ReturnsCreatedAtAction));
         var controller = new UsersController(context);
-        var user = new User { Name="n", Phone="p", Email="e", PasswordHash="ph", Role="r" };
+        var dto = new UserCreateDto { Name = "n", Email = "e", Phone = "p", Role = "r", Password = "secret1" };
 
-        var result = await controller.Create(user);
+        var result = await controller.Create(dto);
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
-        var value = Assert.IsType<User>(created.Value);
+        var value = Assert.IsType<UserResponseDto>(created.Value);
         Assert.Equal("n", value.Name);
     }
 
     [Fact]
-    public async Task Update_ReturnsBadRequest_WhenIdMismatch()
+    public async Task Update_ReturnsNotFound_WhenMissing()
     {
-        using var context = GetContext(nameof(Update_ReturnsBadRequest_WhenIdMismatch));
+        using var context = GetContext(nameof(Update_ReturnsNotFound_WhenMissing));
         var controller = new UsersController(context);
-        var user = new User { Id=1, Name="n", Phone="p", Email="e", PasswordHash="ph", Role="r" };
+        var dto = new UserCreateDto { Name = "n", Email = "e", Phone = "p", Role = "r", Password = "secret1" };
 
-        var result = await controller.Update(2, user);
+        var result = await controller.Update(2, dto);
 
-        Assert.IsType<BadRequestResult>(result);
+        Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]

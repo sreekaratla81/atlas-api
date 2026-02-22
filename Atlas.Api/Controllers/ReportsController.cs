@@ -8,6 +8,7 @@ using System.Globalization;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>Revenue and earnings reports.</summary>
     [ApiController]
     [Route("reports")]
     [Produces("application/json")]
@@ -24,6 +25,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("calendar-earnings")]
+        [ProducesResponseType(typeof(IEnumerable<CalendarEarningEntry>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<IEnumerable<CalendarEarningEntry>>> GetCalendarEarnings([
             FromQuery] int listingId,
             [FromQuery] string month)
@@ -97,6 +100,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("bank-account-earnings")]
+        [ProducesResponseType(typeof(IEnumerable<Atlas.Api.Models.Reports.BankAccountEarnings>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<Atlas.Api.Models.Reports.BankAccountEarnings>>> GetBankAccountEarnings()
         {
             var fyStart = new DateTime(2025, 4, 1);

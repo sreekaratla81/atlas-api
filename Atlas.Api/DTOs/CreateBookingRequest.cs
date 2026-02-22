@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Request body for creating a booking.</summary>
     public class CreateBookingRequest
     {
         [Required]

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Atlas.Api.Controllers;
 
+/// <summary>Quote generation and validation.</summary>
 [ApiController]
 [Route("quotes")]
 [Produces("application/json")]
@@ -19,6 +20,8 @@ public class QuotesController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(QuoteIssueResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<QuoteIssueResponseDto>> Issue([FromBody] CreateQuoteRequestDto request, CancellationToken cancellationToken)
     {
         var response = await _quoteService.IssueAsync(request, cancellationToken);
@@ -26,6 +29,8 @@ public class QuotesController : ControllerBase
     }
 
     [HttpGet("validate")]
+    [ProducesResponseType(typeof(QuoteValidateResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<QuoteValidateResponseDto>> Validate([FromQuery] string token, CancellationToken cancellationToken)
     {
         var response = await _quoteService.ValidateAsync(token, cancellationToken);

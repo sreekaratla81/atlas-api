@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>Manages booking lifecycle including create, update, cancel, checkin, checkout.</summary>
     [ApiController]
     [Route("bookings")]
     [Produces("application/json")]
@@ -189,17 +190,11 @@ namespace Atlas.Api.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var commissionRate = request.BookingSource.ToLower() switch
-                {
-                    "airbnb" => 0.16m,
-                    "booking.com" => 0.15m,
-                    "agoda" => 0.18m,
-                    _ => 0m
-                };
+                var commissionRate = CommissionRates.ForSource(request.BookingSource);
 
                 var commissionAmount = (request.AmountReceived + request.ExtraGuestCharge) * commissionRate;
 
-                var bookingStatus = string.IsNullOrWhiteSpace(request.BookingStatus) ? "Lead" : request.BookingStatus;
+                var bookingStatus = string.IsNullOrWhiteSpace(request.BookingStatus) ? BookingStatuses.Lead : request.BookingStatus;
                 if (IsConfirmedStatus(bookingStatus))
                 {
                     var hasOverlap = await HasActiveOverlapAsync(listing.Id, request.CheckinDate, request.CheckoutDate, null);
@@ -219,7 +214,7 @@ namespace Atlas.Api.Controllers
                     BookingSource = request.BookingSource,
                     BookingStatus = bookingStatus,
                     TotalAmount = request.TotalAmount ?? 0m,
-                    Currency = string.IsNullOrWhiteSpace(request.Currency) ? "INR" : request.Currency,
+                    Currency = string.IsNullOrWhiteSpace(request.Currency) ? CurrencyConstants.INR : request.Currency,
                     ExternalReservationId = request.ExternalReservationId,
                     ConfirmationSentAtUtc = request.ConfirmationSentAtUtc,
                     RefundFreeUntilUtc = request.RefundFreeUntilUtc,
@@ -453,7 +448,7 @@ namespace Atlas.Api.Controllers
                     return BadRequest(ModelState);
                 }
 
-                booking.BookingStatus = "Cancelled";
+                booking.BookingStatus = BookingStatuses.Cancelled;
                 booking.CancelledAtUtc = DateTime.UtcNow;
 
                 await SyncAvailabilityBlockAsync(booking);
@@ -583,12 +578,12 @@ namespace Atlas.Api.Controllers
 
         private static bool IsCheckedInStatus(string? status)
         {
-            return string.Equals(status, "CheckedIn", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(status, BookingStatuses.CheckedIn, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsCheckedOutStatus(string? status)
         {
-            return string.Equals(status, "CheckedOut", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(status, BookingStatuses.CheckedOut, StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<bool> HasActiveOverlapAsync(int listingId, DateTime startDate, DateTime endDate, int? bookingId)
@@ -661,7 +656,7 @@ namespace Atlas.Api.Controllers
                 CorrelationId = correlation,
                 OccurredUtc = DateTime.UtcNow,
                 SchemaVersion = 1,
-                Status = "Pending",
+                Status = OutboxStatuses.Pending,
                 NextAttemptUtc = DateTime.UtcNow,
                 CreatedAtUtc = DateTime.UtcNow,
                 AttemptCount = 0

@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Lightweight booking data for list views, includes resolved listing and guest names.</summary>
     public sealed class BookingListDto
     {
         public int Id { get; set; }

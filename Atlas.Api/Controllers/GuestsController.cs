@@ -2,12 +2,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>CRUD operations for guest records.</summary>
     [ApiController]
     [Route("guests")]
     [Produces("application/json")]
@@ -49,7 +51,7 @@ namespace Atlas.Api.Controllers
                 Name = dto.Name,
                 Email = dto.Email,
                 Phone = dto.Phone,
-                IdProofUrl = string.IsNullOrWhiteSpace(dto.IdProofUrl) ? "N/A" : dto.IdProofUrl,
+                IdProofUrl = string.IsNullOrWhiteSpace(dto.IdProofUrl) ? GuestDefaults.NoIdProof : dto.IdProofUrl,
                 TenantId = 0
             };
 

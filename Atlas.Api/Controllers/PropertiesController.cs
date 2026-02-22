@@ -8,6 +8,7 @@ using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>CRUD operations for properties.</summary>
     [ApiController]
     [Route("properties")]
     [Produces("application/json")]

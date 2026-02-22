@@ -16,6 +16,7 @@ public class GuestAvailabilityRateResponseDto
     public List<GuestDayAvailabilityRateDto> Days { get; set; } = new();
 }
 
+/// <summary>Single day's availability and nightly rate for guest view.</summary>
 public class GuestDayAvailabilityRateDto
 {
     public string Date { get; set; } = string.Empty; // yyyy-MM-dd

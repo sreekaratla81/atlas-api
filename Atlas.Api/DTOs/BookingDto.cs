@@ -1,5 +1,6 @@
 namespace Atlas.Api.DTOs
 {
+    /// <summary>Booking data returned by the API.</summary>
     public class BookingDto
     {
         public int Id { get; set; }

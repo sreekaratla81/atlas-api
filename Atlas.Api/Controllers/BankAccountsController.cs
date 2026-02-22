@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Atlas.Api.Controllers
 {
+    /// <summary>CRUD operations for bank account records.</summary>
     [ApiController]
     [Route("bankaccounts")]
     [Authorize]
@@ -23,6 +24,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<BankAccountResponseDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<BankAccountResponseDto>>> GetAll()
         {
             var accounts = await _context.BankAccounts.AsNoTracking().ToListAsync();
@@ -30,6 +32,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(BankAccountResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BankAccountResponseDto>> Get(int id)
         {
             var account = await _context.BankAccounts.FirstOrDefaultAsync(x => x.Id == id);
@@ -37,6 +41,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(BankAccountResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<BankAccountResponseDto>> Create(BankAccountRequestDto request)
         {
             if (string.IsNullOrWhiteSpace(request.BankName))
@@ -58,6 +64,9 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update(int id, BankAccountRequestDto request)
         {
             var account = await _context.BankAccounts.FirstOrDefaultAsync(x => x.Id == id);
@@ -73,6 +82,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
             var account = await _context.BankAccounts.FirstOrDefaultAsync(x => x.Id == id);

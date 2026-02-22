@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Atlas.Api.Controllers;
 
+/// <summary>Tenant-level pricing configuration.</summary>
 [ApiController]
 [Route("tenant/settings/pricing")]
 [Produces("application/json")]
@@ -19,6 +20,7 @@ public class TenantPricingSettingsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(TenantPricingSettingsDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<TenantPricingSettingsDto>> Get(CancellationToken cancellationToken)
     {
         var settings = await _service.GetCurrentAsync(cancellationToken);
@@ -32,6 +34,8 @@ public class TenantPricingSettingsController : ControllerBase
     }
 
     [HttpPut]
+    [ProducesResponseType(typeof(TenantPricingSettingsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TenantPricingSettingsDto>> Put([FromBody] UpdateTenantPricingSettingsDto request, CancellationToken cancellationToken)
     {
         var updated = await _service.UpdateCurrentAsync(request, cancellationToken);

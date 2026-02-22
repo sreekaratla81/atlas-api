@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Atlas.Api.DTOs;
 
+/// <summary>Request body for creating or updating an incident.</summary>
 public class IncidentCreateDto
 {
     [Required]
@@ -22,6 +23,7 @@ public class IncidentCreateDto
     public string CreatedBy { get; set; } = null!;
 }
 
+/// <summary>Incident data returned by the API.</summary>
 public class IncidentResponseDto
 {
     public int Id { get; set; }

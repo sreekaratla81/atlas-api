@@ -7,6 +7,7 @@ using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers;
 
+/// <summary>Notification message template management.</summary>
 [ApiController]
 [Route("api/message-templates")]
 [Produces("application/json")]
@@ -21,6 +22,7 @@ public class MessageTemplatesController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<MessageTemplateResponseDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<MessageTemplateResponseDto>>> GetAll(
         [FromQuery] string? eventType,
         [FromQuery] string? channel,
@@ -40,6 +42,8 @@ public class MessageTemplatesController : ControllerBase
             query = query.Where(m => m.Channel == channel);
         if (isActive.HasValue)
             query = query.Where(m => m.IsActive == isActive.Value);
+
+        var totalCount = await query.CountAsync();
 
         var items = await query
             .OrderBy(m => m.EventType).ThenBy(m => m.Channel)
@@ -63,10 +67,16 @@ public class MessageTemplatesController : ControllerBase
                 UpdatedAtUtc = m.UpdatedAtUtc
             })
             .ToListAsync();
+
+        Response.Headers.Append("X-Total-Count", totalCount.ToString());
+        Response.Headers.Append("X-Page", page.ToString());
+        Response.Headers.Append("X-Page-Size", pageSize.ToString());
         return Ok(items);
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(MessageTemplateResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<MessageTemplateResponseDto>> Get(int id)
     {
         var item = await _context.MessageTemplates
@@ -94,6 +104,8 @@ public class MessageTemplatesController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(MessageTemplateResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<MessageTemplateResponseDto>> Create([FromBody] MessageTemplateCreateUpdateDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.EventType))
@@ -124,6 +136,9 @@ public class MessageTemplatesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(MessageTemplateResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<MessageTemplateResponseDto>> Update(int id, [FromBody] MessageTemplateCreateUpdateDto dto)
     {
         var entity = await _context.MessageTemplates.FirstOrDefaultAsync(m => m.Id == id);
@@ -145,6 +160,8 @@ public class MessageTemplatesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
         var entity = await _context.MessageTemplates.FirstOrDefaultAsync(m => m.Id == id);

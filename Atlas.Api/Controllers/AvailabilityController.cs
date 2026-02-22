@@ -2,6 +2,7 @@ using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("availability")]
     [Produces("application/json")]
+    [Authorize]
     public class AvailabilityController : ControllerBase
     {
         private readonly AppDbContext _context;

@@ -6,6 +6,7 @@ using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Atlas.Api.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Atlas.Api.Services;
@@ -43,19 +44,22 @@ public class QuoteService : IQuoteService
     private readonly PricingService _pricingService;
     private readonly AppDbContext _dbContext;
     private readonly byte[] _signingKey;
+    private readonly ILogger<QuoteService> _logger;
 
     public QuoteService(
         ITenantContextAccessor tenantContextAccessor,
         ITenantPricingSettingsService tenantPricingSettingsService,
         PricingService pricingService,
         AppDbContext dbContext,
-        IOptions<QuoteOptions> options)
+        IOptions<QuoteOptions> options,
+        ILogger<QuoteService> logger)
     {
         _tenantContextAccessor = tenantContextAccessor;
         _tenantPricingSettingsService = tenantPricingSettingsService;
         _pricingService = pricingService;
         _dbContext = dbContext;
         _signingKey = Encoding.UTF8.GetBytes(options.Value.SigningKey ?? string.Empty);
+        _logger = logger;
     }
 
     public async Task<QuoteIssueResponseDto> IssueAsync(CreateQuoteRequestDto request, CancellationToken cancellationToken = default)

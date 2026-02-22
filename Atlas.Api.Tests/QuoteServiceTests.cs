@@ -5,6 +5,7 @@ using Atlas.Api.Services;
 using Atlas.Api.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Atlas.Api.Tests;
@@ -42,14 +43,15 @@ public class QuoteServiceTests
         var db = new AppDbContext(options, tenantAccessor);
         var cache = new MemoryCache(new MemoryCacheOptions());
         var tenantSettingsService = new TenantPricingSettingsService(db, cache, tenantAccessor);
-        var pricingService = new PricingService(db, tenantSettingsService);
+        var pricingService = new PricingService(db, tenantSettingsService, NullLogger<PricingService>.Instance);
 
         return new QuoteService(
             tenantAccessor,
             tenantSettingsService,
             pricingService,
             db,
-            Microsoft.Extensions.Options.Options.Create(new QuoteOptions { SigningKey = "test-signing-key" }));
+            Microsoft.Extensions.Options.Options.Create(new QuoteOptions { SigningKey = "test-signing-key" }),
+            NullLogger<QuoteService>.Instance);
     }
 
     private static async Task SeedTenantDataAsync(string dbName, int tenantId)

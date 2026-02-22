@@ -1,11 +1,14 @@
 using Atlas.Api.DTOs;
 using Atlas.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Atlas.Api.Controllers;
 
 [ApiController]
 [Route("tenant/settings/pricing")]
+[Produces("application/json")]
+[AllowAnonymous]
 public class TenantPricingSettingsController : ControllerBase
 {
     private readonly ITenantPricingSettingsService _service;

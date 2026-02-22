@@ -250,6 +250,7 @@ namespace Atlas.Api
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseMiddleware<Atlas.Api.Middleware.CorrelationIdMiddleware>();
             app.UseHttpLogging();
 
             app.UseSwagger();

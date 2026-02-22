@@ -1,5 +1,6 @@
 using Atlas.Api.Data;
 using Atlas.Api.Models.Reports;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("reports")]
     [Produces("application/json")]
+    [AllowAnonymous]
     public class ReportsController : ControllerBase
     {
         private readonly AppDbContext _context;

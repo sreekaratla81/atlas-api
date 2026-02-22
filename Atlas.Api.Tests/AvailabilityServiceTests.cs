@@ -2,6 +2,7 @@ using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Atlas.Api.Tests;
 
@@ -61,7 +62,7 @@ public class AvailabilityServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new AvailabilityService(context);
+        var service = new AvailabilityService(context, NullLogger<AvailabilityService>.Instance);
 
         var response = await service.GetAvailabilityAsync(property.Id, new DateTime(2025, 1, 1), new DateTime(2025, 1, 3), 1);
 
@@ -148,7 +149,7 @@ public class AvailabilityServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new AvailabilityService(context);
+        var service = new AvailabilityService(context, NullLogger<AvailabilityService>.Instance);
 
         var response = await service.GetAvailabilityAsync(property.Id, new DateTime(2025, 2, 2), new DateTime(2025, 2, 4), 1);
 

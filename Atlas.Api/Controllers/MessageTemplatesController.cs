@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Atlas.Api.Data;
@@ -9,6 +10,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("api/message-templates")]
 [Produces("application/json")]
+[Authorize]
 public class MessageTemplatesController : ControllerBase
 {
     private readonly AppDbContext _context;

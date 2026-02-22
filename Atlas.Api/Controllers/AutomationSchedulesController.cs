@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Atlas.Api.Data;
@@ -8,6 +9,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("api/automation-schedules")]
 [Produces("application/json")]
+[AllowAnonymous]
 public class AutomationSchedulesController : ControllerBase
 {
     private readonly AppDbContext _context;

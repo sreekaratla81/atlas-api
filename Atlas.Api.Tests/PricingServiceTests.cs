@@ -3,6 +3,7 @@ using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq;
 
 namespace Atlas.Api.Tests;
@@ -64,7 +65,7 @@ public class PricingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new PricingService(context, new StubTenantPricingSettingsService());
+        var service = new PricingService(context, new StubTenantPricingSettingsService(), NullLogger<PricingService>.Instance);
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 3), new DateTime(2025, 1, 5));
 
@@ -120,7 +121,7 @@ public class PricingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new PricingService(context, new StubTenantPricingSettingsService());
+        var service = new PricingService(context, new StubTenantPricingSettingsService(), NullLogger<PricingService>.Instance);
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 2), new DateTime(2025, 1, 5));
 
@@ -185,7 +186,7 @@ public class PricingServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new PricingService(context, new StubTenantPricingSettingsService());
+        var service = new PricingService(context, new StubTenantPricingSettingsService(), NullLogger<PricingService>.Instance);
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 1, 3), new DateTime(2025, 1, 6));
 

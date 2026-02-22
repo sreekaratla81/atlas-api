@@ -3,6 +3,7 @@ using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Services
 {
@@ -10,10 +11,12 @@ namespace Atlas.Api.Services
     {
         private const string ActiveAvailabilityStatus = BlockStatuses.Active;
         private readonly AppDbContext _context;
+        private readonly ILogger<AvailabilityService> _logger;
 
-        public AvailabilityService(AppDbContext context)
+        public AvailabilityService(AppDbContext context, ILogger<AvailabilityService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<AvailabilityResponseDto> GetAvailabilityAsync(int propertyId, DateTime checkIn, DateTime checkOut, int guests)

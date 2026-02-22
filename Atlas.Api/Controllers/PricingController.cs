@@ -1,5 +1,6 @@
 using Atlas.Api.DTOs;
 using Atlas.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Atlas.Api.Controllers;
@@ -7,6 +8,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("pricing")]
 [Produces("application/json")]
+[Authorize]
 public class PricingController : ControllerBase
 {
     private readonly IGuestPricingService _guestPricingService;

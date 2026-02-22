@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Atlas.Api.Options;
 
@@ -8,11 +9,13 @@ public sealed class AzureServiceBusPublisher : IEventBusPublisher
 {
     private readonly AzureServiceBusOptions _options;
     private readonly ServiceBusClient _client;
+    private readonly ILogger<AzureServiceBusPublisher> _logger;
 
-    public AzureServiceBusPublisher(IOptions<AzureServiceBusOptions> options)
+    public AzureServiceBusPublisher(IOptions<AzureServiceBusOptions> options, ILogger<AzureServiceBusPublisher> logger)
     {
         _options = options.Value;
         _client = new ServiceBusClient(_options.ConnectionString);
+        _logger = logger;
     }
 
     public async Task PublishAsync(string topic, string messageId, string? sessionId, IReadOnlyDictionary<string, object> applicationProperties, ReadOnlyMemory<byte> body, CancellationToken cancellationToken = default)

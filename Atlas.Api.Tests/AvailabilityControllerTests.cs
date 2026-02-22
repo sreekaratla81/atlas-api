@@ -18,7 +18,7 @@ public class AvailabilityControllerTests
             .Options;
 
         using var context = new AppDbContext(options);
-        var service = new AvailabilityService(context);
+        var service = new AvailabilityService(context, NullLogger<AvailabilityService>.Instance);
         var controller = new AvailabilityController(context, service, NullLogger<AvailabilityController>.Instance);
 
         var result = await controller.GetAvailability(1, new DateTime(2025, 1, 2), new DateTime(2025, 1, 2), 1);
@@ -72,7 +72,7 @@ public class AvailabilityControllerTests
         });
         await context.SaveChangesAsync();
 
-        var service = new AvailabilityService(context);
+        var service = new AvailabilityService(context, NullLogger<AvailabilityService>.Instance);
         var controller = new AvailabilityController(context, service, NullLogger<AvailabilityController>.Instance);
 
         var result = await controller.GetAvailability(property.Id, new DateTime(2025, 1, 1), new DateTime(2025, 1, 3), 1);

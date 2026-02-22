@@ -1,5 +1,6 @@
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,8 @@ namespace Atlas.Api.Controllers
 {
     [ApiController]
     [Route("ops")]
+    [Produces("application/json")]
+    [AllowAnonymous]
     public class OpsController : ControllerBase
     {
         private readonly AppDbContext _dbContext;

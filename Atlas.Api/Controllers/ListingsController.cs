@@ -1,4 +1,5 @@
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("listings")]
     [Produces("application/json")]
+    [Authorize]
     public class ListingsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -23,6 +25,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<Listing>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<Listing>>> GetAll()
         {
             try
@@ -40,6 +43,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("public")]
+        [ProducesResponseType(typeof(IEnumerable<PublicListingDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<PublicListingDto>>> GetPublicListings()
         {
             try
@@ -72,6 +76,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(Listing), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<Listing>> Get(int id)
         {
             try
@@ -89,6 +95,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(Listing), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<Listing>> Create(Listing item)
         {
             item.TenantId = 0;
@@ -116,6 +124,9 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update(int id, Listing item)
         {
             try
@@ -155,6 +166,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
             try

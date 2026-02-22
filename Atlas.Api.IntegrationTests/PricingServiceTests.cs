@@ -4,6 +4,7 @@ using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq;
 
 namespace Atlas.Api.IntegrationTests;
@@ -24,7 +25,7 @@ public class PricingServiceTests : IntegrationTestBase
         await DataSeeder.SeedListingPricingAsync(db, listing, 110m, 140m, null, "USD");
         await DataSeeder.SeedListingDailyRateAsync(db, listing, new DateTime(2025, 2, 8), 200m, "USD");
 
-        var service = new PricingService(db, new StubTenantPricingSettingsService());
+        var service = new PricingService(db, new StubTenantPricingSettingsService(), NullLogger<PricingService>.Instance);
 
         var result = await service.GetPricingAsync(listing.Id, new DateTime(2025, 2, 7), new DateTime(2025, 2, 10));
 

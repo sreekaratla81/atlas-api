@@ -6,6 +6,7 @@ using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Events;
 using Atlas.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("bookings")]
     [Produces("application/json")]
+    [Authorize]
     public class BookingsController : ControllerBase
     {
         private readonly AppDbContext _context;

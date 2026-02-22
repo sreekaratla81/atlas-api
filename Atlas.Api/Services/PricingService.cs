@@ -2,6 +2,7 @@ using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Services
 {
@@ -9,11 +10,13 @@ namespace Atlas.Api.Services
     {
         private readonly AppDbContext _context;
         private readonly ITenantPricingSettingsService _tenantPricingSettingsService;
+        private readonly ILogger<PricingService> _logger;
 
-        public PricingService(AppDbContext context, ITenantPricingSettingsService tenantPricingSettingsService)
+        public PricingService(AppDbContext context, ITenantPricingSettingsService tenantPricingSettingsService, ILogger<PricingService> logger)
         {
             _context = context;
             _tenantPricingSettingsService = tenantPricingSettingsService;
+            _logger = logger;
         }
 
         public async Task<PricingQuoteDto> GetPricingAsync(int listingId, DateTime checkIn, DateTime checkOut)

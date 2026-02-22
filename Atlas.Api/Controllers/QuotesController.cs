@@ -1,11 +1,14 @@
 using Atlas.Api.DTOs;
 using Atlas.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Atlas.Api.Controllers;
 
 [ApiController]
 [Route("quotes")]
+[Produces("application/json")]
+[AllowAnonymous]
 public class QuotesController : ControllerBase
 {
     private readonly IQuoteService _quoteService;

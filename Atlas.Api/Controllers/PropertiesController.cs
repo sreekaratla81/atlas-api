@@ -1,7 +1,9 @@
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 
 namespace Atlas.Api.Controllers
@@ -9,6 +11,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("properties")]
     [Produces("application/json")]
+    [Authorize]
     public class PropertiesController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -21,14 +24,15 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Property>>> GetAll()
+        [ProducesResponseType(typeof(IEnumerable<PropertyResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<PropertyResponseDto>>> GetAll()
         {
             _logger.LogInformation("Fetching all properties");
             try
             {
                 var properties = await _context.Properties.ToListAsync();
                 _logger.LogInformation("Retrieved {Count} properties", properties.Count);
-                return properties;
+                return Ok(properties.Select(MapToResponseDto));
             }
             catch (Exception ex)
             {
@@ -38,47 +42,61 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Property>> Get(int id)
+        [ProducesResponseType(typeof(PropertyResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<PropertyResponseDto>> Get(int id)
         {
             var item = await _context.Properties.FirstOrDefaultAsync(x => x.Id == id);
-            return item == null ? NotFound() : item;
+            if (item == null) return NotFound();
+            return MapToResponseDto(item);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Property>> Create(Property item)
+        [ProducesResponseType(typeof(PropertyResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<PropertyResponseDto>> Create(PropertyCreateDto dto)
         {
-            if (string.IsNullOrWhiteSpace(item.Name))
-                return BadRequest(new { error = "Name is required." });
-
-            item.TenantId = 0;
+            var item = new Property
+            {
+                Name = dto.Name,
+                Address = dto.Address,
+                Type = dto.Type,
+                OwnerName = dto.OwnerName,
+                ContactPhone = dto.ContactPhone,
+                CommissionPercent = dto.CommissionPercent,
+                Status = dto.Status,
+                TenantId = 0
+            };
             _context.Properties.Add(item);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Created property {PropertyId}: {Name}", item.Id, item.Name);
-            return CreatedAtAction(nameof(Get), new { id = item.Id }, item);
+            return CreatedAtAction(nameof(Get), new { id = item.Id }, MapToResponseDto(item));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Property item)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Update(int id, PropertyCreateDto dto)
         {
-            if (id != item.Id) return BadRequest();
-
             var existing = await _context.Properties.FirstOrDefaultAsync(x => x.Id == id);
             if (existing == null) return NotFound();
-            item.TenantId = existing.TenantId;
 
-            existing.Name = item.Name;
-            existing.Address = item.Address;
-            existing.Type = item.Type;
-            existing.OwnerName = item.OwnerName;
-            existing.ContactPhone = item.ContactPhone;
-            existing.CommissionPercent = item.CommissionPercent;
-            existing.Status = item.Status;
+            existing.Name = dto.Name;
+            existing.Address = dto.Address;
+            existing.Type = dto.Type;
+            existing.OwnerName = dto.OwnerName;
+            existing.ContactPhone = dto.ContactPhone;
+            existing.CommissionPercent = dto.CommissionPercent;
+            existing.Status = dto.Status;
 
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
             var item = await _context.Properties.FirstOrDefaultAsync(x => x.Id == id);
@@ -87,5 +105,17 @@ namespace Atlas.Api.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        private static PropertyResponseDto MapToResponseDto(Property p) => new()
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Address = p.Address,
+            Type = p.Type,
+            OwnerName = p.OwnerName,
+            ContactPhone = p.ContactPhone,
+            CommissionPercent = p.CommissionPercent,
+            Status = p.Status
+        };
     }
 }

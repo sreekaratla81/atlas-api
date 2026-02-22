@@ -10,6 +10,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("bankaccounts")]
     [Authorize]
+    [Produces("application/json")]
     public class BankAccountsController : ControllerBase
     {
         private readonly AppDbContext _context;

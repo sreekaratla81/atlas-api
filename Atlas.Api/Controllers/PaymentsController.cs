@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
@@ -11,6 +12,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
+    [Produces("application/json")]
     public class PaymentsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -21,7 +23,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Payment>>> GetAll(
+        [ProducesResponseType(typeof(IEnumerable<PaymentResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<PaymentResponseDto>>> GetAll(
             [FromQuery] int? bookingId,
             [FromQuery] DateTime? receivedFrom,
             [FromQuery] DateTime? receivedTo,
@@ -45,19 +48,26 @@ namespace Atlas.Api.Controllers
                 .OrderByDescending(p => p.ReceivedOn)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(p => MapToResponseDto(p))
                 .ToListAsync();
             return Ok(items);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Payment>> Get(int id)
+        [ProducesResponseType(typeof(PaymentResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<PaymentResponseDto>> Get(int id)
         {
             var item = await _context.Payments.FirstOrDefaultAsync(x => x.Id == id);
-            return item == null ? NotFound() : item;
+            if (item == null) return NotFound();
+            return MapToResponseDto(item);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Payment>> Create(PaymentCreateDto request)
+        [ProducesResponseType(typeof(PaymentResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<PaymentResponseDto>> Create(PaymentCreateDto request)
         {
             if (request.BookingId <= 0)
                 return BadRequest(new { error = "BookingId is required." });
@@ -81,14 +91,17 @@ namespace Atlas.Api.Controllers
                 RazorpayOrderId = request.RazorpayOrderId,
                 RazorpayPaymentId = request.RazorpayPaymentId,
                 RazorpaySignature = request.RazorpaySignature,
-                Status = string.IsNullOrWhiteSpace(request.Status) ? "pending" : request.Status
+                Status = string.IsNullOrWhiteSpace(request.Status) ? PaymentStatuses.Pending : request.Status
             };
             _context.Payments.Add(item);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = item.Id }, item);
+            return CreatedAtAction(nameof(Get), new { id = item.Id }, MapToResponseDto(item));
         }
 
         [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update(int id, PaymentUpdateDto request)
         {
             var item = await _context.Payments.FirstOrDefaultAsync(x => x.Id == id);
@@ -113,6 +126,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
             var item = await _context.Payments.FirstOrDefaultAsync(x => x.Id == id);
@@ -121,5 +136,22 @@ namespace Atlas.Api.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        private static PaymentResponseDto MapToResponseDto(Payment p) => new()
+        {
+            Id = p.Id,
+            BookingId = p.BookingId,
+            Amount = p.Amount,
+            BaseAmount = p.BaseAmount,
+            DiscountAmount = p.DiscountAmount,
+            ConvenienceFeeAmount = p.ConvenienceFeeAmount,
+            Method = p.Method,
+            Type = p.Type,
+            ReceivedOn = p.ReceivedOn,
+            Note = p.Note,
+            RazorpayOrderId = p.RazorpayOrderId,
+            RazorpayPaymentId = p.RazorpayPaymentId,
+            Status = p.Status
+        };
     }
 }

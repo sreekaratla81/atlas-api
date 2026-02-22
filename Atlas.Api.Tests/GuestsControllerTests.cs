@@ -1,5 +1,6 @@
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,24 +22,24 @@ public class GuestsControllerTests
     {
         using var context = GetContext(nameof(Create_SetsDefaultIdProofUrl_WhenMissing));
         var controller = new GuestsController(context);
-        var guest = new Guest { Name = "g", Phone = "1", Email = "e" };
+        var dto = new GuestCreateDto { Name = "g", Phone = "1", Email = "e" };
 
-        var result = await controller.Create(guest);
+        var result = await controller.Create(dto);
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
-        var value = Assert.IsType<Guest>(created.Value);
+        var value = Assert.IsType<GuestDto>(created.Value);
         Assert.Equal("N/A", value.IdProofUrl);
     }
 
     [Fact]
-    public async Task Update_ReturnsBadRequest_WhenIdMismatch()
+    public async Task Update_ReturnsNotFound_WhenMissing()
     {
-        using var context = GetContext(nameof(Update_ReturnsBadRequest_WhenIdMismatch));
+        using var context = GetContext(nameof(Update_ReturnsNotFound_WhenMissing));
         var controller = new GuestsController(context);
-        var guest = new Guest { Id = 1, Name = "g", Phone = "1", Email = "e" };
+        var dto = new GuestUpdateDto { Name = "g", Phone = "1", Email = "e" };
 
-        var result = await controller.Update(2, guest);
+        var result = await controller.Update(999, dto);
 
-        Assert.IsType<BadRequestResult>(result);
+        Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]

@@ -169,8 +169,9 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.Notifications.NotificationOrchestrator>();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
-            // JWT disabled when not set or placeholder (saves dev time; enable via real Jwt:Key when needed)
-            var jwtEnabled = !string.IsNullOrWhiteSpace(jwtKey) && !IsPlaceholderValue(jwtKey);
+            // JWT disabled when not set, placeholder, or key too short for HS256 (256 bits). Enables easy dev login; set 32+ char secret before production.
+            var jwtEnabled = !string.IsNullOrWhiteSpace(jwtKey) && !IsPlaceholderValue(jwtKey)
+                && Encoding.UTF8.GetByteCount(jwtKey!) >= 32;
 
             if (jwtEnabled)
             {

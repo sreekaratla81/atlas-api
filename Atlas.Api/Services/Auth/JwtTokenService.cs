@@ -25,6 +25,9 @@ public class JwtTokenService : IJwtTokenService
         var key = _configuration["Jwt:Key"];
         if (string.IsNullOrWhiteSpace(key) || IsPlaceholder(key))
             return "Bearer.disabled"; // When JWT is disabled, return a sentinel so onboarding/login still return a token
+        // HS256 requires at least 256 bits (32 bytes); short keys cause IDX10720 and block staff login
+        if (Encoding.UTF8.GetByteCount(key) < 32)
+            return "Bearer.disabled";
 
         var expiryHours = int.TryParse(_configuration["Jwt:ExpiryHours"], out var h) ? h : 24;
 

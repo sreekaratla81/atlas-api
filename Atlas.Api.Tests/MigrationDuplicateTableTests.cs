@@ -11,9 +11,10 @@ namespace Atlas.Api.Tests;
 /// </summary>
 public class MigrationDuplicateTableTests
 {
+    // EnvironmentMarker was moved from InitialBaseline to FD005_AuditableAndModelSync for dev/prod compatibility
     private static readonly HashSet<string> InitialBaselineTables = new(StringComparer.Ordinal)
     {
-        "AutomationSchedule", "BankAccounts", "EnvironmentMarker", "Guests", "Incidents",
+        "AutomationSchedule", "BankAccounts", "Guests", "Incidents",
         "MessageTemplate", "OutboxMessage", "Properties", "Users", "Listings", "Bookings",
         "ListingPricing", "AvailabilityBlock", "CommunicationLog", "Payments", "ListingDailyRate"
     };

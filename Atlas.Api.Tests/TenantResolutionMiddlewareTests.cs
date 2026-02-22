@@ -3,6 +3,7 @@ using Atlas.Api.Services.Tenancy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Atlas.Api.Tests;
@@ -22,7 +23,7 @@ public class TenantResolutionMiddlewareTests
         {
             nextCalled = true;
             return Task.CompletedTask;
-        });
+        }, NullLogger<TenantResolutionMiddleware>.Instance);
 
         var context = new DefaultHttpContext();
 
@@ -46,7 +47,7 @@ public class TenantResolutionMiddlewareTests
         {
             nextCalled = true;
             return Task.CompletedTask;
-        });
+        }, NullLogger<TenantResolutionMiddleware>.Instance);
 
         var context = new DefaultHttpContext();
 
@@ -66,7 +67,7 @@ public class TenantResolutionMiddlewareTests
         {
             nextCalled = true;
             return Task.CompletedTask;
-        });
+        }, NullLogger<TenantResolutionMiddleware>.Instance);
 
         var context = new DefaultHttpContext();
         context.Request.Path = "/health";

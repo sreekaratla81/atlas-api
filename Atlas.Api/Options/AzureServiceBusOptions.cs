@@ -17,4 +17,8 @@ public class AzureServiceBusOptions
     public string SubscriptionConversationOrchestrator { get; set; } = "conversation-orchestrator";
 
     public int MaxConcurrentSessions { get; set; } = 4;
+
+    public int OutboxBatchSize { get; set; } = 50;
+    public int OutboxPollIntervalSeconds { get; set; } = 15;
+    public int OutboxMaxAttempts { get; set; } = 5;
 }

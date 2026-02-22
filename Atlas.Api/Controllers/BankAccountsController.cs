@@ -1,6 +1,7 @@
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace Atlas.Api.Controllers
 {
     [ApiController]
     [Route("bankaccounts")]
+    [Authorize]
     public class BankAccountsController : ControllerBase
     {
         private readonly AppDbContext _context;

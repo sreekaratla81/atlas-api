@@ -13,11 +13,13 @@ using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Atlas.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("payments")]
     public class RazorpayController : ControllerBase
     {
         private readonly IRazorpayPaymentService _razorpayService;

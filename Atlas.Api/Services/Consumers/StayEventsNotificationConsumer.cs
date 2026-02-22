@@ -75,6 +75,14 @@ public sealed class StayEventsNotificationConsumer : BackgroundService
             return;
         }
 
+        if (message.DeliveryCount > 5)
+        {
+            _logger.LogError("Stay event exceeded max delivery count ({DeliveryCount}): {EventType} tenant {TenantId} messageId {MessageId}. Dead-lettering.",
+                message.DeliveryCount, eventType, tenantId, message.MessageId);
+            await completeAsync(message, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         var payloadJson = message.Body?.ToString() ?? "{}";
         try
         {
@@ -82,10 +90,11 @@ public sealed class StayEventsNotificationConsumer : BackgroundService
             var orchestrator = scope.ServiceProvider.GetRequiredService<NotificationOrchestrator>();
             await orchestrator.HandleEventAsync(tenantId, eventType, entityId, correlationId, eventId ?? "", payloadJson, cancellationToken).ConfigureAwait(false);
             await completeAsync(message, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Stay event processed: {EventType} tenant {TenantId} entity {EntityId}.", eventType, tenantId, entityId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Stay event processing failed: {EventType} tenant {TenantId}.", eventType, tenantId);
+            _logger.LogError(ex, "Stay event processing failed (attempt {DeliveryCount}): {EventType} tenant {TenantId}.", message.DeliveryCount, eventType, tenantId);
             await abandonAsync(message, null, cancellationToken).ConfigureAwait(false);
         }
     }

@@ -16,9 +16,9 @@ public sealed class OutboxDispatcherHostedService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<OutboxDispatcherHostedService> _logger;
     private readonly AzureServiceBusOptions _options;
-    private const int MaxAttempts = 5;
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
-    private const int BatchSize = 50;
+    private readonly int _maxAttempts;
+    private readonly TimeSpan _pollInterval;
+    private readonly int _batchSize;
 
     public OutboxDispatcherHostedService(
         IServiceScopeFactory scopeFactory,
@@ -28,6 +28,9 @@ public sealed class OutboxDispatcherHostedService : BackgroundService
         _scopeFactory = scopeFactory;
         _logger = logger;
         _options = options.Value;
+        _maxAttempts = _options.OutboxMaxAttempts;
+        _pollInterval = TimeSpan.FromSeconds(_options.OutboxPollIntervalSeconds);
+        _batchSize = _options.OutboxBatchSize;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -54,7 +57,7 @@ public sealed class OutboxDispatcherHostedService : BackgroundService
                 _logger.LogError(ex, "Outbox dispatcher iteration failed.");
             }
 
-            await Task.Delay(PollInterval, stoppingToken).ConfigureAwait(false);
+            await Task.Delay(_pollInterval, stoppingToken).ConfigureAwait(false);
         }
     }
 
@@ -69,7 +72,7 @@ public sealed class OutboxDispatcherHostedService : BackgroundService
             .AsNoTracking()
             .Where(o => o.Status == "Pending" && (o.NextAttemptUtc == null || o.NextAttemptUtc <= now))
             .OrderBy(o => o.NextAttemptUtc ?? o.CreatedAtUtc)
-            .Take(BatchSize)
+            .Take(_batchSize)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -121,7 +124,7 @@ public sealed class OutboxDispatcherHostedService : BackgroundService
         catch (Exception ex)
         {
             entity.LastError = ex.Message;
-            if (entity.AttemptCount >= MaxAttempts)
+            if (entity.AttemptCount >= _maxAttempts)
             {
                 entity.Status = "Failed";
                 entity.NextAttemptUtc = null;

@@ -16,6 +16,8 @@ using Atlas.Api.Services;
 using Atlas.Api.Models.Dtos.Razorpay;
 using Atlas.Api.Services.Tenancy;
 using Microsoft.Extensions.Options;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Atlas.Api
 {
@@ -65,6 +67,9 @@ namespace Atlas.Api
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Atlas API", Version = "v1" });
                 c.CustomSchemaIds(type => type.FullName);
                 c.IgnoreObsoleteProperties();
+                var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
                 c.AddSecurityDefinition(TenantProvider.TenantSlugHeaderName, new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,
@@ -173,7 +178,43 @@ namespace Atlas.Api
                             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
                         };
                     });
+                builder.Services.AddAuthorization();
             }
+            else
+            {
+                builder.Services.AddAuthorization(options =>
+                {
+                    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                        .RequireAssertion(_ => true)
+                        .Build();
+                });
+            }
+
+            builder.Services.AddHttpLogging(options =>
+            {
+                options.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestMethod
+                    | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestPath
+                    | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.ResponseStatusCode
+                    | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.Duration;
+                options.CombineLogs = true;
+            });
+
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.AddFixedWindowLimiter("mutations", opt =>
+                {
+                    opt.PermitLimit = 30;
+                    opt.Window = TimeSpan.FromMinutes(1);
+                    opt.QueueLimit = 0;
+                });
+                options.AddFixedWindowLimiter("payments", opt =>
+                {
+                    opt.PermitLimit = 10;
+                    opt.Window = TimeSpan.FromMinutes(1);
+                    opt.QueueLimit = 0;
+                });
+            });
 
             var app = builder.Build();
 
@@ -209,6 +250,8 @@ namespace Atlas.Api
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseHttpLogging();
+
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -233,6 +276,7 @@ namespace Atlas.Api
             }
 
             app.UseCors(CorsPolicy);
+            app.UseRateLimiter();
 
             app.UseMiddleware<TenantResolutionMiddleware>();
 
@@ -242,8 +286,8 @@ namespace Atlas.Api
             if (jwtEnabled && !string.IsNullOrWhiteSpace(jwtKey))
             {
                 app.UseAuthentication();
-                app.UseAuthorization();
             }
+            app.UseAuthorization();
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
             app.MapGet("/health", async (IOptions<AzureServiceBusOptions> sbOpts, AppDbContext db) =>

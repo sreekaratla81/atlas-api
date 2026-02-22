@@ -42,7 +42,16 @@ namespace Atlas.Api.Controllers
         public async Task<IActionResult> Update(int id, Incident item)
         {
             if (id != item.Id) return BadRequest();
-            _context.Entry(item).State = EntityState.Modified;
+            var existing = await _context.Incidents.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            existing.ListingId = item.ListingId;
+            existing.BookingId = item.BookingId;
+            existing.Description = item.Description;
+            existing.ActionTaken = item.ActionTaken;
+            existing.Status = item.Status;
+            existing.CreatedBy = item.CreatedBy;
+
             await _context.SaveChangesAsync();
             return NoContent();
         }

@@ -94,6 +94,13 @@ public class MessageTemplatesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<MessageTemplateResponseDto>> Create([FromBody] MessageTemplateCreateUpdateDto dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.EventType))
+            return BadRequest(new { error = "EventType is required." });
+        if (string.IsNullOrWhiteSpace(dto.Channel))
+            return BadRequest(new { error = "Channel is required." });
+        if (string.IsNullOrWhiteSpace(dto.Body))
+            return BadRequest(new { error = "Body is required." });
+
         var entity = new MessageTemplate
         {
             TemplateKey = dto.TemplateKey,

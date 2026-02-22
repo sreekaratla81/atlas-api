@@ -36,6 +36,11 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<BankAccountResponseDto>> Create(BankAccountRequestDto request)
         {
+            if (string.IsNullOrWhiteSpace(request.BankName))
+                return BadRequest(new { error = "BankName is required." });
+            if (string.IsNullOrWhiteSpace(request.AccountNumber))
+                return BadRequest(new { error = "AccountNumber is required." });
+
             var account = new BankAccount
             {
                 BankName = request.BankName,

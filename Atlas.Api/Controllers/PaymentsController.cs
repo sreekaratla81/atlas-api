@@ -57,6 +57,17 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Payment>> Create(PaymentCreateDto request)
         {
+            if (request.BookingId <= 0)
+                return BadRequest(new { error = "BookingId is required." });
+            if (request.Amount <= 0)
+                return BadRequest(new { error = "Amount must be greater than zero." });
+            if (string.IsNullOrWhiteSpace(request.Method))
+                return BadRequest(new { error = "Method is required." });
+
+            var bookingExists = await _context.Bookings.AnyAsync(b => b.Id == request.BookingId);
+            if (!bookingExists)
+                return NotFound(new { error = $"Booking {request.BookingId} not found." });
+
             var item = new Payment
             {
                 BookingId = request.BookingId,

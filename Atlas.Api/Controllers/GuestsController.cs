@@ -34,6 +34,13 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Guest>> Create(Guest item)
         {
+            if (string.IsNullOrWhiteSpace(item.Name))
+                return BadRequest(new { error = "Name is required." });
+            if (string.IsNullOrWhiteSpace(item.Email))
+                return BadRequest(new { error = "Email is required." });
+            if (string.IsNullOrWhiteSpace(item.Phone))
+                return BadRequest(new { error = "Phone is required." });
+
             item.TenantId = 0;
             if (string.IsNullOrWhiteSpace(item.IdProofUrl))
             {

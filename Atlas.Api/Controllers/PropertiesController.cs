@@ -47,9 +47,13 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Property>> Create(Property item)
         {
+            if (string.IsNullOrWhiteSpace(item.Name))
+                return BadRequest(new { error = "Name is required." });
+
             item.TenantId = 0;
             _context.Properties.Add(item);
             await _context.SaveChangesAsync();
+            _logger.LogInformation("Created property {PropertyId}: {Name}", item.Id, item.Name);
             return CreatedAtAction(nameof(Get), new { id = item.Id }, item);
         }
 

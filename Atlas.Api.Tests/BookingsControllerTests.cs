@@ -1,3 +1,4 @@
+#pragma warning disable CS0618
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;

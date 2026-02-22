@@ -23,7 +23,7 @@ namespace Atlas.Api.Controllers
         private readonly Atlas.Api.Services.IBookingWorkflowPublisher _bookingWorkflowPublisher;
 #pragma warning restore CS0618
         private const string ActiveAvailabilityStatus = BlockStatuses.Active;
-        private const string CancelledAvailabilityStatus = "Cancelled";
+        private const string CancelledAvailabilityStatus = BookingStatuses.Cancelled;
         private const string BookingBlockType = "Booking";
         private const string SystemSource = "System";
 
@@ -40,6 +40,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<BookingListDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<BookingListDto>>> GetAll(
             [FromQuery] DateTime? checkinStart,
             [FromQuery] DateTime? checkinEnd,
@@ -120,6 +122,9 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("by-reference")]
+        [ProducesResponseType(typeof(BookingDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BookingDto>> GetByExternalReservationId([FromQuery] string? externalReservationId)
         {
             if (string.IsNullOrWhiteSpace(externalReservationId))
@@ -141,6 +146,8 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(BookingDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BookingDto>> Get(int id)
         {
             try
@@ -159,6 +166,9 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(BookingDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<ActionResult<BookingDto>> Create([FromBody] CreateBookingRequest request)
         {
             try
@@ -263,6 +273,10 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateBookingRequest booking)
         {
             try
@@ -364,6 +378,13 @@ namespace Atlas.Api.Controllers
                     if (guestForConfirm != null)
                         AddBookingConfirmedOutbox(existingBooking, guestForConfirm);
                 }
+                else if (IsCancelledStatus(existingBooking.BookingStatus))
+                {
+                    var guestForCancel = await _context.Guests.AsNoTracking().FirstOrDefaultAsync(g => g.Id == existingBooking.GuestId);
+                    AddOutboxMessage("booking.events", EventTypes.BookingCancelled, existingBooking.Id.ToString(),
+                        new { bookingId = existingBooking.Id, guestId = existingBooking.GuestId, cancelledAtUtc = existingBooking.CancelledAtUtc,
+                              guest = guestForCancel != null ? new { guestForCancel.Phone, guestForCancel.Email } : (object?)null });
+                }
 
                 try
                 {
@@ -384,12 +405,21 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
             try
             {
                 var item = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
                 if (item == null) return NotFound();
+
+                var blocks = await _context.AvailabilityBlocks
+                    .Where(ab => ab.BookingId == id)
+                    .ToListAsync();
+                if (blocks.Count > 0)
+                    _context.AvailabilityBlocks.RemoveRange(blocks);
+
                 _context.Bookings.Remove(item);
                 await _context.SaveChangesAsync();
                 return NoContent();
@@ -402,6 +432,9 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost("{id}/cancel")]
+        [ProducesResponseType(typeof(BookingDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BookingDto>> Cancel(int id)
         {
             try
@@ -436,6 +469,9 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost("{id}/checkin")]
+        [ProducesResponseType(typeof(BookingDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BookingDto>> CheckIn(int id)
         {
             try
@@ -468,6 +504,9 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpPost("{id}/checkout")]
+        [ProducesResponseType(typeof(BookingDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BookingDto>> CheckOut(int id)
         {
             try

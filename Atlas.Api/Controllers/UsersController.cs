@@ -33,6 +33,13 @@ namespace Atlas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> Create(User item)
         {
+            if (string.IsNullOrWhiteSpace(item.Name))
+                return BadRequest(new { error = "Name is required." });
+            if (string.IsNullOrWhiteSpace(item.Email))
+                return BadRequest(new { error = "Email is required." });
+            if (string.IsNullOrWhiteSpace(item.Role))
+                return BadRequest(new { error = "Role is required." });
+
             item.TenantId = 0;
             _context.Users.Add(item);
             await _context.SaveChangesAsync();

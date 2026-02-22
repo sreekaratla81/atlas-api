@@ -52,6 +52,7 @@ namespace Atlas.Api
                 .AddControllers(options =>
                 {
                     options.Filters.Add<Atlas.Api.Filters.ValidateModelAttribute>();
+                    options.Filters.Add<Atlas.Api.Filters.ApiExceptionFilter>();
                 })
                 .AddJsonOptions(opts =>
                 {

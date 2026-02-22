@@ -125,11 +125,13 @@ repository—use secret managers or platform configuration instead.
 
 The **CI and Deploy to Dev** workflow (`ci-deploy-dev.yml`) runs restore → build (Release) → unit tests → **integration tests** (including UI contract tests). Integration tests use LocalDb on `windows-latest` and validate host startup and the same flows the guest/admin portals use (see `docs/API-TESTING-BEFORE-DEPLOY.md`).
 
-Run locally before opening a PR: follow `CONTRIBUTING.md`. For full validation, run the release gate: `cd atlas-e2e; npm run release-gate`. See workspace root `DEVSECOPS-GATES-BASELINE.md` for the 16-gate model.
+Run locally before opening a PR: follow `CONTRIBUTING.md`. For full validation, run the release gate: `cd atlas-e2e; npm run release-gate`. See [atlas-e2e/docs/delivery/DEVSECOPS-GATES-BASELINE.md](../atlas-e2e/docs/delivery/DEVSECOPS-GATES-BASELINE.md) for the 16-gate model.
 
 ## Documentation
 
-See `docs/README.md` for the full doc index. Key files:
+**System-level docs:** [atlas-e2e/docs](../atlas-e2e/docs/) — Canonical index (00–10 structure) for architecture, roadmap, local-dev setup, runbooks, and cross-repo docs.
+
+Repo-local index: `docs/README.md`. Key files:
 
 - **AGENTS.md** — Instructions for AI assistants (gate, feature backlog, docs sync).
 - **docs/api-contract.md** — Endpoint reference, request/response shapes, tenant resolution.

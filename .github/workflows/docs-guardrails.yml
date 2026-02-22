@@ -1,0 +1,70 @@
+name: Docs Guardrails
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: docs-guardrails-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Link check + Mermaid sanity
+        run: node ./scripts/docs/guardrails.mjs
+
+      - name: Generate OpenAPI artifact (must be committed)
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-openapi.ps1
+
+      - name: Verify OpenAPI artifact is up to date
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code -- docs/api/openapi.json; then
+            echo ""
+            echo "OpenAPI artifact is out of date: docs/api/openapi.json"
+            echo "Regenerate locally:"
+            echo "  powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\generate-openapi.ps1"
+            exit 1
+          fi
+
+      - name: Compute changed markdown files
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="$(git rev-parse HEAD~1)"
+            HEAD="$(git rev-parse HEAD)"
+          fi
+          FILES="$(git diff --name-only "$BASE" "$HEAD" -- '*.md' | tr '\n' ' ')"
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+
+      - name: Markdown lint (changed files only)
+        if: steps.changed.outputs.files != ''
+        run: npx --yes markdownlint-cli2 ${{ steps.changed.outputs.files }}
+
+      - name: Spell check (changed files only)
+        if: steps.changed.outputs.files != ''
+        run: npx --yes cspell lint -c ./cspell.json ${{ steps.changed.outputs.files }}
+

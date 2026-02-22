@@ -1,0 +1,8 @@
+# Single-developer ownership (override later if team grows)
+
+/docs/ @sreekaratla81
+/docs/** @sreekaratla81
+/README.md @sreekaratla81
+/ARCHITECTURE.md @sreekaratla81
+/*.md @sreekaratla81
+

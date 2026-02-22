@@ -20,4 +20,4 @@ dotnet build -c Release --no-incremental
 dotnet test -c Release --no-build
 ```
 
-For deployment and secrets, see [README → Deployment](README.md#deployment) and `docs/ci-cd-branch-mapping.md`. To pick and implement the next high-value feature, see workspace root `ATLAS-HIGH-VALUE-BACKLOG.md` and `ATLAS-FEATURE-EXECUTION-PROMPT.md`. **For AI agents:** see [AGENTS.md](AGENTS.md) for gate and feature-backlog pointers.
+For deployment and secrets, see [README → Deployment](README.md#deployment) and `docs/ci-cd-branch-mapping.md`. To pick and implement the next high-value feature, see [atlas-e2e/docs/product/ATLAS-HIGH-VALUE-BACKLOG.md](../atlas-e2e/docs/product/ATLAS-HIGH-VALUE-BACKLOG.md) and [ATLAS-FEATURE-EXECUTION-PROMPT.md](../atlas-e2e/docs/product/ATLAS-FEATURE-EXECUTION-PROMPT.md). **For AI agents:** see [AGENTS.md](AGENTS.md) for gate and feature-backlog pointers.

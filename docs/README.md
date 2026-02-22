@@ -9,13 +9,13 @@ This folder is the single source of truth for API, schema, and operations. **The
 
 ## Gates & feature roadmap
 
-Cross-repo docs (gates, backlog, feature execution) live at the **workspace root**, not in this folder:
-- `DEVSECOPS-GATES-BASELINE.md` — 16-gate DevSecOps model, CI gates, branch protection
-- `ATLAS-HIGH-VALUE-BACKLOG.md` — prioritized feature roadmap and implementation status
-- `ATLAS-FEATURE-EXECUTION-PROMPT.md` — workflow for implementing the next feature
-- `docs/marketing-readiness-gates.md` — must-pass marketing scenarios
-- `docs/ATLAS-BACKLOG-ANALYSIS.md` — how the backlog was derived
-- `atlas-e2e/docs/PROD_READINESS_CHECKLIST.md` — **single source of truth** for the release gate
+Cross-repo docs (gates, backlog, feature execution) live in **atlas-e2e/docs**:
+- [DEVSECOPS-GATES-BASELINE.md](../../atlas-e2e/docs/delivery/DEVSECOPS-GATES-BASELINE.md) — 16-gate DevSecOps model, CI gates, branch protection
+- [ATLAS-HIGH-VALUE-BACKLOG.md](../../atlas-e2e/docs/product/ATLAS-HIGH-VALUE-BACKLOG.md) — prioritized feature roadmap and implementation status
+- [ATLAS-FEATURE-EXECUTION-PROMPT.md](../../atlas-e2e/docs/product/ATLAS-FEATURE-EXECUTION-PROMPT.md) — workflow for implementing the next feature
+- [marketing-readiness-gates.md](../../atlas-e2e/docs/marketing-readiness-gates.md) — must-pass marketing scenarios
+- [ATLAS-BACKLOG-ANALYSIS.md](../../atlas-e2e/docs/ATLAS-BACKLOG-ANALYSIS.md) — how the backlog was derived
+- [PROD_READINESS_CHECKLIST.md](../../atlas-e2e/docs/PROD_READINESS_CHECKLIST.md) — **single source of truth** for the release gate
 
 ## Eventing & Service Bus
 - [Eventing / Azure Service Bus implementation plan](eventing-servicebus-implementation-plan.md)

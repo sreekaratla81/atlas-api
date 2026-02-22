@@ -1,0 +1,22 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": ["**/bin/**", "**/obj/**", "**/TestResults/**", "**/.git/**"],
+  "words": [
+    "ADR",
+    "Auth0",
+    "Cloudflare",
+    "DbMigrator",
+    "DevSecOps",
+    "Idempotency",
+    "Mermaid",
+    "MSG91",
+    "OpenAPI",
+    "Razorpay",
+    "Swashbuckle",
+    "TOGAF",
+    "webhooks",
+    "webhook"
+  ]
+}
+

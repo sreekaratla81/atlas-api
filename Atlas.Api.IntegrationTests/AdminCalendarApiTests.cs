@@ -316,7 +316,7 @@ public class AdminCalendarApiTests : IntegrationTestBase
         {
             Name = name,
             Slug = slug,
-            Status = "Active",
+            IsActive = true,
             CreatedAtUtc = DateTime.UtcNow
         });
 

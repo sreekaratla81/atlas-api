@@ -69,6 +69,7 @@ public sealed class OutboxDispatcherHostedService : BackgroundService
 
         var now = DateTime.UtcNow;
         var pending = await db.OutboxMessages
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(o => o.Status == "Pending" && (o.NextAttemptUtc == null || o.NextAttemptUtc <= now))
             .OrderBy(o => o.NextAttemptUtc ?? o.CreatedAtUtc)

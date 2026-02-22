@@ -1,14 +1,14 @@
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
+using Atlas.Api.Services.Tenancy;
 
 namespace Atlas.Api.Controllers
 {
-    /// <summary>User account management.</summary>
+    /// <summary>User account management. Requires authentication; users are scoped to the caller's tenant.</summary>
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -16,10 +16,12 @@ namespace Atlas.Api.Controllers
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ITenantContextAccessor _tenantAccessor;
 
-        public UsersController(AppDbContext context)
+        public UsersController(AppDbContext context, ITenantContextAccessor tenantAccessor)
         {
             _context = context;
+            _tenantAccessor = tenantAccessor;
         }
 
         [HttpGet]
@@ -46,12 +48,12 @@ namespace Atlas.Api.Controllers
         {
             var user = new User
             {
-                TenantId = 0,
+                TenantId = _tenantAccessor.TenantId ?? 0,
                 Name = dto.Name,
-                Email = dto.Email,
+                Email = dto.Email.Trim().ToLowerInvariant(),
                 Phone = dto.Phone,
                 Role = dto.Role,
-                PasswordHash = dto.Password
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             };
 
             _context.Users.Add(user);
@@ -70,8 +72,8 @@ namespace Atlas.Api.Controllers
 
             existing.Name = dto.Name;
             existing.Phone = dto.Phone;
-            existing.Email = dto.Email;
-            existing.PasswordHash = dto.Password;
+            existing.Email = dto.Email.Trim().ToLowerInvariant();
+            existing.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             existing.Role = dto.Role;
 
             await _context.SaveChangesAsync();

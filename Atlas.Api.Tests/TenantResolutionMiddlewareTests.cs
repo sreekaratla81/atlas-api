@@ -36,7 +36,7 @@ public class TenantResolutionMiddlewareTests
     [Fact]
     public async Task InvokeAsync_CallsNextWhenTenantResolved()
     {
-        var tenant = new Tenant { Id = 9, Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow };
+        var tenant = new Tenant { Id = 9, Name = "Atlas", Slug = "atlas", IsActive = true, CreatedAtUtc = DateTime.UtcNow };
         var tenantProvider = new Mock<ITenantProvider>();
         tenantProvider
             .Setup(provider => provider.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>()))

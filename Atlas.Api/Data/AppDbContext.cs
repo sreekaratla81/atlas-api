@@ -9,7 +9,8 @@ namespace Atlas.Api.Data
 {
     public class AppDbContext : DbContext
     {
-        private const int DefaultTenantId = 1;
+        /// <summary>Sentinel value returned when no tenant context is available (background services). Use IgnoreQueryFilters() instead.</summary>
+        private const int FallbackTenantId = 0;
         private readonly ITenantContextAccessor? _tenantContextAccessor;
 
         public AppDbContext(DbContextOptions<AppDbContext> options)
@@ -365,10 +366,47 @@ namespace Atlas.Api.Data
                 .IsRequired();
 
             modelBuilder.Entity<Tenant>()
-                .Property(t => t.Status)
+                .Property(t => t.IsActive)
+                .HasDefaultValue(true);
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.OwnerName)
+                .HasColumnType("nvarchar(100)")
+                .HasMaxLength(100)
+                .HasDefaultValue("");
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.OwnerEmail)
+                .HasColumnType("varchar(200)")
+                .HasMaxLength(200)
+                .HasDefaultValue("");
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.OwnerPhone)
                 .HasColumnType("varchar(20)")
                 .HasMaxLength(20)
-                .IsRequired();
+                .HasDefaultValue("");
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.CustomDomain)
+                .HasColumnType("varchar(500)")
+                .HasMaxLength(500);
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.LogoUrl)
+                .HasColumnType("varchar(500)")
+                .HasMaxLength(500);
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.BrandColor)
+                .HasColumnType("varchar(7)")
+                .HasMaxLength(7);
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.Plan)
+                .HasColumnType("varchar(20)")
+                .HasMaxLength(20)
+                .HasDefaultValue("free");
 
             modelBuilder.Entity<Tenant>()
                 .Property(t => t.CreatedAtUtc)
@@ -931,7 +969,7 @@ namespace Atlas.Api.Data
 
         private int GetResolvedTenantId()
         {
-            return _tenantContextAccessor?.TenantId ?? DefaultTenantId;
+            return _tenantContextAccessor?.TenantId ?? FallbackTenantId;
         }
 
         private void ApplyTenantQueryFilter<TEntity>(ModelBuilder modelBuilder)

@@ -49,6 +49,7 @@ public sealed class HoldCleanupHostedService : BackgroundService
         var cutoff = DateTime.UtcNow.AddMinutes(-HoldExpiryMinutes);
 
         var expiredBlocks = await db.AvailabilityBlocks
+            .IgnoreQueryFilters()
             .Where(b => b.Status == "Hold" && b.CreatedAtUtc < cutoff)
             .ToListAsync(cancellationToken);
 
@@ -67,6 +68,7 @@ public sealed class HoldCleanupHostedService : BackgroundService
         if (expiredBookingIds.Count > 0)
         {
             var holdBookings = await db.Bookings
+                .IgnoreQueryFilters()
                 .Where(b => expiredBookingIds.Contains(b.Id) && b.BookingStatus == "Hold")
                 .ToListAsync(cancellationToken);
 

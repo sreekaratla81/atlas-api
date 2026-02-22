@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Atlas.Api.Tests;
 
@@ -15,11 +16,11 @@ public class TenantProviderTests
     {
         await using var dbContext = CreateDbContext();
         dbContext.Tenants.AddRange(
-            new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow },
-            new Tenant { Name = "Contoso", Slug = "contoso", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+            new Tenant { Name = "Atlas", Slug = "atlas", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+            new Tenant { Name = "Contoso", Slug = "contoso", IsActive = true, CreatedAtUtc = DateTime.UtcNow });
         await dbContext.SaveChangesAsync();
 
-        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
+        var provider = CreateProvider(dbContext, "Production");
         var context = new DefaultHttpContext();
         context.Request.Headers[TenantProvider.TenantSlugHeaderName] = "atlas";
 
@@ -33,10 +34,10 @@ public class TenantProviderTests
     public async Task ResolveTenantAsync_FallsBackToDefaultTenantInDevelopment()
     {
         await using var dbContext = CreateDbContext();
-        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", IsActive = true, CreatedAtUtc = DateTime.UtcNow });
         await dbContext.SaveChangesAsync();
 
-        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Development"));
+        var provider = CreateProvider(dbContext, "Development");
 
         var tenant = await provider.ResolveTenantAsync(new DefaultHttpContext());
 
@@ -45,13 +46,13 @@ public class TenantProviderTests
     }
 
     [Fact]
-    public async Task ResolveTenantAsync_DoesNotFallbackInProduction_WhenHostUnknown()
+    public async Task ResolveTenantAsync_ReturnsNull_InProduction_WithoutHeader()
     {
         await using var dbContext = CreateDbContext();
-        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", IsActive = true, CreatedAtUtc = DateTime.UtcNow });
         await dbContext.SaveChangesAsync();
 
-        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
+        var provider = CreateProvider(dbContext, "Production");
 
         var tenant = await provider.ResolveTenantAsync(new DefaultHttpContext());
 
@@ -59,57 +60,59 @@ public class TenantProviderTests
     }
 
     [Fact]
-    public async Task ResolveTenantAsync_UsesResolutionOrder_HeaderThenDefaultInDevelopmentOnly()
+    public async Task ResolveTenantAsync_ReturnsNull_ForInactiveTenant()
     {
         await using var dbContext = CreateDbContext();
-        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+        dbContext.Tenants.Add(new Tenant { Name = "Suspended", Slug = "suspended", IsActive = false, CreatedAtUtc = DateTime.UtcNow });
         await dbContext.SaveChangesAsync();
 
-        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Development"));
+        var provider = CreateProvider(dbContext, "Production");
+        var context = new DefaultHttpContext();
+        context.Request.Headers[TenantProvider.TenantSlugHeaderName] = "suspended";
 
-        var headerContext = new DefaultHttpContext();
-        headerContext.Request.Headers[TenantProvider.TenantSlugHeaderName] = "atlas";
-        var headerTenant = await provider.ResolveTenantAsync(headerContext);
-        Assert.NotNull(headerTenant);
-        Assert.Equal("atlas", headerTenant!.Slug);
+        var tenant = await provider.ResolveTenantAsync(context);
 
-        var fallbackContext = new DefaultHttpContext();
-        var fallbackTenant = await provider.ResolveTenantAsync(fallbackContext);
-        Assert.NotNull(fallbackTenant);
-        Assert.Equal(TenantProvider.DefaultTenantSlug, fallbackTenant!.Slug);
+        Assert.Null(tenant);
     }
 
     [Fact]
-    public async Task ResolveTenantAsync_ResolvesDefaultInProduction_WhenHostIsKnownAtlasApi()
+    public async Task ResolveTenantAsync_HeaderTakesPrecedence_OverDevDefault()
     {
         await using var dbContext = CreateDbContext();
-        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+        dbContext.Tenants.AddRange(
+            new Tenant { Name = "Atlas", Slug = "atlas", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+            new Tenant { Name = "Other", Slug = "other", IsActive = true, CreatedAtUtc = DateTime.UtcNow });
         await dbContext.SaveChangesAsync();
 
-        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
+        var provider = CreateProvider(dbContext, "Development");
+        var context = new DefaultHttpContext();
+        context.Request.Headers[TenantProvider.TenantSlugHeaderName] = "other";
+
+        var tenant = await provider.ResolveTenantAsync(context);
+
+        Assert.NotNull(tenant);
+        Assert.Equal("other", tenant!.Slug);
+    }
+
+    [Fact]
+    public async Task ResolveTenantAsync_ReturnsNull_InProduction_EvenForKnownAzureHost()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", IsActive = true, CreatedAtUtc = DateTime.UtcNow });
+        await dbContext.SaveChangesAsync();
+
+        var provider = CreateProvider(dbContext, "Production");
         var context = new DefaultHttpContext();
         context.Request.Host = new HostString("atlas-homes-api-gxdqfjc2btc0atbv.centralus-01.azurewebsites.net");
 
         var tenant = await provider.ResolveTenantAsync(context);
 
-        Assert.NotNull(tenant);
-        Assert.Equal("atlas", tenant!.Slug);
+        Assert.Null(tenant);
     }
 
-    [Fact]
-    public async Task ResolveTenantAsync_ReturnsNullInProduction_WhenHostIsUnknownAndNoHeader()
+    private static TenantProvider CreateProvider(AppDbContext dbContext, string environment)
     {
-        await using var dbContext = CreateDbContext();
-        dbContext.Tenants.Add(new Tenant { Name = "Atlas", Slug = "atlas", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
-        await dbContext.SaveChangesAsync();
-
-        var provider = new TenantProvider(dbContext, new TestWebHostEnvironment("Production"));
-        var context = new DefaultHttpContext();
-        context.Request.Host = new HostString("other-api.example.com");
-
-        var tenant = await provider.ResolveTenantAsync(context);
-
-        Assert.Null(tenant);
+        return new TenantProvider(dbContext, new TestWebHostEnvironment(environment), NullLogger<TenantProvider>.Instance);
     }
 
     private static AppDbContext CreateDbContext()

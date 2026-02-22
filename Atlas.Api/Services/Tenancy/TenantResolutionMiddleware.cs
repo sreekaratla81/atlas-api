@@ -45,7 +45,10 @@ public class TenantResolutionMiddleware
     {
         var value = path.Value ?? "";
         return value.Equals("/health", StringComparison.OrdinalIgnoreCase)
-            || value.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase);
+            || value.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/auth", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/tenants", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/platform", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsLocalOrDevelopment(IWebHostEnvironment environment)

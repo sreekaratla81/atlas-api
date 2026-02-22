@@ -14,6 +14,7 @@ using System.Linq;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Atlas.Api.Models.Dtos.Razorpay;
+using Atlas.Api.Services.Auth;
 using Atlas.Api.Services.Tenancy;
 using Microsoft.Extensions.Options;
 using System.Threading.RateLimiting;
@@ -116,6 +117,7 @@ namespace Atlas.Api
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ITenantContextAccessor, HttpTenantContextAccessor>();
             builder.Services.AddScoped<ITenantProvider, TenantProvider>();
+            builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
             // Do not register TenantResolutionMiddleware in DI; RequestDelegate is provided by the pipeline in UseMiddleware<T>()
 
             ValidateRequiredConfiguration(builder.Configuration, env);
@@ -163,9 +165,8 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.Notifications.NotificationOrchestrator>();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
-            var jwtEnabled = string.Equals(builder.Configuration["Jwt:Enabled"], "true", StringComparison.OrdinalIgnoreCase);
 
-            if (jwtEnabled && !string.IsNullOrWhiteSpace(jwtKey))
+            if (!string.IsNullOrWhiteSpace(jwtKey))
             {
                 builder.Services.AddAuthentication("Bearer")
                     .AddJwtBearer("Bearer", options =>
@@ -291,7 +292,7 @@ namespace Atlas.Api
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();
 
-            if (jwtEnabled && !string.IsNullOrWhiteSpace(jwtKey))
+            if (!string.IsNullOrWhiteSpace(jwtKey))
             {
                 app.UseAuthentication();
             }

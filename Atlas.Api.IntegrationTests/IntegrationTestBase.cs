@@ -205,17 +205,17 @@ WHERE TABLE_TYPE = 'BASE TABLE'
     private static async Task SeedBaselineDataAsync(AppDbContext db)
     {
         // Default tenant (Id=1, Slug=atlas) is required for tenant resolution and SaveChanges auto-population of TenantId.
-        // After Respawn, IDENTITY may not be 1; insert with explicit Id=1 so DefaultTenantId matches.
+        // After Respawn, IDENTITY may not be 1; insert with explicit Id=1 so tenant resolution works in tests.
         if (!await db.Tenants.AnyAsync(t => t.Slug == "atlas"))
         {
             await db.Database.ExecuteSqlRawAsync(
-                "SET IDENTITY_INSERT [Tenants] ON; INSERT INTO [Tenants] ([Id], [Name], [Slug], [Status], [CreatedAtUtc]) VALUES (1, N'Atlas', N'atlas', N'active', GETUTCDATE()); SET IDENTITY_INSERT [Tenants] OFF;");
+                "SET IDENTITY_INSERT [Tenants] ON; INSERT INTO [Tenants] ([Id], [Name], [Slug], [IsActive], [CreatedAtUtc]) VALUES (1, N'Atlas', N'atlas', 1, GETUTCDATE()); SET IDENTITY_INSERT [Tenants] OFF;");
         }
         // Tenant Id=2 required for TenantScopedWorkflowSchemaIntegrationTests (cross-tenant scenarios).
         if (!await db.Tenants.AnyAsync(t => t.Id == 2))
         {
             await db.Database.ExecuteSqlRawAsync(
-                "SET IDENTITY_INSERT [Tenants] ON; INSERT INTO [Tenants] ([Id], [Name], [Slug], [Status], [CreatedAtUtc]) VALUES (2, N'Second', N'second', N'active', GETUTCDATE()); SET IDENTITY_INSERT [Tenants] OFF;");
+                "SET IDENTITY_INSERT [Tenants] ON; INSERT INTO [Tenants] ([Id], [Name], [Slug], [IsActive], [CreatedAtUtc]) VALUES (2, N'Second', N'second', 1, GETUTCDATE()); SET IDENTITY_INSERT [Tenants] OFF;");
         }
 
         if (!await db.EnvironmentMarkers.AnyAsync())

@@ -29,7 +29,7 @@ public class MarketingReadinessApiTests : IntegrationTestBase
 
         if (!await db.Tenants.AnyAsync(t => t.Slug == "contoso"))
         {
-            db.Tenants.Add(new Tenant { Name = "Contoso", Slug = "contoso", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+            db.Tenants.Add(new Tenant { Name = "Contoso", Slug = "contoso", IsActive = true, CreatedAtUtc = DateTime.UtcNow });
             await db.SaveChangesAsync();
         }
 

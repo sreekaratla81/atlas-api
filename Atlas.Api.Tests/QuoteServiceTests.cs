@@ -61,7 +61,7 @@ public class QuoteServiceTests
 
         if (!await db.Tenants.AnyAsync(t => t.Id == tenantId))
         {
-            db.Tenants.Add(new Tenant { Id = tenantId, Name = $"Tenant {tenantId}", Slug = $"t{tenantId}", Status = "Active", CreatedAtUtc = DateTime.UtcNow });
+            db.Tenants.Add(new Tenant { Id = tenantId, Name = $"Tenant {tenantId}", Slug = $"t{tenantId}", IsActive = true, CreatedAtUtc = DateTime.UtcNow });
         }
 
         if (!await db.Properties.AnyAsync())

@@ -136,11 +136,13 @@ namespace Atlas.Api.Controllers
         }
 
         /// <summary>
-        /// Verifies and processes a Razorpay payment
+        /// Verifies and processes a Razorpay payment.
+        /// Idempotent: repeated calls with the same already-completed payment return 200 without side effects.
         /// </summary>
         [HttpPost("verify")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(409)]
         public async Task<IActionResult> VerifyPayment([FromBody] VerifyRazorpayPaymentRequest request)
         {
             try
@@ -151,6 +153,11 @@ namespace Atlas.Api.Controllers
                     return Ok(new { success = true, message = "Payment verified and processed successfully" });
                 }
                 return BadRequest(new { success = false, message = "Payment verification failed" });
+            }
+            catch (DbUpdateException dbEx) when (IsUniqueConstraintViolation(dbEx))
+            {
+                _logger.LogWarning(dbEx, "Duplicate RazorpayOrderId detected during verify for BookingId={BookingId}", request.BookingId);
+                return StatusCode(409, new { success = false, message = "A payment with this Razorpay order ID already exists." });
             }
             catch (Exception ex)
             {

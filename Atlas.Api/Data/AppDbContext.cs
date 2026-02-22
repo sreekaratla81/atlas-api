@@ -841,6 +841,10 @@ namespace Atlas.Api.Data
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
             modelBuilder.Entity<Payment>().HasIndex(x => new { x.TenantId, x.BookingId });
+            modelBuilder.Entity<Payment>().HasIndex(x => x.RazorpayOrderId)
+                .IsUnique()
+                .HasFilter("[RazorpayOrderId] IS NOT NULL")
+                .HasDatabaseName("IX_Payments_RazorpayOrderId_Unique");
             modelBuilder.Entity<ListingPricing>().HasIndex(x => new { x.TenantId, x.ListingId }).IsUnique();
             modelBuilder.Entity<ListingDailyRate>().HasIndex(x => new { x.TenantId, x.ListingId, x.Date }).IsUnique();
             modelBuilder.Entity<ListingDailyInventory>().HasIndex(x => new { x.TenantId, x.ListingId, x.Date }).IsUnique();

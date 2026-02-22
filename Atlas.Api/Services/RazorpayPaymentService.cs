@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Atlas.Api.Data;
+using Atlas.Api.Events;
 using Atlas.Api.Models;
 using Atlas.Api.Models.Dtos.Razorpay;
 using Microsoft.EntityFrameworkCore;
@@ -134,6 +135,14 @@ namespace Atlas.Api.Services
                 .FirstOrDefaultAsync(p => p.BookingId == request.BookingId && p.RazorpayOrderId == request.RazorpayOrderId)
                 ?? throw new InvalidOperationException("Payment record not found for the given booking and order ID");
 
+            // FD-001 idempotency guard: if payment already completed, return success without side effects
+            if (string.Equals(payment.Status, "completed", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("Idempotent verify: payment already completed for BookingId={BookingId}, RazorpayOrderId={OrderId}",
+                    request.BookingId, request.RazorpayOrderId);
+                return true;
+            }
+
             var text = $"{request.RazorpayOrderId}|{request.RazorpayPaymentId}";
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_keySecret));
             var computedSignature = BitConverter.ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-", "").ToLower();
@@ -156,7 +165,7 @@ namespace Atlas.Api.Services
             booking.AmountReceived = booking.TotalAmount ?? 0;
             if (string.Equals(booking.BookingStatus, "Hold", StringComparison.OrdinalIgnoreCase))
             {
-                booking.BookingStatus = "blocked";
+                booking.BookingStatus = "Confirmed";
             }
 
             var temporaryBlocks = await _context.AvailabilityBlocks
@@ -166,9 +175,41 @@ namespace Atlas.Api.Services
             {
                 block.BlockType = "Booking";
                 block.Source = "System";
-                block.Status = "blocked";
+                block.Status = "Active";
                 block.Inventory = false;
                 block.UpdatedAtUtc = DateTime.UtcNow;
+            }
+
+            // FD-001 outbox parity: emit booking.confirmed so notification consumers fire (same as manual flow)
+            var guest = await _context.Guests.FindAsync(booking.GuestId);
+            if (guest != null)
+            {
+                var outboxPayload = JsonSerializer.Serialize(new
+                {
+                    bookingId = booking.Id,
+                    guestId = guest.Id,
+                    listingId = booking.ListingId,
+                    bookingStatus = booking.BookingStatus,
+                    checkinDate = booking.CheckinDate,
+                    checkoutDate = booking.CheckoutDate,
+                    guestPhone = guest.Phone,
+                    guestEmail = guest.Email,
+                    occurredAtUtc = DateTime.UtcNow
+                });
+                _context.OutboxMessages.Add(new OutboxMessage
+                {
+                    Topic = "booking.events",
+                    EventType = EventTypes.BookingConfirmed,
+                    EntityId = booking.Id.ToString(),
+                    PayloadJson = outboxPayload,
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    OccurredUtc = DateTime.UtcNow,
+                    SchemaVersion = 1,
+                    Status = "Pending",
+                    NextAttemptUtc = DateTime.UtcNow,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    AttemptCount = 0
+                });
             }
 
             await _context.SaveChangesAsync();

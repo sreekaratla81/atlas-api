@@ -565,3 +565,191 @@ One-time quote nonce redemption table with tenant-safe replay protection.
 - Quote issue/validate/redeem is tenant-scoped through tenant resolution + EF tenant filters.
 - Quote replay protection is scoped by `(TenantId, Nonce)`.
 - A quote token issued in one tenant cannot validate/redeem in another tenant.
+
+---
+
+## TenantProfile
+Extended legal/tax/compliance profile for a tenant (1:1 with Tenant).
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| TenantId | int (PK, FK) | No | FK → Tenants.Id |
+| LegalName | nvarchar(200) | Yes | |
+| DisplayName | nvarchar(200) | Yes | |
+| BusinessType | varchar(30) | No | Default: "Individual" |
+| RegisteredAddressLine | nvarchar(500) | Yes | |
+| City | nvarchar(100) | Yes | |
+| State | nvarchar(50) | Yes | |
+| Pincode | varchar(10) | Yes | |
+| PanLast4 | varchar(4) | Yes | Last 4 of PAN for display |
+| PanHash | varchar(200) | Yes | BCrypt hash of full PAN |
+| Gstin | varchar(15) | Yes | |
+| PlaceOfSupplyState | nvarchar(50) | Yes | |
+| PrimaryEmail | nvarchar(200) | Yes | |
+| PrimaryPhone | nvarchar(20) | Yes | |
+| OnboardingStatus | varchar(30) | No | Draft/PublishReady/Published/CompliancePending/Suspended |
+| UpdatedByUserId | int | Yes | |
+| CreatedAtUtc | datetime2 | No | Auto-set |
+| UpdatedAtUtc | datetime2 | No | Auto-set |
+
+## HostKycDocument
+KYC/compliance documents uploaded by a host. Tenant-scoped.
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| Id | int (PK) | No | |
+| TenantId | int (FK) | No | FK → Tenants.Id |
+| DocType | varchar(50) | No | PAN, Aadhaar, LeaseAgreement, OwnerNOC, TourismReg, FireNOC, etc. |
+| FileUrl | nvarchar(1000) | Yes | Blob storage URL |
+| OriginalFileName | nvarchar(200) | Yes | |
+| Status | varchar(20) | No | Pending/Verified/Rejected |
+| Notes | nvarchar(500) | Yes | |
+| VerifiedAtUtc | datetime2 | Yes | |
+| VerifiedByUserId | int | Yes | |
+| CreatedAtUtc | datetime2 | No | Auto-set |
+| UpdatedAtUtc | datetime2 | No | Auto-set |
+
+**Index**: (TenantId, DocType)
+
+## PropertyComplianceProfile
+Compliance profile for a property (1:1 with Property). Tenant-scoped.
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| PropertyId | int (PK, FK) | No | FK → Properties.Id |
+| TenantId | int (FK) | No | FK → Tenants.Id |
+| OwnershipType | varchar(20) | No | Owner/Lease/Managed |
+| OwnerNocRequired | bit | No | |
+| OwnerNocProvided | bit | No | |
+| SafetyChecklistJson | nvarchar(max) | Yes | JSON object |
+| LocalRegistrationJson | nvarchar(max) | Yes | JSON object |
+| CreatedAtUtc | datetime2 | No | Auto-set |
+| UpdatedAtUtc | datetime2 | No | Auto-set |
+
+## OnboardingChecklistItem
+Tracks onboarding tasks per tenant. Tenant-scoped.
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| Id | int (PK) | No | |
+| TenantId | int (FK) | No | FK → Tenants.Id |
+| Key | varchar(50) | No | Unique per tenant |
+| Title | nvarchar(200) | No | |
+| Stage | varchar(20) | No | FastStart/PublishGate/PostPublish |
+| Status | varchar(20) | No | Pending/Complete |
+| Blocking | bit | No | If true, blocks progression |
+| DueAtUtc | datetime2 | Yes | |
+| EvidenceDocId | int | Yes | FK → HostKycDocuments.Id (logical) |
+| CreatedAtUtc | datetime2 | No | Auto-set |
+| UpdatedAtUtc | datetime2 | No | Auto-set |
+
+**Unique Index**: (TenantId, Key)
+
+## AuditLog
+Immutable audit trail. Tenant-scoped. Append-only.
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| Id | bigint (PK) | No | |
+| TenantId | int (FK) | No | FK → Tenants.Id |
+| ActorUserId | int | Yes | |
+| Action | varchar(100) | No | e.g. onboarding.started, onboarding.published |
+| EntityType | nvarchar(50) | Yes | |
+| EntityId | nvarchar(50) | Yes | |
+| TimestampUtc | datetime | No | Default: GETUTCDATE() |
+| PayloadJson | nvarchar(max) | Yes | Sensitive fields must be redacted |
+
+**Index**: (TenantId, TimestampUtc)
+
+---
+
+## BillingPlans
+Available subscription plans. Not tenant-scoped (global).
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| Id | uniqueidentifier (PK) | No | |
+| Code | varchar(30) | No | Unique. FREE_TRIAL, STARTER, GROWTH, PRO |
+| Name | nvarchar(100) | No | |
+| MonthlyPriceInr | decimal(18,2) | No | |
+| CreditsIncluded | int | No | Credits granted per subscription period |
+| SeatLimit | int | Yes | Future: max users |
+| ListingLimit | int | Yes | Future: max listings |
+| IsActive | bit | No | |
+
+**Unique Index**: Code
+
+## TenantSubscriptions
+Active subscription per tenant.
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| Id | int (PK) | No | |
+| TenantId | int (FK) | No | FK → Tenants.Id |
+| PlanId | uniqueidentifier (FK) | No | FK → BillingPlans.Id |
+| Status | varchar(20) | No | Trial/Active/PastDue/Suspended/Canceled |
+| TrialEndsAtUtc | datetime2 | Yes | |
+| CurrentPeriodStartUtc | datetime2 | No | |
+| CurrentPeriodEndUtc | datetime2 | No | |
+| AutoRenew | bit | No | |
+| GracePeriodDays | int | No | Default: 7 |
+| LockedAtUtc | datetime2 | Yes | Set when tenant is billing-locked |
+| LockReason | varchar(30) | Yes | CreditsExhausted/InvoiceOverdue/Manual/ChargeFailed |
+| NextInvoiceAtUtc | datetime2 | Yes | |
+| CreatedAtUtc | datetime2 | No | Auto-set |
+| UpdatedAtUtc | datetime2 | No | Auto-set |
+
+**Index**: TenantId
+
+## TenantCreditsLedger
+Append-only credit ledger. Balance = SUM(CreditsDelta). Never update or delete rows.
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| Id | bigint (PK) | No | |
+| TenantId | int (FK) | No | FK → Tenants.Id |
+| Type | varchar(20) | No | Grant/Debit/Adjust/Expire |
+| CreditsDelta | int | No | Positive for grants, negative for debits |
+| Reason | varchar(50) | No | OnboardingGrant/PlanGrant/BookingCreated/ManualAdjust/ExpiryJob |
+| ReferenceType | varchar(50) | Yes | e.g. Booking, Admin |
+| ReferenceId | varchar(50) | Yes | e.g. BookingId |
+| CreatedAtUtc | datetime | No | Default: GETUTCDATE() |
+
+**Index**: TenantId
+
+## BillingInvoices
+Invoices per tenant for subscription billing.
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| Id | uniqueidentifier (PK) | No | |
+| TenantId | int (FK) | No | FK → Tenants.Id |
+| PeriodStartUtc | datetime2 | No | |
+| PeriodEndUtc | datetime2 | No | |
+| AmountInr | decimal(18,2) | No | Pre-tax amount |
+| TaxGstRate | decimal(5,2) | No | Default: 18.00 |
+| TaxAmountInr | decimal(18,2) | No | |
+| TotalInr | decimal(18,2) | No | Amount + Tax |
+| Status | varchar(20) | No | Draft/Issued/Paid/Void/Overdue |
+| DueAtUtc | datetime2 | Yes | |
+| PaidAtUtc | datetime2 | Yes | |
+| Provider | varchar(20) | Yes | Razorpay/Manual |
+| ProviderInvoiceId | nvarchar(200) | Yes | |
+| PaymentLinkId | nvarchar(500) | Yes | Razorpay payment link ID |
+| PdfUrl | nvarchar(1000) | Yes | |
+| CreatedAtUtc | datetime2 | No | Auto-set |
+| UpdatedAtUtc | datetime2 | No | Auto-set |
+
+**Index**: (TenantId, Status)
+
+## BillingPayments
+Payment records per invoice.
+
+| Column | Type | Nullable | Notes |
+| --- | --- | --- | --- |
+| Id | uniqueidentifier (PK) | No | |
+| InvoiceId | uniqueidentifier (FK) | No | FK → BillingInvoices.Id |
+| ProviderPaymentId | nvarchar(200) | Yes | Razorpay payment ID |
+| Status | varchar(20) | No | Created/Captured/Failed |
+| AmountInr | decimal(18,2) | No | |
+| CreatedAtUtc | datetime | No | Default: GETUTCDATE() |

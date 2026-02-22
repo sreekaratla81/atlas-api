@@ -57,6 +57,7 @@ namespace Atlas.Api
                 {
                     options.Filters.Add<Atlas.Api.Filters.ValidateModelAttribute>();
                     options.Filters.Add<Atlas.Api.Filters.ApiExceptionFilter>();
+                    options.Filters.Add<Atlas.Api.Filters.BillingLockFilter>();
                 })
                 .AddJsonOptions(opts =>
                 {
@@ -118,6 +119,9 @@ namespace Atlas.Api
             builder.Services.AddScoped<ITenantContextAccessor, HttpTenantContextAccessor>();
             builder.Services.AddScoped<ITenantProvider, TenantProvider>();
             builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+            builder.Services.AddScoped<Atlas.Api.Services.Onboarding.OnboardingService>();
+            builder.Services.AddScoped<Atlas.Api.Services.Billing.IEntitlementsService, Atlas.Api.Services.Billing.EntitlementsService>();
+            builder.Services.AddScoped<Atlas.Api.Services.Billing.CreditsService>();
             // Do not register TenantResolutionMiddleware in DI; RequestDelegate is provided by the pipeline in UseMiddleware<T>()
 
             ValidateRequiredConfiguration(builder.Configuration, env);
@@ -165,8 +169,10 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.Notifications.NotificationOrchestrator>();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
+            // JWT disabled when not set or placeholder (saves dev time; enable via real Jwt:Key when needed)
+            var jwtEnabled = !string.IsNullOrWhiteSpace(jwtKey) && !IsPlaceholderValue(jwtKey);
 
-            if (!string.IsNullOrWhiteSpace(jwtKey))
+            if (jwtEnabled)
             {
                 builder.Services.AddAuthentication("Bearer")
                     .AddJwtBearer("Bearer", options =>
@@ -177,7 +183,7 @@ namespace Atlas.Api
                             ValidateAudience = false,
                             ValidateLifetime = true,
                             ValidateIssuerSigningKey = true,
-                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!))
                         };
                     });
                 builder.Services.AddAuthorization();
@@ -292,7 +298,7 @@ namespace Atlas.Api
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();
 
-            if (!string.IsNullOrWhiteSpace(jwtKey))
+            if (jwtEnabled)
             {
                 app.UseAuthentication();
             }
@@ -444,8 +450,10 @@ namespace Atlas.Api
 
         private static bool IsPlaceholderValue(string? value)
         {
-            return string.IsNullOrWhiteSpace(value)
-                || string.Equals(value.Trim(), "__SET_VIA_ENV_OR_AZURE__", StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(value)) return true;
+            var v = value.Trim();
+            return string.Equals(v, "__SET_VIA_ENV_OR_AZURE__", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(v, "__SET_VIA_ENV__", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

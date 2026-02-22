@@ -241,5 +241,20 @@ WHERE TABLE_TYPE = 'BASE TABLE'
             });
             await db.SaveChangesAsync();
         }
+
+        const string adminEmail = "sreekar.atla@gmail.com";
+        if (!await db.Users.IgnoreQueryFilters().AnyAsync(u => u.Email == adminEmail))
+        {
+            db.Users.Add(new User
+            {
+                TenantId = 1,
+                Name = "Sreekar (Platform Admin)",
+                Email = adminEmail,
+                Phone = "0000000000",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("AtlasAdmin!2026"),
+                Role = "platform-admin",
+            });
+            await db.SaveChangesAsync();
+        }
     }
 }

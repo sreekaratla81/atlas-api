@@ -24,20 +24,24 @@ public class UsersApiTests : IntegrationTestBase
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.GetAsync(ApiControllerRoute("users/1"));
+        var response = await Client.GetAsync(ApiControllerRoute("users/99999"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
     public async Task Post_CreatesUser()
     {
-        var user = new User { Name = "User", Phone = "1", Email = "u@example.com", PasswordHash = "hash", Role = "admin" };
-        var response = await Client.PostAsJsonAsync(ApiControllerRoute("users"), new { user.Name, user.Phone, user.Email, user.PasswordHash, user.Role });
+        using var preScope = Factory.Services.CreateScope();
+        var preDb = preScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var baselineCount = await preDb.Users.CountAsync();
+
+        var payload = new { Name = "User", Phone = "1", Email = "u@example.com", Password = "secret123", Role = "admin" };
+        var response = await Client.PostAsJsonAsync(ApiControllerRoute("users"), payload);
         Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(1, await db.Users.CountAsync());
+        Assert.Equal(baselineCount + 1, await db.Users.CountAsync());
     }
 
     [Fact]
@@ -46,9 +50,8 @@ public class UsersApiTests : IntegrationTestBase
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var user = await DataSeeder.SeedUserAsync(db);
-        user.Name = "Updated";
 
-        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"users/{user.Id}"), new { user.Id, user.Name, user.Phone, user.Email, user.PasswordHash, user.Role });
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute($"users/{user.Id}"), new { Name = "Updated", user.Phone, user.Email, Password = "secret123", user.Role });
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope2 = Factory.Services.CreateScope();
@@ -83,7 +86,7 @@ public class UsersApiTests : IntegrationTestBase
     [Fact]
     public async Task Delete_ReturnsNotFound_WhenMissing()
     {
-        var response = await Client.DeleteAsync(ApiControllerRoute("users/1"));
+        var response = await Client.DeleteAsync(ApiControllerRoute("users/99999"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 }

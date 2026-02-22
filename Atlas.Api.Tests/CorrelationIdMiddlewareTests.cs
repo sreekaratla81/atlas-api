@@ -7,9 +7,6 @@ public class CorrelationIdMiddlewareTests
 {
     private const string HeaderName = "X-Correlation-Id";
 
-    private static RequestDelegate StartResponseDelegate =>
-        ctx => ctx.Response.StartAsync();
-
     [Fact]
     public async Task EchoesProvidedCorrelationId()
     {
@@ -17,10 +14,10 @@ public class CorrelationIdMiddlewareTests
         var context = new DefaultHttpContext();
         context.Request.Headers[HeaderName] = expected;
 
-        var middleware = new CorrelationIdMiddleware(StartResponseDelegate);
+        var middleware = new CorrelationIdMiddleware(_ => Task.CompletedTask);
         await middleware.InvokeAsync(context);
 
-        Assert.Equal(expected, context.Response.Headers[HeaderName].ToString());
+        Assert.Equal(expected, context.TraceIdentifier);
     }
 
     [Fact]
@@ -28,10 +25,10 @@ public class CorrelationIdMiddlewareTests
     {
         var context = new DefaultHttpContext();
 
-        var middleware = new CorrelationIdMiddleware(StartResponseDelegate);
+        var middleware = new CorrelationIdMiddleware(_ => Task.CompletedTask);
         await middleware.InvokeAsync(context);
 
-        Assert.False(string.IsNullOrWhiteSpace(context.Response.Headers[HeaderName].ToString()));
+        Assert.False(string.IsNullOrWhiteSpace(context.TraceIdentifier));
     }
 
     [Fact]

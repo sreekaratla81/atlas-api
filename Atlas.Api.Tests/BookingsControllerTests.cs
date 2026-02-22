@@ -4,8 +4,11 @@ using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
+using Atlas.Api.Services.Billing;
+using Atlas.Api.Services.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -60,7 +63,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -90,98 +95,6 @@ public class BookingsControllerTests
         Assert.Equal(250, dto.TotalAmount);
         Assert.Equal("USD", dto.Currency);
         Assert.Equal("EXT-1", dto.ExternalReservationId);
-    }
-
-    [Fact(Skip = "Obsolete: booking workflow now uses async outbox/Service Bus; controller no longer calls publisher sync. OutboxMessage.AttemptCount stays 0 until OutboxDispatcher retries.")]
-    public async Task Create_PersistsBooking_WhenWorkflowPublisherFails()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(databaseName: nameof(Create_PersistsBooking_WhenWorkflowPublisherFails))
-            .Options;
-
-        using var context = new AppDbContext(options);
-        var property = new Property
-        {
-            Name = "Property",
-            Address = "Addr",
-            Type = "House",
-            OwnerName = "Owner",
-            ContactPhone = "000",
-            CommissionPercent = 10,
-            Status = "Active"
-        };
-        context.Properties.Add(property);
-        await context.SaveChangesAsync();
-
-        var listing = new Listing
-        {
-            PropertyId = property.Id,
-            Property = property,
-            Name = "Listing",
-            Floor = 1,
-            Type = "Room",
-            Status = "Available",
-            WifiName = "wifi",
-            WifiPassword = "pass",
-            MaxGuests = 2
-        };
-        context.Listings.Add(listing);
-
-        var guest = new Guest { Name = "Guest", Phone = "1", Email = "g@example.com" };
-        context.Guests.Add(guest);
-        await context.SaveChangesAsync();
-
-        var publisher = new Mock<IBookingWorkflowPublisher>();
-        publisher
-            .Setup(p => p.PublishBookingConfirmedAsync(
-                It.IsAny<Booking>(),
-                It.IsAny<Guest>(),
-                It.IsAny<IReadOnlyCollection<CommunicationLog>>(),
-                It.IsAny<OutboxMessage>()))
-            .ThrowsAsync(new InvalidOperationException("Kafka down"));
-
-        var controller = new BookingsController(
-            context,
-            NullLogger<BookingsController>.Instance,
-            publisher.Object);
-
-        var request = new CreateBookingRequest
-        {
-            ListingId = listing.Id,
-            GuestId = guest.Id,
-            BookingSource = "airbnb",
-            BookingStatus = "Confirmed",
-            AmountReceived = 100,
-            GuestsPlanned = 2,
-            GuestsActual = 2,
-            ExtraGuestCharge = 0,
-            Notes = "test"
-        };
-
-        var result = await controller.Create(request);
-
-        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
-        var dto = Assert.IsType<BookingDto>(createdResult.Value);
-        Assert.Equal(listing.Id, dto.ListingId);
-
-        var createdBooking = await context.Bookings.SingleAsync();
-        var outbox = await context.OutboxMessages.SingleAsync();
-        Assert.Equal(1, outbox.AttemptCount);
-        Assert.Contains("Kafka down", outbox.LastError);
-        Assert.All(context.CommunicationLogs, log =>
-        {
-            Assert.Equal("Failed", log.Status);
-            Assert.Equal("booking-confirmed", log.EventType);
-            Assert.Equal("System", log.Provider);
-            Assert.Equal(createdBooking.Id, log.BookingId);
-            Assert.Equal(guest.Id, log.GuestId);
-            Assert.False(string.IsNullOrWhiteSpace(log.ToAddress));
-            Assert.False(string.IsNullOrWhiteSpace(log.CorrelationId));
-            Assert.False(string.IsNullOrWhiteSpace(log.IdempotencyKey));
-            Assert.Equal(1, log.AttemptCount);
-            Assert.Contains("Kafka down", log.LastError);
-            Assert.Equal(0, log.TemplateVersion);
-        });
     }
 
     [Fact]
@@ -227,7 +140,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -302,7 +217,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -334,7 +251,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.Get(1);
 
@@ -351,7 +270,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
         var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" };
 
         var result = await controller.Update(2, booking);
@@ -370,7 +291,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.Delete(1);
 
@@ -395,7 +318,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.GetAll(null, null, null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -421,7 +346,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.GetAll(new DateTime(2025, 7, 1), new DateTime(2025, 7, 31), null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -455,7 +382,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.GetAll(null, null, null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -525,7 +454,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             mockContext.Object,
             logger.Object,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(mockContext.Object, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
         var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" };
 
         var result = await controller.Update(1, booking);
@@ -612,7 +543,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
         var request = new UpdateBookingRequest
         {
             Id = booking.Id,
@@ -705,7 +638,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.Cancel(booking.Id);
 
@@ -741,7 +676,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.Cancel(booking.Id);
 
@@ -772,7 +709,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.CheckIn(booking.Id);
 
@@ -805,7 +744,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.CheckIn(booking.Id);
 
@@ -837,7 +778,9 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.CheckOut(booking.Id);
 
@@ -870,11 +813,18 @@ public class BookingsControllerTests
         var controller = new BookingsController(
             context,
             NullLogger<BookingsController>.Instance,
-            new NoOpBookingWorkflowPublisher());
+            new NoOpBookingWorkflowPublisher(),
+            new CreditsService(context, NullLogger<CreditsService>.Instance),
+            new StubTenantContextAccessor());
 
         var result = await controller.CheckOut(booking.Id);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    private sealed class StubTenantContextAccessor : ITenantContextAccessor
+    {
+        public int? TenantId => 1;
     }
 }

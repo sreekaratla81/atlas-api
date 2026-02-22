@@ -45,7 +45,7 @@ public class FD005TypeSafetyTests : IntegrationTestBase
         db.Listings.Add(listing);
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync(ApiControllerRoute($"listings/{listing.Id}"));
+        var response = await Client.GetAsync(ApiRoute($"listings/{listing.Id}"));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);

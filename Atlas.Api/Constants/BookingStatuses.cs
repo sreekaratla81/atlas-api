@@ -8,8 +8,8 @@ public static class BookingStatuses
     public const string Confirmed = "Confirmed";
     public const string Cancelled = "Cancelled";
     public const string Expired = "Expired";
-    public const string CheckedIn = "Checked In";
-    public const string CheckedOut = "Checked Out";
+    public const string CheckedIn = "CheckedIn";
+    public const string CheckedOut = "CheckedOut";
 
     public static bool IsConfirmed(string status) =>
         string.Equals(status, Confirmed, StringComparison.OrdinalIgnoreCase);

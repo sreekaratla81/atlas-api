@@ -6,6 +6,8 @@ using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Events;
 using Atlas.Api.Models;
+using Atlas.Api.Services.Billing;
+using Atlas.Api.Services.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +27,8 @@ namespace Atlas.Api.Controllers
 #pragma warning disable CS0618 // BL-011: retained for planned workflow integration
         private readonly Atlas.Api.Services.IBookingWorkflowPublisher _bookingWorkflowPublisher;
 #pragma warning restore CS0618
+        private readonly CreditsService _credits;
+        private readonly ITenantContextAccessor _tenantAccessor;
         private const string ActiveAvailabilityStatus = BlockStatuses.Active;
         private const string CancelledAvailabilityStatus = BookingStatuses.Cancelled;
         private const string BookingBlockType = "Booking";
@@ -34,12 +38,16 @@ namespace Atlas.Api.Controllers
             AppDbContext context,
             ILogger<BookingsController> logger,
 #pragma warning disable CS0618
-            Atlas.Api.Services.IBookingWorkflowPublisher bookingWorkflowPublisher)
+            Atlas.Api.Services.IBookingWorkflowPublisher bookingWorkflowPublisher,
 #pragma warning restore CS0618
+            CreditsService credits,
+            ITenantContextAccessor tenantAccessor)
         {
             _context = context;
             _logger = logger;
             _bookingWorkflowPublisher = bookingWorkflowPublisher;
+            _credits = credits;
+            _tenantAccessor = tenantAccessor;
         }
 
         [HttpGet]
@@ -258,6 +266,19 @@ namespace Atlas.Api.Controllers
                 AddBookingCreatedOutbox(booking, guest);
 
                 await _context.SaveChangesAsync();
+
+                var tenantId = _tenantAccessor.TenantId ?? 0;
+                if (tenantId > 0)
+                {
+                    try
+                    {
+                        await _credits.DebitForBookingAsync(tenantId, booking.Id);
+                    }
+                    catch (TenantLockedException)
+                    {
+                        _logger.LogWarning("Tenant {TenantId} credits exhausted after booking {BookingId}. Booking allowed, tenant now locked.", tenantId, booking.Id);
+                    }
+                }
 
                 var dto = MapToDto(booking);
                 return CreatedAtAction(nameof(Get), new { id = booking.Id }, dto);

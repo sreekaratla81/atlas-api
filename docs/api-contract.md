@@ -653,3 +653,123 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 
 ### POST `/api/Razorpay/verify`
 On successful verification, booking/payment pricing breakdown fields are persisted for audit + reconciliation.
+
+---
+
+## Onboarding (`Atlas.Api/Controllers/OnboardingController.cs`)
+
+### POST `/onboarding/start`
+- **Auth**: AllowAnonymous (rate-limited)
+- **Purpose**: Start tenant onboarding. Creates Tenant + User (Owner) + draft Property + draft Listing + TenantProfile + onboarding checklist.
+- **Request body**: `{ email, phone, displayName, password, city?, pincode?, propertyType?, roomCount?, addressLine?, airbnbUrl? }`
+- **Response** (201): `{ tenantSlug, tenantId, propertyId, listingId, userId, token, nextStep }`
+- **Errors**: 409 if email already exists or slug collision.
+
+### GET `/onboarding/status`
+- **Auth**: Bearer JWT
+- **Purpose**: Retrieve onboarding status, profile summary, checklist, and publish blockers.
+- **Response** (200): `{ onboardingStatus, profile: {...}, checklist: [...], publishBlockers: [...] }`
+
+### PUT `/onboarding/profile`
+- **Auth**: Bearer JWT
+- **Purpose**: Update tenant legal/tax profile.
+- **Request body**: Partial fields: `{ legalName?, displayName?, businessType?, registeredAddressLine?, city?, state?, pincode?, pan?, gstin?, placeOfSupplyState?, primaryEmail?, primaryPhone? }`
+- **Notes**: PAN is stored as hash + last4 only (never plaintext).
+
+### POST `/onboarding/documents`
+- **Auth**: Bearer JWT
+- **Content-Type**: multipart/form-data
+- **Purpose**: Upload a KYC document.
+- **Form fields**: `docType` (string), `file` (binary)
+- **Response** (201): `{ id, docType, fileUrl, originalFileName, status, createdAtUtc }`
+
+### POST `/onboarding/airbnb/prefill`
+- **Auth**: Bearer JWT
+- **Purpose**: Extract public metadata from Airbnb listing URL or pasted text. Does NOT auto-save.
+- **Request body**: `{ airbnbUrl?, pastedText? }`
+- **Response** (200): `{ title?, locationText?, propertyType?, amenities[], houseRules[], maxGuests?, description?, source, warnings[] }`
+
+### POST `/onboarding/publish`
+- **Auth**: Bearer JWT
+- **Purpose**: Validate publish-gate checklist and activate listings.
+- **Response** (200): `{ status: "published", listingsActivated }` or 422 with `{ error, blockers[] }`.
+
+---
+
+## Tenant Registration (`Atlas.Api/Controllers/TenantsController.cs`)
+
+### POST `/tenants/register`
+- **Auth**: AllowAnonymous
+- **Purpose**: Self-serve tenant registration (simpler than onboarding; does not create property/listing).
+- **Request body**: `{ tenantName, slug, ownerName, ownerEmail, ownerPhone, password }`
+- **Response** (201): `{ tenantId, tenantName, slug, token }`
+
+### GET `/tenants/{slug}/public`
+- **Auth**: AllowAnonymous
+- **Purpose**: Fetch public tenant info for guest portal branding.
+- **Response** (200): `{ id, name, slug, logoUrl?, brandColor? }`
+
+---
+
+## Platform Admin (`Atlas.Api/Controllers/PlatformController.cs`)
+
+### GET `/platform/tenants`
+- **Auth**: Bearer JWT with role `platform-admin`
+- **Purpose**: List all tenants.
+
+### POST `/platform/tenants`
+- **Auth**: Bearer JWT with role `platform-admin`
+- **Purpose**: Create a new tenant (admin-managed).
+
+### PATCH `/platform/tenants/{id}`
+- **Auth**: Bearer JWT with role `platform-admin`
+- **Purpose**: Activate/suspend/update a tenant.
+
+---
+
+## Billing (`Atlas.Api/Controllers/BillingController.cs`)
+
+### Error Code: TENANT_LOCKED (HTTP 402)
+All mutating endpoints (POST/PUT/PATCH/DELETE) return 402 when the tenant is billing-locked:
+```json
+{ "code": "TENANT_LOCKED", "reason": "CreditsExhausted|InvoiceOverdue|Manual|ChargeFailed", "balance": 0, "invoiceId": "...", "payUrl": "/billing/invoices/.../pay-link" }
+```
+GET endpoints continue to work (read-only access is always allowed).
+Billing endpoints marked `[AllowWhenLocked]` are exempt from this check.
+
+### GET `/billing/entitlements`
+- **Auth**: Bearer JWT (`[AllowWhenLocked]`)
+- **Purpose**: Current tenant billing state for UI gating.
+- **Response** (200): `{ isLocked, lockReason, creditsBalance, subscriptionStatus, isWithinGracePeriod, planCode, periodEndUtc, overdueInvoiceId }`
+
+### GET `/billing/plans`
+- **Auth**: Bearer JWT (`[AllowWhenLocked]`)
+- **Purpose**: List all active billing plans.
+- **Response** (200): `[{ id, code, name, monthlyPriceInr, creditsIncluded, seatLimit, listingLimit }]`
+
+### POST `/billing/subscribe`
+- **Auth**: Bearer JWT (`[AllowWhenLocked]`)
+- **Purpose**: Subscribe to a plan. Creates/updates subscription, grants plan credits, issues invoice.
+- **Request body**: `{ planCode, autoRenew }`
+- **Response** (200): `{ subscriptionStatus, invoiceId }`
+
+### GET `/billing/invoices`
+- **Auth**: Bearer JWT (`[AllowWhenLocked]`)
+- **Purpose**: List all invoices for the current tenant.
+- **Response** (200): `[{ id, periodStartUtc, periodEndUtc, amountInr, taxGstRate, taxAmountInr, totalInr, status, dueAtUtc, paidAtUtc, paymentLinkId, pdfUrl, createdAtUtc }]`
+
+### POST `/billing/invoices/{id}/pay-link`
+- **Auth**: Bearer JWT (`[AllowWhenLocked]`)
+- **Purpose**: Create a Razorpay payment link for an invoice.
+- **Response** (200): `{ paymentLinkUrl, paymentLinkId }`
+
+### POST `/billing/webhooks/razorpay`
+- **Auth**: AllowAnonymous (signature verification required — see billing-domain.md)
+- **Purpose**: Razorpay webhook callback. Marks invoice paid, records payment, unlocks tenant.
+- **Request body**: `{ paymentLinkId, paymentId, status }`
+
+### POST `/billing/credits/adjust`
+- **Auth**: Bearer JWT with role `platform-admin`
+- **Purpose**: Manually adjust tenant credits (grant or debit).
+- **Request body**: `{ creditsDelta, reason }`
+- **Response** (200): `{ balance }`

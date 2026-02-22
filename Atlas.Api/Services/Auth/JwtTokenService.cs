@@ -22,8 +22,10 @@ public class JwtTokenService : IJwtTokenService
 
     public string GenerateToken(User user, Tenant? tenant)
     {
-        var key = _configuration["Jwt:Key"]
-            ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+        var key = _configuration["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(key) || IsPlaceholder(key))
+            return "Bearer.disabled"; // When JWT is disabled, return a sentinel so onboarding/login still return a token
+
         var expiryHours = int.TryParse(_configuration["Jwt:ExpiryHours"], out var h) ? h : 24;
 
         var claims = new List<Claim>
@@ -48,5 +50,13 @@ public class JwtTokenService : IJwtTokenService
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static bool IsPlaceholder(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        var v = value.Trim();
+        return string.Equals(v, "__SET_VIA_ENV_OR_AZURE__", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(v, "__SET_VIA_ENV__", StringComparison.OrdinalIgnoreCase);
     }
 }

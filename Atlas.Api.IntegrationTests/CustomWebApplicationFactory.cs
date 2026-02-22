@@ -1,7 +1,8 @@
 using Atlas.Api;
 using Atlas.Api.Data;
-using Microsoft.AspNetCore.Http;
+using Atlas.Api.Services.Tenancy;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -53,6 +54,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
+            services.Replace(ServiceDescriptor.Scoped<ITenantContextAccessor, IntegrationTestTenantContextAccessor>());
             var migrationsAssembly = typeof(AppDbContext).Assembly.GetName().Name;
             services.AddDbContext<AppDbContext>(o =>
                 o.UseSqlServer(connectionString, sqlOptions =>

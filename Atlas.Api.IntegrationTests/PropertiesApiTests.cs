@@ -158,11 +158,11 @@ public class PropertiesApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Put_ReturnsBadRequest_OnIdMismatch()
+    public async Task Put_ReturnsNotFound_WhenEntityMissing()
     {
-        var property = new Property { Id = 1, Name = "P", Address = "A", Type = "T", OwnerName = "O", ContactPhone = "0", CommissionPercent = 10, Status = "A" };
-        var response = await Client.PutAsJsonAsync(ApiRoute("properties/2"), property);
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        var dto = new { Name = "P", Address = "A", Type = "T", OwnerName = "O", ContactPhone = "0" };
+        var response = await Client.PutAsJsonAsync(ApiRoute("properties/999999"), dto);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

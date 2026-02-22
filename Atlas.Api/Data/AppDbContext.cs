@@ -1,4 +1,5 @@
 using Atlas.Api.Models;
+using Atlas.Api.Models.Billing;
 using Atlas.Api.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -47,6 +48,10 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<QuoteRedemption>(modelBuilder);
             ApplyTenantQueryFilter<WhatsAppInboundMessage>(modelBuilder);
             ApplyTenantQueryFilter<ConsumedEvent>(modelBuilder);
+            ApplyTenantQueryFilter<HostKycDocument>(modelBuilder);
+            ApplyTenantQueryFilter<PropertyComplianceProfile>(modelBuilder);
+            ApplyTenantQueryFilter<OnboardingChecklistItem>(modelBuilder);
+            ApplyTenantQueryFilter<AuditLog>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -416,6 +421,121 @@ namespace Atlas.Api.Data
                 .HasIndex(t => t.Slug)
                 .IsUnique();
 
+            // TenantProfile (1:1 with Tenant, keyed on TenantId)
+            modelBuilder.Entity<TenantProfile>()
+                .ToTable("TenantProfiles");
+            modelBuilder.Entity<TenantProfile>()
+                .Property(p => p.LegalName).HasMaxLength(200);
+            modelBuilder.Entity<TenantProfile>()
+                .Property(p => p.DisplayName).HasMaxLength(200);
+            modelBuilder.Entity<TenantProfile>()
+                .Property(p => p.BusinessType).HasColumnType("varchar(30)").HasMaxLength(30).HasDefaultValue("Individual");
+            modelBuilder.Entity<TenantProfile>()
+                .Property(p => p.Pincode).HasColumnType("varchar(10)").HasMaxLength(10);
+            modelBuilder.Entity<TenantProfile>()
+                .Property(p => p.PanLast4).HasColumnType("varchar(4)").HasMaxLength(4);
+            modelBuilder.Entity<TenantProfile>()
+                .Property(p => p.PanHash).HasColumnType("varchar(200)").HasMaxLength(200);
+            modelBuilder.Entity<TenantProfile>()
+                .Property(p => p.Gstin).HasColumnType("varchar(15)").HasMaxLength(15);
+            modelBuilder.Entity<TenantProfile>()
+                .Property(p => p.OnboardingStatus).HasColumnType("varchar(30)").HasMaxLength(30).HasDefaultValue("Draft");
+            modelBuilder.Entity<TenantProfile>()
+                .HasOne(p => p.Tenant).WithOne().HasForeignKey<TenantProfile>(p => p.TenantId).OnDelete(DeleteBehavior.Cascade);
+
+            // HostKycDocument
+            modelBuilder.Entity<HostKycDocument>()
+                .ToTable("HostKycDocuments");
+            modelBuilder.Entity<HostKycDocument>()
+                .Property(d => d.DocType).HasColumnType("varchar(50)").HasMaxLength(50).IsRequired();
+            modelBuilder.Entity<HostKycDocument>()
+                .Property(d => d.Status).HasColumnType("varchar(20)").HasMaxLength(20).HasDefaultValue("Pending");
+            modelBuilder.Entity<HostKycDocument>()
+                .HasIndex(d => new { d.TenantId, d.DocType });
+
+            // PropertyComplianceProfile (1:1 with Property, keyed on PropertyId)
+            modelBuilder.Entity<PropertyComplianceProfile>()
+                .ToTable("PropertyComplianceProfiles");
+            modelBuilder.Entity<PropertyComplianceProfile>()
+                .Property(c => c.OwnershipType).HasColumnType("varchar(20)").HasMaxLength(20).HasDefaultValue("Owner");
+            modelBuilder.Entity<PropertyComplianceProfile>()
+                .HasOne(c => c.Property).WithOne().HasForeignKey<PropertyComplianceProfile>(c => c.PropertyId).OnDelete(deleteBehavior);
+
+            // OnboardingChecklistItem
+            modelBuilder.Entity<OnboardingChecklistItem>()
+                .ToTable("OnboardingChecklistItems");
+            modelBuilder.Entity<OnboardingChecklistItem>()
+                .Property(i => i.Key).HasColumnType("varchar(50)").HasMaxLength(50).IsRequired();
+            modelBuilder.Entity<OnboardingChecklistItem>()
+                .Property(i => i.Stage).HasColumnType("varchar(20)").HasMaxLength(20).HasDefaultValue("FastStart");
+            modelBuilder.Entity<OnboardingChecklistItem>()
+                .Property(i => i.Status).HasColumnType("varchar(20)").HasMaxLength(20).HasDefaultValue("Pending");
+            modelBuilder.Entity<OnboardingChecklistItem>()
+                .HasIndex(i => new { i.TenantId, i.Key }).IsUnique();
+
+            // AuditLog (append-only)
+            modelBuilder.Entity<AuditLog>()
+                .ToTable("AuditLogs");
+            modelBuilder.Entity<AuditLog>()
+                .Property(a => a.Action).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
+            modelBuilder.Entity<AuditLog>()
+                .Property(a => a.TimestampUtc).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => new { a.TenantId, a.TimestampUtc });
+
+            // ---------- Billing domain ----------
+
+            modelBuilder.Entity<BillingPlan>(e =>
+            {
+                e.ToTable("BillingPlans");
+                e.HasKey(p => p.Id);
+                e.Property(p => p.Code).HasColumnType("varchar(30)").IsRequired();
+                e.Property(p => p.Name).HasMaxLength(100).IsRequired();
+                e.Property(p => p.MonthlyPriceInr).HasColumnType("decimal(18,2)");
+                e.HasIndex(p => p.Code).IsUnique();
+            });
+
+            modelBuilder.Entity<TenantSubscription>(e =>
+            {
+                e.ToTable("TenantSubscriptions");
+                e.Property(s => s.Status).HasColumnType("varchar(20)").HasDefaultValue(SubscriptionStatuses.Trial);
+                e.Property(s => s.LockReason).HasColumnType("varchar(30)");
+                e.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(s => s.Plan).WithMany().HasForeignKey(s => s.PlanId).OnDelete(DeleteBehavior.Restrict);
+                e.HasIndex(s => s.TenantId);
+            });
+
+            modelBuilder.Entity<TenantCreditsLedger>(e =>
+            {
+                e.ToTable("TenantCreditsLedger");
+                e.HasKey(l => l.Id);
+                e.Property(l => l.Type).HasColumnType("varchar(20)").IsRequired();
+                e.Property(l => l.Reason).HasColumnType("varchar(50)").IsRequired();
+                e.Property(l => l.ReferenceType).HasColumnType("varchar(50)");
+                e.Property(l => l.ReferenceId).HasColumnType("varchar(50)");
+                e.Property(l => l.CreatedAtUtc).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.HasOne(l => l.Tenant).WithMany().HasForeignKey(l => l.TenantId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(l => l.TenantId);
+            });
+
+            modelBuilder.Entity<BillingInvoice>(e =>
+            {
+                e.ToTable("BillingInvoices");
+                e.HasKey(i => i.Id);
+                e.Property(i => i.Status).HasColumnType("varchar(20)").HasDefaultValue(InvoiceStatuses.Draft);
+                e.Property(i => i.Provider).HasColumnType("varchar(20)");
+                e.HasOne(i => i.Tenant).WithMany().HasForeignKey(i => i.TenantId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(i => new { i.TenantId, i.Status });
+            });
+
+            modelBuilder.Entity<BillingPayment>(e =>
+            {
+                e.ToTable("BillingPayments");
+                e.HasKey(p => p.Id);
+                e.Property(p => p.Status).HasColumnType("varchar(20)");
+                e.Property(p => p.CreatedAtUtc).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.HasOne(p => p.Invoice).WithMany().HasForeignKey(p => p.InvoiceId).OnDelete(DeleteBehavior.Cascade);
+            });
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
@@ -954,16 +1074,16 @@ namespace Atlas.Api.Data
             {
                 if (entry.State == EntityState.Added)
                 {
-                    entry.Entity.TenantId = tenantId;
-                    continue;
+                    if (entry.Entity.TenantId == 0)
+                        entry.Entity.TenantId = tenantId;
                 }
-
-                if (entry.Entity.TenantId != tenantId)
+                else if (entry.State == EntityState.Modified)
                 {
-                    throw new InvalidOperationException("Tenant mismatch detected for a tenant-owned entity.");
-                }
+                    if (entry.Entity.TenantId != tenantId)
+                        throw new InvalidOperationException("Tenant mismatch detected for a tenant-owned entity.");
 
-                entry.Property(nameof(ITenantOwnedEntity.TenantId)).IsModified = false;
+                    entry.Property(nameof(ITenantOwnedEntity.TenantId)).IsModified = false;
+                }
             }
         }
 
@@ -1015,5 +1135,15 @@ namespace Atlas.Api.Data
         public DbSet<ConsumedEvent> ConsumedEvents { get; set; }
         public DbSet<EnvironmentMarker> EnvironmentMarkers { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
+        public DbSet<TenantProfile> TenantProfiles { get; set; }
+        public DbSet<HostKycDocument> HostKycDocuments { get; set; }
+        public DbSet<PropertyComplianceProfile> PropertyComplianceProfiles { get; set; }
+        public DbSet<OnboardingChecklistItem> OnboardingChecklistItems { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<BillingPlan> BillingPlans { get; set; }
+        public DbSet<TenantSubscription> TenantSubscriptions { get; set; }
+        public DbSet<TenantCreditsLedger> TenantCreditsLedger { get; set; }
+        public DbSet<BillingInvoice> BillingInvoices { get; set; }
+        public DbSet<BillingPayment> BillingPayments { get; set; }
     }
 }

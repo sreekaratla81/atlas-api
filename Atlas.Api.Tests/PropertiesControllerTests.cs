@@ -1,5 +1,6 @@
 using Atlas.Api.Controllers;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +28,8 @@ public class PropertiesControllerTests
 
         var result = await controller.GetAll();
 
-        var props = Assert.IsType<List<Property>>(result.Value);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var props = Assert.IsAssignableFrom<IEnumerable<PropertyResponseDto>>(ok.Value);
         Assert.Single(props);
     }
 

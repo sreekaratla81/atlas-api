@@ -80,22 +80,12 @@ public class IncidentsApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Put_ReturnsBadRequest_OnIdMismatch()
+    public async Task Put_ReturnsNotFound_WhenEntityMissing()
     {
-        var incident = new Incident
-        {
-            Id = 1,
-            ListingId = 1,
-            BookingId = null,
-            Description = "d",
-            ActionTaken = "a",
-            Status = "open",
-            CreatedBy = "c",
-            CreatedOn = DateTime.UtcNow
-        };
+        var dto = new { ListingId = 1, Description = "d", ActionTaken = "a", Status = "open", CreatedBy = "c" };
 
-        var response = await Client.PutAsJsonAsync(ApiControllerRoute("incidents/2"), incident);
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        var response = await Client.PutAsJsonAsync(ApiControllerRoute("incidents/999999"), dto);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

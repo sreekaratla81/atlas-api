@@ -1,4 +1,5 @@
 using Atlas.Api.Data;
+using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -36,7 +37,43 @@ public sealed class MigratorApp
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<MigratorApp>>();
         var executor = scope.ServiceProvider.GetRequiredService<IMigrationExecutor>();
 
-        return await RunAsync(options, executor, logger, output, error, redactedTarget, cancellationToken);
+        var result = await RunAsync(options, executor, logger, output, error, redactedTarget, cancellationToken);
+        if (result == 0 && !options.CheckOnly)
+        {
+            using var seedScope = provider.CreateScope();
+            var db = seedScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            if (!await db.EnvironmentMarkers.AnyAsync(cancellationToken))
+            {
+                db.EnvironmentMarkers.Add(new EnvironmentMarker { Marker = "Development" });
+                await db.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Seeded EnvironmentMarker for {Target}.", redactedTarget);
+            }
+
+            await SeedPlatformAdminAsync(db, logger, cancellationToken);
+        }
+        return result;
+    }
+
+    private static async Task SeedPlatformAdminAsync(AppDbContext db, ILogger logger, CancellationToken ct)
+    {
+        const string email = "sreekar.atla@gmail.com";
+        var exists = await db.Users.IgnoreQueryFilters().AnyAsync(u => u.Email == email, ct);
+        if (exists) return;
+
+        var atlas = await db.Tenants.FirstOrDefaultAsync(t => t.Slug == "atlas", ct);
+        if (atlas is null) return;
+
+        db.Users.Add(new User
+        {
+            TenantId = atlas.Id,
+            Name = "Sreekar (Platform Admin)",
+            Email = email,
+            Phone = "0000000000",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("AtlasAdmin!2026"),
+            Role = "platform-admin",
+        });
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Seeded platform-admin user {Email} on tenant {Slug}.", email, atlas.Slug);
     }
 
     internal static async Task<int> RunAsync(
@@ -75,7 +112,7 @@ public sealed class MigratorApp
         }
         catch (Exception ex)
         {
-            logger.LogError("Migration failed for {Target}. Error: {ErrorType}", redactedTarget, ex.GetType().Name);
+            logger.LogError("Migration failed for {Target}. Error: {ErrorType} — {ErrorMessage}", redactedTarget, ex.GetType().Name, ex.Message);
             await error.WriteLineAsync($"Migration failed for {redactedTarget}.");
             return 1;
         }

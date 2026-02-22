@@ -19,11 +19,9 @@ namespace Atlas.Api.DTOs
         [MaxLength(20)]
         public string Type { get; set; } = string.Empty;
 
-        [Required]
-        public DateTime ReceivedOn { get; set; }
+        public DateTime? ReceivedOn { get; set; }
 
-        [Required]
-        public string Note { get; set; } = string.Empty;
+        public string? Note { get; set; }
 
         [MaxLength(100)]
         public string? RazorpayOrderId { get; set; }

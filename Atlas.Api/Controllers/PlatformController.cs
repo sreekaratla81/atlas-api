@@ -1,5 +1,6 @@
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
+using Atlas.Api.Filters;
 using Atlas.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("platform")]
 [Authorize(Roles = "platform-admin")]
+[BillingExempt]
 [Produces("application/json")]
 public class PlatformController : ControllerBase
 {

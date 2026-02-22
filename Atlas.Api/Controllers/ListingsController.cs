@@ -45,6 +45,7 @@ namespace Atlas.Api.Controllers
         }
 
         [HttpGet("public")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(IEnumerable<PublicListingDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<PublicListingDto>>> GetPublicListings()
         {

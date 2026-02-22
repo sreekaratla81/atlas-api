@@ -48,7 +48,9 @@ public class TenantResolutionMiddleware
             || value.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/auth", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/tenants", StringComparison.OrdinalIgnoreCase)
-            || value.StartsWith("/platform", StringComparison.OrdinalIgnoreCase);
+            || value.StartsWith("/platform", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/onboarding/start", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/billing/webhooks/razorpay", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsLocalOrDevelopment(IWebHostEnvironment environment)

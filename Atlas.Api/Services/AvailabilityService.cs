@@ -1,3 +1,4 @@
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
@@ -7,7 +8,7 @@ namespace Atlas.Api.Services
 {
     public class AvailabilityService
     {
-        private const string ActiveAvailabilityStatus = "Active";
+        private const string ActiveAvailabilityStatus = BlockStatuses.Active;
         private readonly AppDbContext _context;
 
         public AvailabilityService(AppDbContext context)

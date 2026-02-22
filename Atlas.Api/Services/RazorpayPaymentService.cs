@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.Events;
 using Atlas.Api.Models;
@@ -55,75 +56,85 @@ namespace Atlas.Api.Services
 
         public async Task<RazorpayOrderResponse> CreateOrderAsync(CreateRazorpayOrderRequest request)
         {
-            var booking = await GetOrCreateBookingAsync(request);
-
-            var breakdown = await ResolveBreakdownForOrderAsync(request, booking);
-            booking.PaymentStatus = "pending";
-            booking.TotalAmount = breakdown.FinalAmount;
-            booking.BaseAmount = breakdown.BaseAmount;
-            booking.DiscountAmount = breakdown.DiscountAmount;
-            booking.ConvenienceFeeAmount = breakdown.ConvenienceFeeAmount;
-            booking.FinalAmount = breakdown.FinalAmount;
-            booking.PricingSource = breakdown.PricingSource;
-            booking.QuoteTokenNonce = breakdown.QuoteTokenNonce;
-            booking.QuoteExpiresAtUtc = breakdown.QuoteExpiresAtUtc;
-
-            var orderRequest = new
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                amount = (int)(breakdown.FinalAmount * 100),
-                currency = request.Currency,
-                receipt = $"booking_{booking.Id}",
-                payment_capture = 1
-            };
+                var booking = await GetOrCreateBookingAsync(request);
 
-            var content = new StringContent(JsonSerializer.Serialize(orderRequest), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("orders", content);
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new InvalidOperationException($"Razorpay API error: {response.StatusCode} - {errorContent}");
+                var breakdown = await ResolveBreakdownForOrderAsync(request, booking);
+                booking.PaymentStatus = "pending";
+                booking.TotalAmount = breakdown.FinalAmount;
+                booking.BaseAmount = breakdown.BaseAmount;
+                booking.DiscountAmount = breakdown.DiscountAmount;
+                booking.ConvenienceFeeAmount = breakdown.ConvenienceFeeAmount;
+                booking.FinalAmount = breakdown.FinalAmount;
+                booking.PricingSource = breakdown.PricingSource;
+                booking.QuoteTokenNonce = breakdown.QuoteTokenNonce;
+                booking.QuoteExpiresAtUtc = breakdown.QuoteExpiresAtUtc;
+
+                var orderRequest = new
+                {
+                    amount = (int)(breakdown.FinalAmount * 100),
+                    currency = request.Currency,
+                    receipt = $"booking_{booking.Id}",
+                    payment_capture = 1
+                };
+
+                var content = new StringContent(JsonSerializer.Serialize(orderRequest), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("orders", content);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    throw new InvalidOperationException($"Razorpay API error: {response.StatusCode} - {errorContent}");
+                }
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var orderResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                var orderId = orderResponse.GetProperty("id").GetString();
+                if (string.IsNullOrEmpty(orderId))
+                {
+                    throw new InvalidOperationException("Failed to create Razorpay order: Invalid response from Razorpay");
+                }
+
+                var payment = new Payment
+                {
+                    BookingId = booking.Id,
+                    Amount = breakdown.FinalAmount,
+                    BaseAmount = breakdown.BaseAmount,
+                    DiscountAmount = breakdown.DiscountAmount,
+                    ConvenienceFeeAmount = breakdown.ConvenienceFeeAmount,
+                    Method = "Razorpay",
+                    Type = "payment",
+                    ReceivedOn = DateTime.UtcNow,
+                    Note = $"Razorpay Order ID: {orderId}",
+                    RazorpayOrderId = orderId,
+                    Status = "pending"
+                };
+
+                var validationResults = new List<ValidationResult>();
+                if (!Validator.TryValidateObject(payment, new ValidationContext(payment), validationResults, true))
+                {
+                    throw new ValidationException($"Invalid payment data: {string.Join(", ", validationResults.Select(v => v.ErrorMessage))}");
+                }
+
+                _context.Payments.Add(payment);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return new RazorpayOrderResponse
+                {
+                    KeyId = _keyId,
+                    OrderId = orderId,
+                    Amount = breakdown.FinalAmount,
+                    Currency = request.Currency,
+                    BookingId = booking.Id
+                };
             }
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-            var orderResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
-            var orderId = orderResponse.GetProperty("id").GetString();
-            if (string.IsNullOrEmpty(orderId))
+            catch
             {
-                throw new InvalidOperationException("Failed to create Razorpay order: Invalid response from Razorpay");
+                await transaction.RollbackAsync();
+                throw;
             }
-
-            var payment = new Payment
-            {
-                BookingId = booking.Id,
-                Amount = breakdown.FinalAmount,
-                BaseAmount = breakdown.BaseAmount,
-                DiscountAmount = breakdown.DiscountAmount,
-                ConvenienceFeeAmount = breakdown.ConvenienceFeeAmount,
-                Method = "Razorpay",
-                Type = "payment",
-                ReceivedOn = DateTime.UtcNow,
-                Note = $"Razorpay Order ID: {orderId}",
-                RazorpayOrderId = orderId,
-                Status = "pending"
-            };
-
-            var validationResults = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(payment, new ValidationContext(payment), validationResults, true))
-            {
-                throw new ValidationException($"Invalid payment data: {string.Join(", ", validationResults.Select(v => v.ErrorMessage))}");
-            }
-
-            _context.Payments.Add(payment);
-            await _context.SaveChangesAsync();
-
-            return new RazorpayOrderResponse
-            {
-                KeyId = _keyId,
-                OrderId = orderId,
-                Amount = breakdown.FinalAmount,
-                Currency = request.Currency,
-                BookingId = booking.Id
-            };
         }
 
         public async Task<bool> VerifyAndProcessPaymentAsync(VerifyRazorpayPaymentRequest request)
@@ -163,19 +174,19 @@ namespace Atlas.Api.Services
 
             booking.PaymentStatus = "paid";
             booking.AmountReceived = booking.TotalAmount ?? 0;
-            if (string.Equals(booking.BookingStatus, "Hold", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(booking.BookingStatus, BookingStatuses.Hold, StringComparison.OrdinalIgnoreCase))
             {
-                booking.BookingStatus = "Confirmed";
+                booking.BookingStatus = BookingStatuses.Confirmed;
             }
 
             var temporaryBlocks = await _context.AvailabilityBlocks
-                .Where(ab => ab.BookingId == booking.Id && ab.BlockType == "Hold" && ab.Status == "Hold")
+                .Where(ab => ab.BookingId == booking.Id && ab.BlockType == BlockStatuses.Hold && ab.Status == BlockStatuses.Hold)
                 .ToListAsync();
             foreach (var block in temporaryBlocks)
             {
                 block.BlockType = "Booking";
                 block.Source = "System";
-                block.Status = "Active";
+                block.Status = BlockStatuses.Active;
                 block.Inventory = false;
                 block.UpdatedAtUtc = DateTime.UtcNow;
             }
@@ -339,7 +350,7 @@ namespace Atlas.Api.Services
                 CheckoutDate = request.BookingDraft.CheckoutDate,
                 GuestsPlanned = request.BookingDraft.Guests,
                 Notes = request.BookingDraft.Notes ?? string.Empty,
-                BookingStatus = "Hold",
+                BookingStatus = BookingStatuses.Hold,
                 PaymentStatus = "pending",
                 Currency = request.Currency,
                 CreatedAt = DateTime.UtcNow
@@ -358,9 +369,9 @@ namespace Atlas.Api.Services
                     BookingId = booking.Id,
                     StartDate = d,
                     EndDate = d.AddDays(1),
-                    BlockType = "Hold",
+                    BlockType = BlockStatuses.Hold,
                     Source = "Razorpay",
-                    Status = "Hold",
+                    Status = BlockStatuses.Hold,
                     Inventory = false,
                     CreatedAtUtc = now,
                     UpdatedAtUtc = now

@@ -34,7 +34,7 @@ public sealed class NotificationOrchestrator
 
         if (templates.Count == 0)
         {
-            _logger.LogDebug("No active templates for tenant {TenantId} event {EventType}.", tenantId, eventType);
+            _logger.LogWarning("No active templates for tenant {TenantId} event {EventType}; notification skipped. Configure templates to enable this channel.", tenantId, eventType);
             return;
         }
 

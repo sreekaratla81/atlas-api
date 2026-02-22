@@ -103,7 +103,9 @@ namespace Atlas.Api
             builder.Services.AddScoped<IListingDailyInventoryRepository, ListingDailyInventoryRepository>();
             builder.Services.AddScoped<Atlas.Api.Services.IAdminPricingService, Atlas.Api.Services.AdminPricingService>();
             builder.Services.AddScoped<Atlas.Api.Services.IGuestPricingService, Atlas.Api.Services.GuestPricingService>();
+#pragma warning disable CS0618 // BL-011: NoOp retained for planned workflow integration
             builder.Services.AddScoped<Atlas.Api.Services.IBookingWorkflowPublisher, Atlas.Api.Services.NoOpBookingWorkflowPublisher>();
+#pragma warning restore CS0618
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ITenantContextAccessor, HttpTenantContextAccessor>();
             builder.Services.AddScoped<ITenantProvider, TenantProvider>();
@@ -146,6 +148,7 @@ namespace Atlas.Api
             builder.Services.AddHostedService<OutboxDispatcherHostedService>();
             builder.Services.AddHostedService<Atlas.Api.Services.Consumers.BookingEventsNotificationConsumer>();
             builder.Services.AddHostedService<Atlas.Api.Services.Consumers.StayEventsNotificationConsumer>();
+            builder.Services.AddHostedService<Atlas.Api.Services.HoldCleanupHostedService>();
 
             builder.Services.Configure<Atlas.Api.Services.Msg91Settings>(builder.Configuration.GetSection("Msg91"));
             builder.Services.AddHttpClient("MSG91");
@@ -238,7 +241,48 @@ namespace Atlas.Api
             // app.UseAuthorization();
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
-            app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+            app.MapGet("/health", async (IOptions<AzureServiceBusOptions> sbOpts, AppDbContext db) =>
+            {
+                var pipelineActive = !string.IsNullOrWhiteSpace(sbOpts.Value.ConnectionString);
+                var outboxPending = await db.OutboxMessages.CountAsync(o => o.Status == "Pending");
+                var outboxFailed = await db.OutboxMessages.CountAsync(o => o.Status == "Failed");
+
+                return Results.Ok(new
+                {
+                    status = "healthy",
+                    asyncPipeline = new
+                    {
+                        enabled = pipelineActive,
+                        serviceBusConfigured = pipelineActive
+                    },
+                    outbox = new
+                    {
+                        pending = outboxPending,
+                        failed = outboxFailed
+                    }
+                });
+            });
+
+            app.MapGet("/ops/outbox-stats", async (AppDbContext db) =>
+            {
+                var stats = await db.OutboxMessages
+                    .GroupBy(o => o.Status)
+                    .Select(g => new { Status = g.Key, Count = g.Count() })
+                    .ToListAsync();
+
+                var oldest = await db.OutboxMessages
+                    .Where(o => o.Status == "Pending")
+                    .OrderBy(o => o.CreatedAtUtc)
+                    .Select(o => o.CreatedAtUtc)
+                    .FirstOrDefaultAsync();
+
+                return Results.Ok(new
+                {
+                    counts = stats.ToDictionary(s => s.Status, s => s.Count),
+                    oldestPendingUtc = oldest == default ? (DateTime?)null : oldest,
+                    queriedAtUtc = DateTime.UtcNow
+                });
+            });
 
             // No path base: match dev URLs exactly — /listings/5, /availability/listing-availability, /api/Razorpay/order (only base URL differs between dev and prod).
             app.MapControllers();

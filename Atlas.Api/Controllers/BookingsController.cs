@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Events;
@@ -18,8 +19,10 @@ namespace Atlas.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<BookingsController> _logger;
+#pragma warning disable CS0618 // BL-011: retained for planned workflow integration
         private readonly Atlas.Api.Services.IBookingWorkflowPublisher _bookingWorkflowPublisher;
-        private const string ActiveAvailabilityStatus = "Active";
+#pragma warning restore CS0618
+        private const string ActiveAvailabilityStatus = BlockStatuses.Active;
         private const string CancelledAvailabilityStatus = "Cancelled";
         private const string BookingBlockType = "Booking";
         private const string SystemSource = "System";
@@ -27,7 +30,9 @@ namespace Atlas.Api.Controllers
         public BookingsController(
             AppDbContext context,
             ILogger<BookingsController> logger,
+#pragma warning disable CS0618
             Atlas.Api.Services.IBookingWorkflowPublisher bookingWorkflowPublisher)
+#pragma warning restore CS0618
         {
             _context = context;
             _logger = logger;
@@ -242,6 +247,8 @@ namespace Atlas.Api.Controllers
 
                     AddBookingConfirmedOutbox(booking, guest);
                 }
+
+                AddBookingCreatedOutbox(booking, guest);
 
                 await _context.SaveChangesAsync();
 
@@ -525,12 +532,12 @@ namespace Atlas.Api.Controllers
 
         private static bool IsConfirmedStatus(string? status)
         {
-            return string.Equals(status, "Confirmed", StringComparison.OrdinalIgnoreCase);
+            return BookingStatuses.IsConfirmed(status ?? "");
         }
 
         private static bool IsCancelledStatus(string? status)
         {
-            return string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+            return BookingStatuses.IsCancelled(status ?? "");
         }
 
         private static bool IsCheckedInStatus(string? status)
@@ -636,6 +643,24 @@ namespace Atlas.Api.Controllers
                 occurredAtUtc = DateTime.UtcNow
             };
             AddOutboxMessage("booking.events", EventTypes.BookingConfirmed, booking.Id.ToString(), payload);
+        }
+
+        private void AddBookingCreatedOutbox(Booking booking, Guest guest)
+        {
+            var payload = new
+            {
+                bookingId = booking.Id,
+                guestId = guest.Id,
+                listingId = booking.ListingId,
+                bookingSource = booking.BookingSource,
+                bookingStatus = booking.BookingStatus,
+                checkinDate = booking.CheckinDate,
+                checkoutDate = booking.CheckoutDate,
+                guestPhone = guest.Phone,
+                guestEmail = guest.Email,
+                occurredAtUtc = DateTime.UtcNow
+            };
+            AddOutboxMessage("booking.events", EventTypes.BookingCreated, booking.Id.ToString(), payload);
         }
     }
 }

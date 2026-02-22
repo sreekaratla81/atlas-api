@@ -69,7 +69,7 @@ public sealed class StayEventsNotificationConsumer : BackgroundService
         var correlationId = message.ApplicationProperties.TryGetValue("CorrelationId", out var c) ? c?.ToString() : null;
         var eventId = message.ApplicationProperties.TryGetValue("IdempotencyKey", out var id) ? id?.ToString() : message.MessageId ?? Guid.NewGuid().ToString() ?? "";
 
-        if (!EventTypes.IsStayReminderEvent(eventType))
+        if (!EventTypes.IsStayEvent(eventType))
         {
             await completeAsync(message, cancellationToken).ConfigureAwait(false);
             return;

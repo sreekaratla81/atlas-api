@@ -20,4 +20,10 @@ public static class EventTypes
 
     public static bool IsStayReminderEvent(string eventType) =>
         eventType == StayWelcomeDue || eventType == StayPrecheckoutDue || eventType == StayPostcheckoutDue;
+
+    public static bool IsStayLifecycleEvent(string eventType) =>
+        eventType == StayCheckedIn || eventType == StayCheckedOut;
+
+    public static bool IsStayEvent(string eventType) =>
+        IsStayReminderEvent(eventType) || IsStayLifecycleEvent(eventType);
 }

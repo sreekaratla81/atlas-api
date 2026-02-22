@@ -141,12 +141,16 @@ public sealed class FailingBookingWorkflowFactory : CustomWebApplicationFactory
         base.ConfigureWebHost(builder);
         builder.ConfigureServices(services =>
         {
+#pragma warning disable CS0618
             services.AddScoped<IBookingWorkflowPublisher, FailingBookingWorkflowPublisher>();
+#pragma warning restore CS0618
         });
     }
 }
 
+#pragma warning disable CS0618
 public sealed class FailingBookingWorkflowPublisher : IBookingWorkflowPublisher
+#pragma warning restore CS0618
 {
     public Task PublishBookingConfirmedAsync(
         Booking booking,

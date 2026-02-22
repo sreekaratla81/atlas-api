@@ -18,6 +18,7 @@ namespace Atlas.Api.Services
     {
         Task<RazorpayOrderResponse> CreateOrderAsync(CreateRazorpayOrderRequest request);
         Task<bool> VerifyAndProcessPaymentAsync(VerifyRazorpayPaymentRequest request);
+        Task<bool> ReconcileWebhookPaymentAsync(string razorpayOrderId, string razorpayPaymentId);
     }
 
     public class RazorpayPaymentService : IRazorpayPaymentService
@@ -27,7 +28,6 @@ namespace Atlas.Api.Services
         private readonly string _keyId;
         private readonly string _keySecret;
         private readonly ILogger<RazorpayPaymentService> _logger;
-        private readonly IEmailService _emailService;
         private readonly PricingService _pricingService;
         private readonly IQuoteService _quoteService;
 
@@ -36,7 +36,6 @@ namespace Atlas.Api.Services
             IOptions<RazorpayConfig> config,
             IHttpClientFactory httpClientFactory,
             ILogger<RazorpayPaymentService> logger,
-            IEmailService emailService,
             PricingService pricingService,
             IQuoteService quoteService)
         {
@@ -45,7 +44,6 @@ namespace Atlas.Api.Services
             _keySecret = config.Value.KeySecret ?? throw new ArgumentNullException(nameof(config.Value.KeySecret));
             _httpClient = httpClientFactory.CreateClient("Razorpay");
             _logger = logger;
-            _emailService = emailService;
             _pricingService = pricingService;
             _quoteService = quoteService;
 
@@ -147,7 +145,7 @@ namespace Atlas.Api.Services
                 ?? throw new InvalidOperationException("Payment record not found for the given booking and order ID");
 
             // FD-001 idempotency guard: if payment already completed, return success without side effects
-            if (string.Equals(payment.Status, "completed", StringComparison.OrdinalIgnoreCase))
+            if (PaymentStatuses.IsCompleted(payment.Status))
             {
                 _logger.LogInformation("Idempotent verify: payment already completed for BookingId={BookingId}, RazorpayOrderId={OrderId}",
                     request.BookingId, request.RazorpayOrderId);
@@ -160,15 +158,15 @@ namespace Atlas.Api.Services
 
             if (computedSignature != request.RazorpaySignature.ToLower())
             {
-                booking.PaymentStatus = "failed";
-                payment.Status = "failed";
+                booking.PaymentStatus = PaymentStatuses.Failed;
+                payment.Status = PaymentStatuses.Failed;
                 await _context.SaveChangesAsync();
                 return false;
             }
 
             payment.RazorpayPaymentId = request.RazorpayPaymentId;
             payment.RazorpaySignature = request.RazorpaySignature;
-            payment.Status = "completed";
+            payment.Status = PaymentStatuses.Completed;
             payment.ReceivedOn = DateTime.UtcNow;
             payment.Note = $"Razorpay Payment ID: {request.RazorpayPaymentId}";
 
@@ -225,20 +223,96 @@ namespace Atlas.Api.Services
 
             await _context.SaveChangesAsync();
 
-            try
+            // BL-002: Direct email removed. Confirmation is now handled by the outbox
+            // booking.confirmed event → NotificationOrchestrator → template-driven send.
+            // This eliminates the duplicate email issue (outbox + direct send).
+
+            return true;
+        }
+
+        public async Task<bool> ReconcileWebhookPaymentAsync(string razorpayOrderId, string razorpayPaymentId)
+        {
+            var payment = await _context.Payments
+                .FirstOrDefaultAsync(p => p.RazorpayOrderId == razorpayOrderId);
+
+            if (payment == null)
             {
-                var emailSent = await _emailService.SendBookingConfirmationEmailAsync(booking, request.RazorpayPaymentId);
-                if (emailSent)
-                {
-                    booking.ConfirmationSentAtUtc = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-                }
-            }
-            catch (Exception emailEx)
-            {
-                _logger.LogError(emailEx, "Error sending booking confirmation email for booking ID: {BookingId}. Payment verification succeeded.", request.BookingId);
+                _logger.LogWarning("Webhook reconcile: no payment found for RazorpayOrderId={OrderId}.", razorpayOrderId);
+                return false;
             }
 
+            if (PaymentStatuses.IsCompleted(payment.Status))
+            {
+                _logger.LogInformation("Webhook reconcile: payment already completed for RazorpayOrderId={OrderId}.", razorpayOrderId);
+                return true;
+            }
+
+            var booking = await _context.Bookings.FindAsync(payment.BookingId);
+            if (booking == null)
+            {
+                _logger.LogWarning("Webhook reconcile: no booking found for PaymentId={PaymentId}.", payment.Id);
+                return false;
+            }
+
+            payment.RazorpayPaymentId = razorpayPaymentId;
+            payment.Status = PaymentStatuses.Completed;
+            payment.ReceivedOn = DateTime.UtcNow;
+            payment.Note = $"Reconciled via webhook. Razorpay Payment ID: {razorpayPaymentId}";
+
+            booking.PaymentStatus = "paid";
+            booking.AmountReceived = booking.TotalAmount ?? 0;
+            if (string.Equals(booking.BookingStatus, BookingStatuses.Hold, StringComparison.OrdinalIgnoreCase))
+            {
+                booking.BookingStatus = BookingStatuses.Confirmed;
+            }
+
+            var temporaryBlocks = await _context.AvailabilityBlocks
+                .Where(ab => ab.BookingId == booking.Id && ab.BlockType == BlockStatuses.Hold && ab.Status == BlockStatuses.Hold)
+                .ToListAsync();
+            foreach (var block in temporaryBlocks)
+            {
+                block.BlockType = "Booking";
+                block.Source = "System";
+                block.Status = BlockStatuses.Active;
+                block.Inventory = false;
+                block.UpdatedAtUtc = DateTime.UtcNow;
+            }
+
+            var guest = await _context.Guests.FindAsync(booking.GuestId);
+            if (guest != null)
+            {
+                var outboxPayload = JsonSerializer.Serialize(new
+                {
+                    bookingId = booking.Id,
+                    guestId = guest.Id,
+                    listingId = booking.ListingId,
+                    bookingStatus = booking.BookingStatus,
+                    checkinDate = booking.CheckinDate,
+                    checkoutDate = booking.CheckoutDate,
+                    guestPhone = guest.Phone,
+                    guestEmail = guest.Email,
+                    occurredAtUtc = DateTime.UtcNow,
+                    source = "webhook"
+                });
+                _context.OutboxMessages.Add(new OutboxMessage
+                {
+                    Topic = "booking.events",
+                    EventType = EventTypes.BookingConfirmed,
+                    EntityId = booking.Id.ToString(),
+                    PayloadJson = outboxPayload,
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    OccurredUtc = DateTime.UtcNow,
+                    SchemaVersion = 1,
+                    Status = "Pending",
+                    NextAttemptUtc = DateTime.UtcNow,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    AttemptCount = 0
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Webhook reconcile: payment completed for BookingId={BookingId}, RazorpayOrderId={OrderId}.",
+                booking.Id, razorpayOrderId);
             return true;
         }
 

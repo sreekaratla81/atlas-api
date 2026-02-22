@@ -63,6 +63,9 @@ public static class DataSeeder
         return pricing;
     }
 
+    public static Task<ListingPricing> SeedPricingAsync(AppDbContext db, Listing listing) =>
+        SeedListingPricingAsync(db, listing, baseNightlyRate: 2000m, weekendNightlyRate: 2500m);
+
     public static async Task<ListingDailyRate> SeedListingDailyRateAsync(AppDbContext db, Listing listing, DateTime date, decimal rate, string currency = "INR")
     {
         var dailyRate = new ListingDailyRate

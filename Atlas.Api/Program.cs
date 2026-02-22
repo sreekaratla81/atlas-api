@@ -156,21 +156,23 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.Notifications.NotificationOrchestrator>();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
-            _ = jwtKey;
+            var jwtEnabled = string.Equals(builder.Configuration["Jwt:Enabled"], "true", StringComparison.OrdinalIgnoreCase);
 
-            // Auth disabled for local/dev; re-enable before prod (see ATLAS-HIGH-VALUE-BACKLOG execution rules)
-            // builder.Services.AddAuthentication("Bearer")
-            //     .AddJwtBearer("Bearer", options =>
-            //     {
-            //         options.TokenValidationParameters = new TokenValidationParameters
-            //         {
-            //             ValidateIssuer = false,
-            //             ValidateAudience = false,
-            //             ValidateLifetime = true,
-            //             ValidateIssuerSigningKey = true,
-            //             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? string.Empty))
-            //         };
-            //     });
+            if (jwtEnabled && !string.IsNullOrWhiteSpace(jwtKey))
+            {
+                builder.Services.AddAuthentication("Bearer")
+                    .AddJwtBearer("Bearer", options =>
+                    {
+                        options.TokenValidationParameters = new TokenValidationParameters
+                        {
+                            ValidateIssuer = false,
+                            ValidateAudience = false,
+                            ValidateLifetime = true,
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+                        };
+                    });
+            }
 
             var app = builder.Build();
 
@@ -236,9 +238,11 @@ namespace Atlas.Api
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();
 
-            // Authentication is intentionally disabled until JWT is configured; then uncomment UseAuthentication/UseAuthorization.
-            // app.UseAuthentication();
-            // app.UseAuthorization();
+            if (jwtEnabled && !string.IsNullOrWhiteSpace(jwtKey))
+            {
+                app.UseAuthentication();
+                app.UseAuthorization();
+            }
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
             app.MapGet("/health", async (IOptions<AzureServiceBusOptions> sbOpts, AppDbContext db) =>

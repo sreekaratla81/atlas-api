@@ -1,10 +1,15 @@
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using Atlas.Api.Models;
 using Atlas.Api.Models.Dtos.Razorpay;
 using Atlas.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.ComponentModel.DataAnnotations;
@@ -17,13 +22,16 @@ namespace Atlas.Api.Controllers
     {
         private readonly IRazorpayPaymentService _razorpayService;
         private readonly ILogger<RazorpayController> _logger;
+        private readonly string _webhookSecret;
 
         public RazorpayController(
             IRazorpayPaymentService razorpayService,
-            ILogger<RazorpayController> logger)
+            ILogger<RazorpayController> logger,
+            IOptions<RazorpayConfig> razorpayConfig)
         {
             _razorpayService = razorpayService;
             _logger = logger;
+            _webhookSecret = razorpayConfig.Value.WebhookSecret;
         }
 
         /// <summary>
@@ -163,6 +171,82 @@ namespace Atlas.Api.Controllers
             {
                 _logger.LogError(ex, "Error verifying Razorpay payment");
                 return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Razorpay server-to-server webhook for payment reconciliation.
+        /// Catches payments where the client dropped before calling /verify.
+        /// Validates webhook signature using HMAC-SHA256 with webhook secret.
+        /// </summary>
+        [HttpPost("webhook")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> Webhook()
+        {
+            if (string.IsNullOrWhiteSpace(_webhookSecret))
+            {
+                _logger.LogWarning("Razorpay webhook received but WebhookSecret is not configured; ignoring.");
+                return Ok(new { status = "ignored", reason = "webhook_secret_not_configured" });
+            }
+
+            string body;
+            using (var reader = new System.IO.StreamReader(Request.Body, Encoding.UTF8))
+            {
+                body = await reader.ReadToEndAsync();
+            }
+
+            var signature = Request.Headers["X-Razorpay-Signature"].ToString();
+            if (string.IsNullOrWhiteSpace(signature))
+            {
+                _logger.LogWarning("Razorpay webhook missing X-Razorpay-Signature header.");
+                return BadRequest(new { status = "error", reason = "missing_signature" });
+            }
+
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_webhookSecret));
+            var expected = BitConverter.ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(body)))
+                .Replace("-", "").ToLower();
+            if (!string.Equals(expected, signature, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Razorpay webhook signature mismatch.");
+                return BadRequest(new { status = "error", reason = "invalid_signature" });
+            }
+
+            RazorpayWebhookPayload? payload;
+            try
+            {
+                payload = JsonSerializer.Deserialize<RazorpayWebhookPayload>(body);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Razorpay webhook payload deserialization failed.");
+                return BadRequest(new { status = "error", reason = "invalid_payload" });
+            }
+
+            if (payload?.Event != "payment.captured" && payload?.Event != "payment.authorized")
+            {
+                _logger.LogInformation("Razorpay webhook event {Event} ignored (not payment.captured/authorized).", payload?.Event);
+                return Ok(new { status = "ignored", @event = payload?.Event });
+            }
+
+            var paymentEntity = payload.Payload?.Payment?.Entity;
+            if (paymentEntity == null || string.IsNullOrEmpty(paymentEntity.OrderId))
+            {
+                _logger.LogWarning("Razorpay webhook payload missing payment entity or order_id.");
+                return Ok(new { status = "ignored", reason = "missing_payment_entity" });
+            }
+
+            try
+            {
+                var reconciled = await _razorpayService.ReconcileWebhookPaymentAsync(
+                    paymentEntity.OrderId, paymentEntity.Id);
+
+                return Ok(new { status = reconciled ? "reconciled" : "no_match", orderId = paymentEntity.OrderId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Webhook reconciliation failed for OrderId={OrderId}.", paymentEntity.OrderId);
+                return StatusCode(500, new { status = "error", reason = "reconciliation_failed" });
             }
         }
     }

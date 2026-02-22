@@ -49,19 +49,6 @@ namespace Atlas.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "EnvironmentMarker",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Marker = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_EnvironmentMarker", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Guests",
                 columns: table => new
                 {
@@ -461,12 +448,6 @@ namespace Atlas.Api.Migrations
                 column: "TemplateId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EnvironmentMarker_Marker",
-                table: "EnvironmentMarker",
-                column: "Marker",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_ListingDailyRate_ListingId_Date",
                 table: "ListingDailyRate",
                 columns: new[] { "ListingId", "Date" },
@@ -499,9 +480,6 @@ namespace Atlas.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "CommunicationLog");
-
-            migrationBuilder.DropTable(
-                name: "EnvironmentMarker");
 
             migrationBuilder.DropTable(
                 name: "Incidents");

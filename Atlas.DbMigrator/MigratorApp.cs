@@ -40,16 +40,23 @@ public sealed class MigratorApp
         var result = await RunAsync(options, executor, logger, output, error, redactedTarget, cancellationToken);
         if (result == 0 && !options.CheckOnly)
         {
-            using var seedScope = provider.CreateScope();
-            var db = seedScope.ServiceProvider.GetRequiredService<AppDbContext>();
-            if (!await db.EnvironmentMarkers.AnyAsync(cancellationToken))
+            try
             {
-                db.EnvironmentMarkers.Add(new EnvironmentMarker { Marker = "Development" });
-                await db.SaveChangesAsync(cancellationToken);
-                logger.LogInformation("Seeded EnvironmentMarker for {Target}.", redactedTarget);
-            }
+                using var seedScope = provider.CreateScope();
+                var db = seedScope.ServiceProvider.GetRequiredService<AppDbContext>();
+                if (!await db.EnvironmentMarkers.AnyAsync(cancellationToken))
+                {
+                    db.EnvironmentMarkers.Add(new EnvironmentMarker { Marker = "DEV" });
+                    await db.SaveChangesAsync(cancellationToken);
+                    logger.LogInformation("Seeded EnvironmentMarker for {Target}.", redactedTarget);
+                }
 
-            await SeedPlatformAdminAsync(db, logger, cancellationToken);
+                await SeedPlatformAdminAsync(db, logger, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Post-migration seeding failed (non-fatal). Tables may not exist yet in {Target}.", redactedTarget);
+            }
         }
         return result;
     }

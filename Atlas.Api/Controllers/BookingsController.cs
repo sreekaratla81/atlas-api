@@ -31,6 +31,7 @@ namespace Atlas.Api.Controllers
         private readonly CreditsService _credits;
         private readonly ITenantContextAccessor _tenantAccessor;
         private readonly BookingScheduleService _scheduleService;
+        private readonly Atlas.Api.Services.IRazorpayPaymentService _razorpayService;
         private const string ActiveAvailabilityStatus = BlockStatuses.Active;
         private const string CancelledAvailabilityStatus = BookingStatuses.Cancelled;
         private const string BookingBlockType = "Booking";
@@ -44,7 +45,8 @@ namespace Atlas.Api.Controllers
 #pragma warning restore CS0618
             CreditsService credits,
             ITenantContextAccessor tenantAccessor,
-            BookingScheduleService scheduleService)
+            BookingScheduleService scheduleService,
+            Atlas.Api.Services.IRazorpayPaymentService razorpayService)
         {
             _context = context;
             _logger = logger;
@@ -52,6 +54,7 @@ namespace Atlas.Api.Controllers
             _credits = credits;
             _tenantAccessor = tenantAccessor;
             _scheduleService = scheduleService;
+            _razorpayService = razorpayService;
         }
 
         [HttpGet]
@@ -561,6 +564,39 @@ namespace Atlas.Api.Controllers
             {
                 _logger.LogError(ex, "Error checking out booking {BookingId}", id);
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        public class RefundRequest
+        {
+            public decimal Amount { get; set; }
+            public string Reason { get; set; } = string.Empty;
+        }
+
+        [HttpPost("{id}/refund")]
+        [ProducesResponseType(typeof(Atlas.Api.Services.RazorpayRefundResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Refund(int id, [FromBody] RefundRequest request)
+        {
+            try
+            {
+                var booking = await _context.Bookings.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+                if (booking == null) return NotFound();
+
+                if (request.Amount <= 0)
+                    return BadRequest(new { message = "Refund amount must be greater than zero." });
+
+                var result = await _razorpayService.RefundPaymentAsync(id, request.Amount, request.Reason);
+                if (!result.Success)
+                    return BadRequest(new { message = result.Error });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing refund for BookingId={BookingId}", id);
+                return StatusCode(500, new { message = "Internal server error" });
             }
         }
 

@@ -14,11 +14,21 @@ using Microsoft.Extensions.Options;
 
 namespace Atlas.Api.Services
 {
+    public class RazorpayRefundResult
+    {
+        public bool Success { get; set; }
+        public string? RefundId { get; set; }
+        public string? Status { get; set; }
+        public decimal AmountRefunded { get; set; }
+        public string? Error { get; set; }
+    }
+
     public interface IRazorpayPaymentService
     {
         Task<RazorpayOrderResponse> CreateOrderAsync(CreateRazorpayOrderRequest request);
         Task<bool> VerifyAndProcessPaymentAsync(VerifyRazorpayPaymentRequest request);
         Task<bool> ReconcileWebhookPaymentAsync(string razorpayOrderId, string razorpayPaymentId);
+        Task<RazorpayRefundResult> RefundPaymentAsync(int bookingId, decimal amount, string reason);
     }
 
     public class RazorpayPaymentService : IRazorpayPaymentService
@@ -407,6 +417,107 @@ namespace Atlas.Api.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        public async Task<RazorpayRefundResult> RefundPaymentAsync(int bookingId, decimal amount, string reason)
+        {
+            var payment = await _context.Payments
+                .Where(p => p.BookingId == bookingId
+                         && p.RazorpayPaymentId != null
+                         && PaymentStatuses.IsCompleted(p.Status))
+                .OrderByDescending(p => p.ReceivedOn)
+                .FirstOrDefaultAsync();
+
+            if (payment is null)
+            {
+                return new RazorpayRefundResult
+                {
+                    Success = false,
+                    Error = "No completed Razorpay payment found for this booking."
+                };
+            }
+
+            if (amount <= 0 || amount > payment.Amount)
+            {
+                return new RazorpayRefundResult
+                {
+                    Success = false,
+                    Error = $"Refund amount must be between ₹1 and ₹{payment.Amount:N2}."
+                };
+            }
+
+            var refundRequest = new
+            {
+                amount = (int)(amount * 100),
+                notes = new { reason, bookingId = bookingId.ToString() }
+            };
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(refundRequest), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync(
+                $"payments/{payment.RazorpayPaymentId}/refund", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                _logger.LogError(
+                    "Razorpay refund API error for BookingId={BookingId}: {Status} {Body}",
+                    bookingId, response.StatusCode, errorBody);
+                return new RazorpayRefundResult
+                {
+                    Success = false,
+                    Error = $"Razorpay API error: {response.StatusCode}"
+                };
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var refundResponse = JsonSerializer.Deserialize<JsonElement>(responseBody);
+            var refundId = refundResponse.GetProperty("id").GetString();
+
+            var isFullRefund = amount == payment.Amount;
+            payment.Status = isFullRefund ? PaymentStatuses.Refunded : PaymentStatuses.PartiallyRefunded;
+
+            var booking = await _context.Bookings.FindAsync(bookingId);
+            if (booking is not null)
+            {
+                booking.PaymentStatus = payment.Status;
+                if (isFullRefund)
+                {
+                    booking.AmountReceived = 0;
+                }
+                else
+                {
+                    booking.AmountReceived = Math.Max(0, booking.AmountReceived - amount);
+                }
+            }
+
+            var refundPayment = new Payment
+            {
+                BookingId = bookingId,
+                Amount = -amount,
+                Method = "Razorpay",
+                Type = "refund",
+                ReceivedOn = DateTime.UtcNow,
+                RazorpayPaymentId = refundId,
+                Status = PaymentStatuses.Completed,
+                Note = $"Refund: {reason}"
+            };
+            _context.Payments.Add(refundPayment);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Refund {RefundId} processed for BookingId={BookingId}, amount={Amount}",
+                refundId, bookingId, amount);
+
+            return new RazorpayRefundResult
+            {
+                Success = true,
+                RefundId = refundId,
+                Status = payment.Status,
+                AmountRefunded = amount
+            };
         }
 
         private async Task<Atlas.Api.DTOs.PriceBreakdownDto> ResolveBreakdownForOrderAsync(CreateRazorpayOrderRequest request, Booking booking)

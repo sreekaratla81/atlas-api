@@ -1005,6 +1005,25 @@ namespace Atlas.Api.Data
                 e.HasIndex(p => new { p.TenantId, p.Code }).IsUnique();
             });
 
+            // ---------- Review (no tenant filter — scoped via Booking FK) ----------
+            modelBuilder.Entity<Review>(e =>
+            {
+                e.ToTable("Reviews");
+                e.HasKey(r => r.Id);
+                e.Property(r => r.Title).HasMaxLength(200);
+                e.Property(r => r.Body).HasMaxLength(2000);
+                e.Property(r => r.HostResponse).HasMaxLength(2000);
+                e.Property(r => r.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.Property(r => r.HostResponseAt).HasColumnType("datetime");
+
+                e.HasOne(r => r.Booking).WithMany().HasForeignKey(r => r.BookingId).OnDelete(deleteBehavior);
+                e.HasOne(r => r.Guest).WithMany().HasForeignKey(r => r.GuestId).OnDelete(deleteBehavior);
+                e.HasOne(r => r.Listing).WithMany().HasForeignKey(r => r.ListingId).OnDelete(deleteBehavior);
+
+                e.HasIndex(r => r.BookingId).IsUnique();
+                e.HasIndex(r => r.ListingId);
+            });
+
             ConfigureTenantOwnership(modelBuilder, deleteBehavior);
         }
 
@@ -1178,5 +1197,6 @@ namespace Atlas.Api.Data
         public DbSet<BillingPayment> BillingPayments { get; set; }
         public DbSet<ListingPhoto> ListingPhotos { get; set; }
         public DbSet<PromoCode> PromoCodes { get; set; }
+        public DbSet<Review> Reviews { get; set; }
     }
 }

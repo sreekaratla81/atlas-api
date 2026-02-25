@@ -180,6 +180,7 @@ public class PricingController : ControllerBase
     /// <summary>
     /// Get calendar pricing breakdown for a listing. Query parameters: listingId, startDate (yyyy-MM-dd), months (1-12).
     /// </summary>
+    [AllowAnonymous]
     [HttpGet("breakdown")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -224,6 +225,7 @@ public class PricingController : ControllerBase
     /// Guest-facing price breakdown for a check-in/check-out range.
     /// Applies base/weekend rates, daily overrides, global discount, and convenience fee.
     /// </summary>
+    [AllowAnonymous]
     [HttpGet("guest-breakdown")]
     [ProducesResponseType(typeof(PriceBreakdownDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -1213,7 +1213,7 @@
         "tags": [
           "Availability"
         ],
-        "summary": "Get listing availability for a date range",
+        "summary": "Get listing availability for a date range. Guest-facing; no auth required.",
         "parameters": [
           {
             "name": "listingId",

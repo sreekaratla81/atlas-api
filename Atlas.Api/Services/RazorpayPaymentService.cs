@@ -299,10 +299,20 @@ namespace Atlas.Api.Services
                 booking.PaymentStatus = "paid";
                 booking.AmountReceived = booking.TotalAmount ?? 0;
 
-                // Create AvailabilityBlocks if none exist (draft bookings have no blocks).
-                var hasBlocks = await _context.AvailabilityBlocks
-                    .AnyAsync(ab => ab.BookingId == booking.Id && ab.Status == BlockStatuses.Active);
-                if (!hasBlocks)
+                // Transition existing Hold blocks to Active, or create new blocks for draft bookings.
+                var existingBlocks = await _context.AvailabilityBlocks
+                    .Where(ab => ab.BookingId == booking.Id)
+                    .ToListAsync();
+                if (existingBlocks.Count > 0)
+                {
+                    foreach (var block in existingBlocks)
+                    {
+                        block.Status = BlockStatuses.Active;
+                        block.BlockType = "Booking";
+                        block.UpdatedAtUtc = DateTime.UtcNow;
+                    }
+                }
+                else
                 {
                     var now = DateTime.UtcNow;
                     for (var d = booking.CheckinDate.Date; d < booking.CheckoutDate.Date; d = d.AddDays(1))

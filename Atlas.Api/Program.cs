@@ -129,6 +129,11 @@ namespace Atlas.Api
             builder.Services.AddHttpClient<Atlas.Api.Services.ChannexService>();
             builder.Services.AddScoped<Atlas.Api.Services.IChannexService, Atlas.Api.Services.ChannexService>();
 
+            if (env.IsDevelopment())
+                builder.Services.AddScoped<Atlas.Api.Services.Channels.IChannelManagerProvider, Atlas.Api.Services.Channels.StubChannelManagerProvider>();
+            else
+                builder.Services.AddScoped<Atlas.Api.Services.Channels.IChannelManagerProvider, Atlas.Api.Services.Channels.ChannexAdapter>();
+
             var blobConnStr = builder.Configuration["AzureBlob:ConnectionString"];
             if (!string.IsNullOrWhiteSpace(blobConnStr) && !IsPlaceholderValue(blobConnStr))
             {
@@ -181,11 +186,34 @@ namespace Atlas.Api
             builder.Services.AddHostedService<Atlas.Api.Services.Consumers.StayEventsNotificationConsumer>();
             builder.Services.AddHostedService<Atlas.Api.Services.HoldCleanupHostedService>();
             builder.Services.AddHostedService<Atlas.Api.Services.Scheduling.AutomationSchedulerHostedService>();
+            builder.Services.AddHttpClient("iCalSync", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("AtlasPMS/1.0");
+            });
+            builder.Services.AddHostedService<Atlas.Api.Services.ICalSyncHostedService>();
             builder.Services.AddScoped<Atlas.Api.Services.Scheduling.BookingScheduleService>();
 
             builder.Services.Configure<Atlas.Api.Services.Msg91Settings>(builder.Configuration.GetSection("Msg91"));
             builder.Services.AddHttpClient("MSG91");
-            builder.Services.AddScoped<Atlas.Api.Services.Notifications.INotificationProvider, Atlas.Api.Services.Notifications.Msg91NotificationProvider>();
+            builder.Services.AddScoped<Atlas.Api.Services.Notifications.Msg91NotificationProvider>();
+            builder.Services.AddScoped<Atlas.Api.Services.Notifications.ConsoleNotificationProvider>();
+            builder.Services.AddScoped<Atlas.Api.Services.Notifications.INotificationProvider>(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<Atlas.Api.Services.Notifications.FallbackNotificationProvider>>();
+                if (env.IsDevelopment())
+                {
+                    var primary = sp.GetRequiredService<Atlas.Api.Services.Notifications.ConsoleNotificationProvider>();
+                    var fallback = sp.GetRequiredService<Atlas.Api.Services.Notifications.Msg91NotificationProvider>();
+                    return new Atlas.Api.Services.Notifications.FallbackNotificationProvider(primary, fallback, logger);
+                }
+                else
+                {
+                    var primary = sp.GetRequiredService<Atlas.Api.Services.Notifications.Msg91NotificationProvider>();
+                    var fallback = sp.GetRequiredService<Atlas.Api.Services.Notifications.ConsoleNotificationProvider>();
+                    return new Atlas.Api.Services.Notifications.FallbackNotificationProvider(primary, fallback, logger);
+                }
+            });
             builder.Services.AddScoped<Atlas.Api.Services.Notifications.NotificationOrchestrator>();
 
             var jwtKey = builder.Configuration["Jwt:Key"];

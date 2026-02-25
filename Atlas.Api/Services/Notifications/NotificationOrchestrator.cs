@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Atlas.Api.Data;
+using Atlas.Api.Events;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,19 +12,26 @@ public sealed class NotificationOrchestrator
 {
     private readonly AppDbContext _db;
     private readonly INotificationProvider _provider;
+    private readonly IInvoiceService _invoiceService;
     private readonly ILogger<NotificationOrchestrator> _logger;
     private const string ProviderName = "MSG91";
 
-    public NotificationOrchestrator(AppDbContext db, INotificationProvider provider, ILogger<NotificationOrchestrator> logger)
+    public NotificationOrchestrator(AppDbContext db, INotificationProvider provider, IInvoiceService invoiceService, ILogger<NotificationOrchestrator> logger)
     {
         _db = db;
         _provider = provider;
+        _invoiceService = invoiceService;
         _logger = logger;
     }
 
     /// <summary>Handle an event from the bus: load templates, ensure idempotent send per channel, send and log.</summary>
     public async Task HandleEventAsync(int tenantId, string eventType, string? entityId, string? correlationId, string eventId, string payloadJson, CancellationToken cancellationToken = default)
     {
+        if (eventType == EventTypes.InvoiceDue)
+        {
+            await HandleInvoiceDueAsync(entityId, cancellationToken);
+        }
+
         var bookingId = TryGetBookingIdFromPayload(payloadJson, entityId);
         var payload = FlattenPayload(payloadJson);
         var templates = await _db.MessageTemplates
@@ -96,6 +104,25 @@ public sealed class NotificationOrchestrator
             }
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task HandleInvoiceDueAsync(string? entityId, CancellationToken ct)
+    {
+        if (!int.TryParse(entityId, out var bookingId) || bookingId <= 0)
+        {
+            _logger.LogWarning("invoice.due event received with invalid bookingId: {EntityId}", entityId);
+            return;
+        }
+
+        try
+        {
+            var invoice = await _invoiceService.GenerateInvoiceAsync(bookingId, ct);
+            _logger.LogInformation("Invoice {InvoiceNumber} generated for booking {BookingId} via invoice.due event.", invoice.InvoiceNumber, bookingId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate invoice for booking {BookingId} on invoice.due event.", bookingId);
         }
     }
 

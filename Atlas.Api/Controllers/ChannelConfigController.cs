@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Atlas.Api.Data;
 using Atlas.Api.Models;
 using Atlas.Api.Services;
+using Atlas.Api.Services.Channels;
 
 namespace Atlas.Api.Controllers;
 
@@ -14,12 +15,12 @@ namespace Atlas.Api.Controllers;
 public class ChannelConfigController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly IChannexService _channex;
+    private readonly IChannelManagerProvider _channelManager;
 
-    public ChannelConfigController(AppDbContext db, IChannexService channex)
+    public ChannelConfigController(AppDbContext db, IChannelManagerProvider channelManager)
     {
         _db = db;
-        _channex = channex;
+        _channelManager = channelManager;
     }
 
     [HttpGet]
@@ -60,7 +61,7 @@ public class ChannelConfigController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.ApiKey))
             return BadRequest(new { error = "API key is required." });
 
-        var result = await _channex.TestConnectionAsync(dto.ApiKey, ct);
+        var result = await _channelManager.TestConnectionAsync(dto.ApiKey, ct);
 
         var config = await _db.ChannelConfigs
             .FirstOrDefaultAsync(c => c.PropertyId == propertyId, ct);
@@ -70,7 +71,7 @@ public class ChannelConfigController : ControllerBase
             config = new ChannelConfig
             {
                 PropertyId = propertyId,
-                Provider = "channex",
+                Provider = _channelManager.ProviderName,
                 ApiKey = dto.ApiKey,
                 ExternalPropertyId = dto.ExternalPropertyId,
                 IsConnected = result.Connected,
@@ -116,7 +117,7 @@ public class ChannelConfigController : ControllerBase
         if (config is null || !config.IsConnected || string.IsNullOrEmpty(config.ApiKey))
             return BadRequest(new { error = "Channel not connected for this property." });
 
-        var rates = dto.Rates.Select(r => new ChannexRateUpdate
+        var rates = dto.Rates.Select(r => new RateUpdate
         {
             RoomTypeId = r.RoomTypeId,
             RatePlanId = r.RatePlanId,
@@ -125,7 +126,7 @@ public class ChannelConfigController : ControllerBase
             Rate = r.Rate
         }).ToList();
 
-        var result = await _channex.PushRatesAsync(propertyId, config.ApiKey, config.ExternalPropertyId ?? "", rates, ct);
+        var result = await _channelManager.PushRatesAsync(config.ApiKey, config.ExternalPropertyId ?? "", rates, ct);
 
         config.LastSyncAt = DateTime.UtcNow;
         config.LastSyncError = result.Success ? null : string.Join("; ", result.Errors.Take(3));
@@ -143,7 +144,7 @@ public class ChannelConfigController : ControllerBase
         if (config is null || !config.IsConnected || string.IsNullOrEmpty(config.ApiKey))
             return BadRequest(new { error = "Channel not connected for this property." });
 
-        var avail = dto.Availability.Select(a => new ChannexAvailabilityUpdate
+        var avail = dto.Availability.Select(a => new AvailabilityUpdate
         {
             RoomTypeId = a.RoomTypeId,
             DateFrom = a.DateFrom,
@@ -151,7 +152,7 @@ public class ChannelConfigController : ControllerBase
             Available = a.Available
         }).ToList();
 
-        var result = await _channex.PushAvailabilityAsync(propertyId, config.ApiKey, config.ExternalPropertyId ?? "", avail, ct);
+        var result = await _channelManager.PushAvailabilityAsync(config.ApiKey, config.ExternalPropertyId ?? "", avail, ct);
 
         config.LastSyncAt = DateTime.UtcNow;
         config.LastSyncError = result.Success ? null : string.Join("; ", result.Errors.Take(3));

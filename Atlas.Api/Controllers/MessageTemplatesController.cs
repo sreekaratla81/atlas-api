@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
+using Atlas.Api.Services.Notifications;
 
 namespace Atlas.Api.Controllers;
 
@@ -171,6 +172,52 @@ public class MessageTemplatesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Send a test notification using a template (fills placeholders with sample data).</summary>
+    [HttpPost("{id:int}/test-send")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TestSend(int id, [FromBody] TestSendDto dto, CancellationToken ct)
+    {
+        var template = await _context.MessageTemplates.FindAsync(new object[] { id }, ct);
+        if (template is null) return NotFound(new { error = "Template not found." });
+
+        var sampleData = new Dictionary<string, string>
+        {
+            ["guest_name"] = dto.RecipientName ?? "Test Guest",
+            ["listing_name"] = "Test Listing",
+            ["checkin_date"] = DateTime.Today.AddDays(7).ToString("dd MMM yyyy"),
+            ["checkout_date"] = DateTime.Today.AddDays(9).ToString("dd MMM yyyy"),
+            ["total_amount"] = "\u20b95,000",
+            ["booking_id"] = "TEST-001",
+            ["property_name"] = "Test Property"
+        };
+
+        var body = template.Body;
+        foreach (var kv in sampleData)
+            body = body.Replace($"{{{{{kv.Key}}}}}", kv.Value);
+
+        var subject = template.Subject;
+        if (!string.IsNullOrEmpty(subject))
+            foreach (var kv in sampleData)
+                subject = subject.Replace($"{{{{{kv.Key}}}}}", kv.Value);
+
+        var provider = HttpContext.RequestServices.GetRequiredService<INotificationProvider>();
+        var channel = template.Channel?.ToLowerInvariant() ?? "email";
+        var to = dto.RecipientAddress;
+        if (string.IsNullOrWhiteSpace(to))
+            return BadRequest(new { error = "RecipientAddress is required." });
+
+        SendResult result = channel switch
+        {
+            "sms" => await provider.SendSmsAsync(to, body, null, ct),
+            "whatsapp" => await provider.SendWhatsAppAsync(to, body, null, ct),
+            _ => await provider.SendEmailAsync(to, subject, body, ct)
+        };
+
+        return Ok(new { sent = result.Success, channel, to, error = result.Error, providerMessageId = result.ProviderMessageId });
+    }
+
     private static MessageTemplateResponseDto MapToDto(MessageTemplate m)
     {
         return new MessageTemplateResponseDto
@@ -191,4 +238,10 @@ public class MessageTemplatesController : ControllerBase
             UpdatedAtUtc = m.UpdatedAtUtc
         };
     }
+}
+
+public class TestSendDto
+{
+    public string RecipientAddress { get; set; } = "";
+    public string? RecipientName { get; set; }
 }

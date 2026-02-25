@@ -57,6 +57,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<ChannelConfig>(modelBuilder);
             ApplyTenantQueryFilter<BookingInvoice>(modelBuilder);
             ApplyTenantQueryFilter<AddOnService>(modelBuilder);
+            ApplyTenantQueryFilter<ListingExternalCalendar>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -1100,6 +1101,21 @@ namespace Atlas.Api.Data
                 e.Property(a => a.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
             });
 
+            // ---------- ListingExternalCalendar ----------
+            modelBuilder.Entity<ListingExternalCalendar>(e =>
+            {
+                e.ToTable("ListingExternalCalendars");
+                e.HasKey(c => c.Id);
+                e.Property(c => c.Name).HasMaxLength(200).IsRequired();
+                e.Property(c => c.ICalUrl).HasMaxLength(2000).IsRequired();
+                e.Property(c => c.LastSyncAtUtc).HasColumnType("datetime");
+                e.Property(c => c.LastSyncError).HasMaxLength(500);
+                e.Property(c => c.IsActive).HasDefaultValue(true);
+                e.Property(c => c.CreatedAtUtc).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.HasOne(c => c.Listing).WithMany().HasForeignKey(c => c.ListingId).OnDelete(deleteBehavior);
+                e.HasIndex(c => c.ListingId);
+            });
+
             // ---------- ListingAddOn (join table) ----------
             modelBuilder.Entity<ListingAddOn>(e =>
             {
@@ -1141,6 +1157,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<ChannelConfig>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<BookingInvoice>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<AddOnService>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ListingExternalCalendar>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -1295,5 +1312,6 @@ namespace Atlas.Api.Data
         public DbSet<BookingInvoice> BookingInvoices { get; set; }
         public DbSet<AddOnService> AddOnServices { get; set; }
         public DbSet<ListingAddOn> ListingAddOns { get; set; }
+        public DbSet<ListingExternalCalendar> ListingExternalCalendars { get; set; }
     }
 }

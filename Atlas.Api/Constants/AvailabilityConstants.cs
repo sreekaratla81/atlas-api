@@ -14,5 +14,6 @@ public static class AvailabilityConstants
         public const string System = "System";
         public const string GuestPortal = "GuestPortal";
         public const string Admin = "Admin";
+        public const string ICal = "iCal";
     }
 }

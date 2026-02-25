@@ -143,6 +143,10 @@ public class OnboardingController : ControllerBase
         await _onboarding.SeedChecklistAsync(tenant.Id, ct);
         await _credits.ProvisionTrialAsync(tenant.Id, ct);
 
+        var defaultTemplates = Services.DefaultTemplateSeeder.GetDefaultTemplates(tenant.Id);
+        _db.MessageTemplates.AddRange(defaultTemplates);
+        await _db.SaveChangesAsync(ct);
+
         var token = _jwt.GenerateToken(user, tenant);
 
         return Created($"/onboarding/status", new OnboardingStartResponseDto

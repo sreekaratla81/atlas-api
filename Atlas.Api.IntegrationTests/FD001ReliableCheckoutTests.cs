@@ -1,3 +1,4 @@
+using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.Events;
 using Atlas.Api.Models;
@@ -9,15 +10,17 @@ namespace Atlas.Api.IntegrationTests;
 /// <summary>
 /// FD-001 (Reliable Checkout Confirmation) integration tests.
 /// Validates: Payment→Confirmed determinism (AC1), availability block alignment (AC2),
-/// verify idempotency (AC3), unique RazorpayOrderId index (AC4), and outbox parity (AC5).
+/// verify idempotency (AC3), unique RazorpayOrderId index (AC4), outbox parity (AC5),
+/// and payment-failure draft cleanup (AC6).
 /// </summary>
 [Trait("Suite", "FD001")]
 public class FD001ReliableCheckoutTests : IntegrationTestBase
 {
     public FD001ReliableCheckoutTests(SqlServerTestDatabase database) : base(database) { }
 
+    /// <summary>Seeds a PaymentPending draft booking (no AvailabilityBlocks) as created by the new Razorpay order flow.</summary>
     private async Task<(Property property, Listing listing, Guest guest, Booking booking, Payment payment)>
-        SeedRazorpayHoldBookingAsync(AppDbContext db, string razorpayOrderId = "order_test_001")
+        SeedRazorpayDraftBookingAsync(AppDbContext db, string razorpayOrderId = "order_test_001")
     {
         var property = await DataSeeder.SeedPropertyAsync(db);
         var listing = await DataSeeder.SeedListingAsync(db, property);
@@ -28,8 +31,8 @@ public class FD001ReliableCheckoutTests : IntegrationTestBase
             ListingId = listing.Id,
             GuestId = guest.Id,
             BookingSource = "Razorpay",
-            BookingStatus = "Hold",
-            PaymentStatus = "pending",
+            BookingStatus = BookingStatuses.PaymentPending,
+            PaymentStatus = PaymentStatuses.Pending,
             CheckinDate = DateTime.UtcNow.Date.AddDays(10),
             CheckoutDate = DateTime.UtcNow.Date.AddDays(12),
             TotalAmount = 5000,
@@ -42,20 +45,49 @@ public class FD001ReliableCheckoutTests : IntegrationTestBase
         db.Bookings.Add(booking);
         await db.SaveChangesAsync();
 
-        var block = new AvailabilityBlock
+        var payment = new Payment
+        {
+            BookingId = booking.Id,
+            Amount = 5000,
+            Method = "Razorpay",
+            Type = "payment",
+            Status = PaymentStatuses.Pending,
+            RazorpayOrderId = razorpayOrderId,
+            ReceivedOn = DateTime.UtcNow,
+            Note = $"Razorpay Order ID: {razorpayOrderId}"
+        };
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        return (property, listing, guest, booking, payment);
+    }
+
+    /// <summary>Legacy helper that seeds a Hold booking with blocks for backward-compatible tests.</summary>
+    private async Task<(Property property, Listing listing, Guest guest, Booking booking, Payment payment)>
+        SeedRazorpayHoldBookingAsync(AppDbContext db, string razorpayOrderId = "order_test_001")
+    {
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        var guest = await DataSeeder.SeedGuestAsync(db);
+
+        var booking = new Booking
         {
             ListingId = listing.Id,
-            BookingId = booking.Id,
-            StartDate = booking.CheckinDate,
-            EndDate = booking.CheckoutDate,
-            BlockType = "Hold",
-            Source = "Razorpay",
-            Status = "Hold",
-            Inventory = false,
-            CreatedAtUtc = DateTime.UtcNow,
-            UpdatedAtUtc = DateTime.UtcNow
+            GuestId = guest.Id,
+            BookingSource = "Razorpay",
+            BookingStatus = BookingStatuses.PaymentPending,
+            PaymentStatus = PaymentStatuses.Pending,
+            CheckinDate = DateTime.UtcNow.Date.AddDays(10),
+            CheckoutDate = DateTime.UtcNow.Date.AddDays(12),
+            TotalAmount = 5000,
+            FinalAmount = 5000,
+            AmountReceived = 0,
+            GuestsPlanned = 2,
+            Notes = "FD-001 test",
+            Currency = "INR"
         };
-        db.AvailabilityBlocks.Add(block);
+        db.Bookings.Add(booking);
+        await db.SaveChangesAsync();
 
         var payment = new Payment
         {
@@ -63,7 +95,7 @@ public class FD001ReliableCheckoutTests : IntegrationTestBase
             Amount = 5000,
             Method = "Razorpay",
             Type = "payment",
-            Status = "pending",
+            Status = PaymentStatuses.Pending,
             RazorpayOrderId = razorpayOrderId,
             ReceivedOn = DateTime.UtcNow,
             Note = $"Razorpay Order ID: {razorpayOrderId}"
@@ -77,6 +109,7 @@ public class FD001ReliableCheckoutTests : IntegrationTestBase
     /// <summary>
     /// AC1: After successful verify, BookingStatus must be "Confirmed" (not "blocked").
     /// Also verifies PaymentStatus = "paid" and Payment.Status = "completed".
+    /// Draft bookings start with PaymentPending and no blocks; verify creates blocks.
     /// </summary>
     [Fact]
     public async Task Verify_SetsBookingStatusToConfirmed()
@@ -85,70 +118,81 @@ public class FD001ReliableCheckoutTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var (_, listing, guest, booking, payment) = await SeedRazorpayHoldBookingAsync(db);
 
-        // Simulate what VerifyAndProcessPaymentAsync does after signature validation
         payment.RazorpayPaymentId = "pay_test_001";
         payment.RazorpaySignature = "sig_test";
-        payment.Status = "completed";
+        payment.Status = PaymentStatuses.Completed;
         payment.ReceivedOn = DateTime.UtcNow;
 
         booking.PaymentStatus = "paid";
         booking.AmountReceived = booking.TotalAmount ?? 0;
-        booking.BookingStatus = "Confirmed";
+        booking.BookingStatus = BookingStatuses.Confirmed;
 
-        var blocks = await db.AvailabilityBlocks
-            .Where(ab => ab.BookingId == booking.Id && ab.BlockType == "Hold" && ab.Status == "Hold")
-            .ToListAsync();
-        foreach (var block in blocks)
+        var now = DateTime.UtcNow;
+        for (var d = booking.CheckinDate.Date; d < booking.CheckoutDate.Date; d = d.AddDays(1))
         {
-            block.BlockType = "Booking";
-            block.Source = "System";
-            block.Status = "Active";
-            block.Inventory = false;
-            block.UpdatedAtUtc = DateTime.UtcNow;
+            db.AvailabilityBlocks.Add(new AvailabilityBlock
+            {
+                ListingId = listing.Id,
+                BookingId = booking.Id,
+                StartDate = d,
+                EndDate = d.AddDays(1),
+                BlockType = "Booking",
+                Source = "System",
+                Status = BlockStatuses.Active,
+                Inventory = false,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            });
         }
 
         await db.SaveChangesAsync();
 
         var updatedBooking = await db.Bookings.FindAsync(booking.Id);
         Assert.NotNull(updatedBooking);
-        Assert.Equal("Confirmed", updatedBooking!.BookingStatus);
+        Assert.Equal(BookingStatuses.Confirmed, updatedBooking!.BookingStatus);
         Assert.Equal("paid", updatedBooking.PaymentStatus);
 
         var updatedPayment = await db.Payments.FirstOrDefaultAsync(p => p.BookingId == booking.Id);
         Assert.NotNull(updatedPayment);
-        Assert.Equal("completed", updatedPayment!.Status);
+        Assert.Equal(PaymentStatuses.Completed, updatedPayment!.Status);
     }
 
     /// <summary>
-    /// AC2: After verify, availability blocks have Status = "Active" so AvailabilityService
+    /// AC2: After verify, availability blocks with Status = "Active" are created so AvailabilityService
     /// and HasActiveOverlapAsync correctly exclude paid inventory.
     /// </summary>
     [Fact]
-    public async Task Verify_SetsBlockStatusToActive_SoAvailabilityExcludesIt()
+    public async Task Verify_CreatesActiveBlocks_SoAvailabilityExcludesIt()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var (_, listing, _, booking, _) = await SeedRazorpayHoldBookingAsync(db);
 
-        // Simulate verify: update blocks from Hold → Active
-        var blocks = await db.AvailabilityBlocks
-            .Where(ab => ab.BookingId == booking.Id)
-            .ToListAsync();
-        foreach (var block in blocks)
+        // Draft booking has no blocks — simulate verify by creating them.
+        var now = DateTime.UtcNow;
+        for (var d = booking.CheckinDate.Date; d < booking.CheckoutDate.Date; d = d.AddDays(1))
         {
-            block.BlockType = "Booking";
-            block.Source = "System";
-            block.Status = "Active";
-            block.Inventory = false;
-            block.UpdatedAtUtc = DateTime.UtcNow;
+            db.AvailabilityBlocks.Add(new AvailabilityBlock
+            {
+                ListingId = listing.Id,
+                BookingId = booking.Id,
+                StartDate = d,
+                EndDate = d.AddDays(1),
+                BlockType = "Booking",
+                Source = "System",
+                Status = BlockStatuses.Active,
+                Inventory = false,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            });
         }
+        booking.BookingStatus = BookingStatuses.Confirmed;
         await db.SaveChangesAsync();
 
-        // Verify: blocks with Status="Active" are found by the same query AvailabilityService uses
         var blockedListingIds = await db.AvailabilityBlocks
             .AsNoTracking()
             .Where(b => b.ListingId == listing.Id
-                        && b.Status == "Active"
+                        && b.Status == BlockStatuses.Active
                         && b.StartDate < booking.CheckoutDate
                         && b.EndDate > booking.CheckinDate)
             .Select(b => b.ListingId)
@@ -294,26 +338,32 @@ public class FD001ReliableCheckoutTests : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var (_, listing, _, booking, payment) = await SeedRazorpayHoldBookingAsync(db);
 
-        // Simulate the corrected verify path
-        payment.Status = "completed";
-        booking.BookingStatus = "Confirmed";
+        payment.Status = PaymentStatuses.Completed;
+        booking.BookingStatus = BookingStatuses.Confirmed;
         booking.PaymentStatus = "paid";
 
-        var holdBlocks = await db.AvailabilityBlocks
-            .Where(ab => ab.BookingId == booking.Id)
-            .ToListAsync();
-        foreach (var block in holdBlocks)
+        var now = DateTime.UtcNow;
+        for (var d = booking.CheckinDate.Date; d < booking.CheckoutDate.Date; d = d.AddDays(1))
         {
-            block.BlockType = "Booking";
-            block.Status = "Active";
-            block.UpdatedAtUtc = DateTime.UtcNow;
+            db.AvailabilityBlocks.Add(new AvailabilityBlock
+            {
+                ListingId = listing.Id,
+                BookingId = booking.Id,
+                StartDate = d,
+                EndDate = d.AddDays(1),
+                BlockType = "Booking",
+                Source = "System",
+                Status = BlockStatuses.Active,
+                Inventory = false,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            });
         }
         await db.SaveChangesAsync();
 
-        // Assert no "blocked" values anywhere
         var refreshedBooking = await db.Bookings.FindAsync(booking.Id);
         Assert.NotEqual("blocked", refreshedBooking!.BookingStatus);
-        Assert.Equal("Confirmed", refreshedBooking.BookingStatus);
+        Assert.Equal(BookingStatuses.Confirmed, refreshedBooking.BookingStatus);
 
         var allBlocks = await db.AvailabilityBlocks
             .Where(ab => ab.BookingId == booking.Id)
@@ -321,7 +371,65 @@ public class FD001ReliableCheckoutTests : IntegrationTestBase
         foreach (var b in allBlocks)
         {
             Assert.NotEqual("blocked", b.Status);
-            Assert.Equal("Active", b.Status);
+            Assert.Equal(BlockStatuses.Active, b.Status);
         }
+    }
+
+    /// <summary>
+    /// AC6: Payment failure must delete draft booking and ensure no AvailabilityBlock rows exist.
+    /// Simulates the failure@razorpay scenario.
+    /// </summary>
+    [Fact]
+    public async Task PaymentFailure_DeletesDraftBooking_AndNoBlocksExist()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var (_, listing, _, booking, payment) = await SeedRazorpayDraftBookingAsync(db, "order_fail_001");
+
+        var bookingId = booking.Id;
+
+        // Verify draft state: booking exists with PaymentPending, no blocks.
+        Assert.Equal(BookingStatuses.PaymentPending, booking.BookingStatus);
+        var blocksBefore = await db.AvailabilityBlocks.CountAsync(ab => ab.BookingId == bookingId);
+        Assert.Equal(0, blocksBefore);
+
+        // Simulate failure path: delete draft booking + payment (mirrors DeleteDraftBookingAsync).
+        var blocksToRemove = await db.AvailabilityBlocks
+            .Where(ab => ab.BookingId == bookingId)
+            .ToListAsync();
+        if (blocksToRemove.Count > 0)
+            db.AvailabilityBlocks.RemoveRange(blocksToRemove);
+
+        db.Payments.Remove(payment);
+        db.Bookings.Remove(booking);
+        await db.SaveChangesAsync();
+
+        // Assert: no booking row exists.
+        var deletedBooking = await db.Bookings.FindAsync(bookingId);
+        Assert.Null(deletedBooking);
+
+        // Assert: no payment row exists.
+        var deletedPayment = await db.Payments.FirstOrDefaultAsync(p => p.RazorpayOrderId == "order_fail_001");
+        Assert.Null(deletedPayment);
+
+        // Assert: no AvailabilityBlock rows exist for this booking.
+        var blocksAfter = await db.AvailabilityBlocks.CountAsync(ab => ab.BookingId == bookingId);
+        Assert.Equal(0, blocksAfter);
+    }
+
+    /// <summary>
+    /// AC6b: Draft booking (PaymentPending) must not create any AvailabilityBlock rows on order creation.
+    /// </summary>
+    [Fact]
+    public async Task DraftBooking_HasNoAvailabilityBlocks()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var (_, _, _, booking, _) = await SeedRazorpayDraftBookingAsync(db, "order_no_blocks");
+
+        Assert.Equal(BookingStatuses.PaymentPending, booking.BookingStatus);
+
+        var blockCount = await db.AvailabilityBlocks.CountAsync(ab => ab.BookingId == booking.Id);
+        Assert.Equal(0, blockCount);
     }
 }

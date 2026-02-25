@@ -137,6 +137,16 @@ namespace Atlas.Api.Services
 
         public async Task<bool> VerifyAndProcessPaymentAsync(VerifyRazorpayPaymentRequest request)
         {
+            // Idempotency by RazorpayPaymentId: if we already processed this payment, return early.
+            var existingCompleted = await _context.Payments
+                .AnyAsync(p => p.RazorpayPaymentId == request.RazorpayPaymentId
+                            && PaymentStatuses.Completed == p.Status);
+            if (existingCompleted)
+            {
+                _logger.LogInformation("Idempotent verify: RazorpayPaymentId={PaymentId} already completed.", request.RazorpayPaymentId);
+                return true;
+            }
+
             var booking = await _context.Bookings.FindAsync(request.BookingId)
                 ?? throw new ArgumentException($"Invalid booking ID: {request.BookingId}");
 
@@ -144,11 +154,9 @@ namespace Atlas.Api.Services
                 .FirstOrDefaultAsync(p => p.BookingId == request.BookingId && p.RazorpayOrderId == request.RazorpayOrderId)
                 ?? throw new InvalidOperationException("Payment record not found for the given booking and order ID");
 
-            // FD-001 idempotency guard: if payment already completed, return success without side effects
             if (PaymentStatuses.IsCompleted(payment.Status))
             {
-                _logger.LogInformation("Idempotent verify: payment already completed for BookingId={BookingId}, RazorpayOrderId={OrderId}",
-                    request.BookingId, request.RazorpayOrderId);
+                _logger.LogInformation("Idempotent verify: payment already completed for BookingId={BookingId}.", request.BookingId);
                 return true;
             }
 
@@ -158,76 +166,101 @@ namespace Atlas.Api.Services
 
             if (computedSignature != request.RazorpaySignature.ToLower())
             {
-                booking.PaymentStatus = PaymentStatuses.Failed;
-                payment.Status = PaymentStatuses.Failed;
-                await _context.SaveChangesAsync();
+                // Payment failed — delete draft booking + payment to prevent inventory corruption.
+                await DeleteDraftBookingAsync(booking, payment);
                 return false;
             }
 
-            payment.RazorpayPaymentId = request.RazorpayPaymentId;
-            payment.RazorpaySignature = request.RazorpaySignature;
-            payment.Status = PaymentStatuses.Completed;
-            payment.ReceivedOn = DateTime.UtcNow;
-            payment.Note = $"Razorpay Payment ID: {request.RazorpayPaymentId}";
-
-            booking.PaymentStatus = "paid";
-            booking.AmountReceived = booking.TotalAmount ?? 0;
-            if (string.Equals(booking.BookingStatus, BookingStatuses.Hold, StringComparison.OrdinalIgnoreCase))
+            // Payment succeeded — confirm the booking inside a transaction.
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
+                payment.RazorpayPaymentId = request.RazorpayPaymentId;
+                payment.RazorpaySignature = request.RazorpaySignature;
+                payment.Status = PaymentStatuses.Completed;
+                payment.ReceivedOn = DateTime.UtcNow;
+                payment.Note = $"Razorpay Payment ID: {request.RazorpayPaymentId}";
+
                 booking.BookingStatus = BookingStatuses.Confirmed;
-            }
+                booking.PaymentStatus = "paid";
+                booking.AmountReceived = booking.TotalAmount ?? 0;
 
-            var temporaryBlocks = await _context.AvailabilityBlocks
-                .Where(ab => ab.BookingId == booking.Id && ab.BlockType == BlockStatuses.Hold && ab.Status == BlockStatuses.Hold)
+                // Create AvailabilityBlocks now that payment is confirmed.
+                var now = DateTime.UtcNow;
+                for (var d = booking.CheckinDate.Date; d < booking.CheckoutDate.Date; d = d.AddDays(1))
+                {
+                    _context.AvailabilityBlocks.Add(new AvailabilityBlock
+                    {
+                        ListingId = booking.ListingId,
+                        BookingId = booking.Id,
+                        StartDate = d,
+                        EndDate = d.AddDays(1),
+                        BlockType = "Booking",
+                        Source = "System",
+                        Status = BlockStatuses.Active,
+                        Inventory = false,
+                        CreatedAtUtc = now,
+                        UpdatedAtUtc = now
+                    });
+                }
+
+                var guest = await _context.Guests.FindAsync(booking.GuestId);
+                if (guest != null)
+                {
+                    var outboxPayload = JsonSerializer.Serialize(new
+                    {
+                        bookingId = booking.Id,
+                        guestId = guest.Id,
+                        listingId = booking.ListingId,
+                        bookingStatus = booking.BookingStatus,
+                        checkinDate = booking.CheckinDate,
+                        checkoutDate = booking.CheckoutDate,
+                        guestPhone = guest.Phone,
+                        guestEmail = guest.Email,
+                        occurredAtUtc = DateTime.UtcNow
+                    });
+                    _context.OutboxMessages.Add(new OutboxMessage
+                    {
+                        Topic = "booking.events",
+                        EventType = EventTypes.BookingConfirmed,
+                        EntityId = booking.Id.ToString(),
+                        PayloadJson = outboxPayload,
+                        CorrelationId = Guid.NewGuid().ToString(),
+                        OccurredUtc = DateTime.UtcNow,
+                        SchemaVersion = 1,
+                        Status = "Pending",
+                        NextAttemptUtc = DateTime.UtcNow,
+                        CreatedAtUtc = DateTime.UtcNow,
+                        AttemptCount = 0
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        /// <summary>Deletes a PaymentPending draft booking and its associated payment row.
+        /// Ensures no AvailabilityBlock rows remain for the booking.</summary>
+        private async Task DeleteDraftBookingAsync(Booking booking, Payment payment)
+        {
+            var blocks = await _context.AvailabilityBlocks
+                .Where(ab => ab.BookingId == booking.Id)
                 .ToListAsync();
-            foreach (var block in temporaryBlocks)
-            {
-                block.BlockType = "Booking";
-                block.Source = "System";
-                block.Status = BlockStatuses.Active;
-                block.Inventory = false;
-                block.UpdatedAtUtc = DateTime.UtcNow;
-            }
+            if (blocks.Count > 0)
+                _context.AvailabilityBlocks.RemoveRange(blocks);
 
-            // FD-001 outbox parity: emit booking.confirmed so notification consumers fire (same as manual flow)
-            var guest = await _context.Guests.FindAsync(booking.GuestId);
-            if (guest != null)
-            {
-                var outboxPayload = JsonSerializer.Serialize(new
-                {
-                    bookingId = booking.Id,
-                    guestId = guest.Id,
-                    listingId = booking.ListingId,
-                    bookingStatus = booking.BookingStatus,
-                    checkinDate = booking.CheckinDate,
-                    checkoutDate = booking.CheckoutDate,
-                    guestPhone = guest.Phone,
-                    guestEmail = guest.Email,
-                    occurredAtUtc = DateTime.UtcNow
-                });
-                _context.OutboxMessages.Add(new OutboxMessage
-                {
-                    Topic = "booking.events",
-                    EventType = EventTypes.BookingConfirmed,
-                    EntityId = booking.Id.ToString(),
-                    PayloadJson = outboxPayload,
-                    CorrelationId = Guid.NewGuid().ToString(),
-                    OccurredUtc = DateTime.UtcNow,
-                    SchemaVersion = 1,
-                    Status = "Pending",
-                    NextAttemptUtc = DateTime.UtcNow,
-                    CreatedAtUtc = DateTime.UtcNow,
-                    AttemptCount = 0
-                });
-            }
-
+            _context.Payments.Remove(payment);
+            _context.Bookings.Remove(booking);
             await _context.SaveChangesAsync();
 
-            // BL-002: Direct email removed. Confirmation is now handled by the outbox
-            // booking.confirmed event → NotificationOrchestrator → template-driven send.
-            // This eliminates the duplicate email issue (outbox + direct send).
-
-            return true;
+            _logger.LogInformation("Deleted draft booking {BookingId} after payment failure.", booking.Id);
         }
 
         public async Task<bool> ReconcileWebhookPaymentAsync(string razorpayOrderId, string razorpayPaymentId)
@@ -254,66 +287,86 @@ namespace Atlas.Api.Services
                 return false;
             }
 
-            payment.RazorpayPaymentId = razorpayPaymentId;
-            payment.Status = PaymentStatuses.Completed;
-            payment.ReceivedOn = DateTime.UtcNow;
-            payment.Note = $"Reconciled via webhook. Razorpay Payment ID: {razorpayPaymentId}";
-
-            booking.PaymentStatus = "paid";
-            booking.AmountReceived = booking.TotalAmount ?? 0;
-            if (string.Equals(booking.BookingStatus, BookingStatuses.Hold, StringComparison.OrdinalIgnoreCase))
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
+                payment.RazorpayPaymentId = razorpayPaymentId;
+                payment.Status = PaymentStatuses.Completed;
+                payment.ReceivedOn = DateTime.UtcNow;
+                payment.Note = $"Reconciled via webhook. Razorpay Payment ID: {razorpayPaymentId}";
+
                 booking.BookingStatus = BookingStatuses.Confirmed;
-            }
+                booking.PaymentStatus = "paid";
+                booking.AmountReceived = booking.TotalAmount ?? 0;
 
-            var temporaryBlocks = await _context.AvailabilityBlocks
-                .Where(ab => ab.BookingId == booking.Id && ab.BlockType == BlockStatuses.Hold && ab.Status == BlockStatuses.Hold)
-                .ToListAsync();
-            foreach (var block in temporaryBlocks)
-            {
-                block.BlockType = "Booking";
-                block.Source = "System";
-                block.Status = BlockStatuses.Active;
-                block.Inventory = false;
-                block.UpdatedAtUtc = DateTime.UtcNow;
-            }
-
-            var guest = await _context.Guests.FindAsync(booking.GuestId);
-            if (guest != null)
-            {
-                var outboxPayload = JsonSerializer.Serialize(new
+                // Create AvailabilityBlocks if none exist (draft bookings have no blocks).
+                var hasBlocks = await _context.AvailabilityBlocks
+                    .AnyAsync(ab => ab.BookingId == booking.Id && ab.Status == BlockStatuses.Active);
+                if (!hasBlocks)
                 {
-                    bookingId = booking.Id,
-                    guestId = guest.Id,
-                    listingId = booking.ListingId,
-                    bookingStatus = booking.BookingStatus,
-                    checkinDate = booking.CheckinDate,
-                    checkoutDate = booking.CheckoutDate,
-                    guestPhone = guest.Phone,
-                    guestEmail = guest.Email,
-                    occurredAtUtc = DateTime.UtcNow,
-                    source = "webhook"
-                });
-                _context.OutboxMessages.Add(new OutboxMessage
-                {
-                    Topic = "booking.events",
-                    EventType = EventTypes.BookingConfirmed,
-                    EntityId = booking.Id.ToString(),
-                    PayloadJson = outboxPayload,
-                    CorrelationId = Guid.NewGuid().ToString(),
-                    OccurredUtc = DateTime.UtcNow,
-                    SchemaVersion = 1,
-                    Status = "Pending",
-                    NextAttemptUtc = DateTime.UtcNow,
-                    CreatedAtUtc = DateTime.UtcNow,
-                    AttemptCount = 0
-                });
-            }
+                    var now = DateTime.UtcNow;
+                    for (var d = booking.CheckinDate.Date; d < booking.CheckoutDate.Date; d = d.AddDays(1))
+                    {
+                        _context.AvailabilityBlocks.Add(new AvailabilityBlock
+                        {
+                            ListingId = booking.ListingId,
+                            BookingId = booking.Id,
+                            StartDate = d,
+                            EndDate = d.AddDays(1),
+                            BlockType = "Booking",
+                            Source = "System",
+                            Status = BlockStatuses.Active,
+                            Inventory = false,
+                            CreatedAtUtc = now,
+                            UpdatedAtUtc = now
+                        });
+                    }
+                }
 
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("Webhook reconcile: payment completed for BookingId={BookingId}, RazorpayOrderId={OrderId}.",
-                booking.Id, razorpayOrderId);
-            return true;
+                var guest = await _context.Guests.FindAsync(booking.GuestId);
+                if (guest != null)
+                {
+                    var outboxPayload = JsonSerializer.Serialize(new
+                    {
+                        bookingId = booking.Id,
+                        guestId = guest.Id,
+                        listingId = booking.ListingId,
+                        bookingStatus = booking.BookingStatus,
+                        checkinDate = booking.CheckinDate,
+                        checkoutDate = booking.CheckoutDate,
+                        guestPhone = guest.Phone,
+                        guestEmail = guest.Email,
+                        occurredAtUtc = DateTime.UtcNow,
+                        source = "webhook"
+                    });
+                    _context.OutboxMessages.Add(new OutboxMessage
+                    {
+                        Topic = "booking.events",
+                        EventType = EventTypes.BookingConfirmed,
+                        EntityId = booking.Id.ToString(),
+                        PayloadJson = outboxPayload,
+                        CorrelationId = Guid.NewGuid().ToString(),
+                        OccurredUtc = DateTime.UtcNow,
+                        SchemaVersion = 1,
+                        Status = "Pending",
+                        NextAttemptUtc = DateTime.UtcNow,
+                        CreatedAtUtc = DateTime.UtcNow,
+                        AttemptCount = 0
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                _logger.LogInformation("Webhook reconcile: payment completed for BookingId={BookingId}, RazorpayOrderId={OrderId}.",
+                    booking.Id, razorpayOrderId);
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         private async Task<Atlas.Api.DTOs.PriceBreakdownDto> ResolveBreakdownForOrderAsync(CreateRazorpayOrderRequest request, Booking booking)
@@ -424,35 +477,13 @@ namespace Atlas.Api.Services
                 CheckoutDate = request.BookingDraft.CheckoutDate,
                 GuestsPlanned = request.BookingDraft.Guests,
                 Notes = request.BookingDraft.Notes ?? string.Empty,
-                BookingStatus = BookingStatuses.Hold,
-                PaymentStatus = "pending",
+                BookingStatus = BookingStatuses.PaymentPending,
+                PaymentStatus = PaymentStatuses.Pending,
                 Currency = request.Currency,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync();
-
-            var now = DateTime.UtcNow;
-            var blocks = new List<AvailabilityBlock>();
-            for (var d = booking.CheckinDate.Date; d < booking.CheckoutDate.Date; d = d.AddDays(1))
-            {
-                blocks.Add(new AvailabilityBlock
-                {
-                    ListingId = booking.ListingId,
-                    BookingId = booking.Id,
-                    StartDate = d,
-                    EndDate = d.AddDays(1),
-                    BlockType = BlockStatuses.Hold,
-                    Source = "Razorpay",
-                    Status = BlockStatuses.Hold,
-                    Inventory = false,
-                    CreatedAtUtc = now,
-                    UpdatedAtUtc = now
-                });
-            }
-
-            _context.AvailabilityBlocks.AddRange(blocks);
             await _context.SaveChangesAsync();
 
             return booking;

@@ -646,13 +646,37 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 
 ## Razorpay contract changes
 
+### Booking lifecycle (Razorpay flow)
+
+```
+  /order                       /verify (success)
+ ────────►  PaymentPending  ──────────────────►  Confirmed
+            (draft, no                         + AvailabilityBlocks created
+             inventory blocked)                + outbox: booking.confirmed
+
+                                /verify (failure)
+                             ──────────────────►  DELETED
+                                                 (booking + payment rows removed,
+                                                  no AvailabilityBlock rows)
+```
+
+- **PaymentPending**: Draft booking created during order. No AvailabilityBlock rows exist.
+  Inventory is NOT blocked. The booking is invisible to availability queries.
+- **Confirmed**: Final state after successful Razorpay payment verification.
+  AvailabilityBlock rows are created atomically inside a DB transaction.
+- **Deleted**: On payment failure, the draft booking and payment rows are hard-deleted.
+  No ghost records remain. Guest record is preserved for future bookings.
+
 ### POST `/api/Razorpay/order`
 - Client must send booking draft or quote token.
 - Client amount is ignored for pricing decisions (backward-compatible field retained).
 - Server computes final amount from public pricing or validated quote.
+- Creates a **draft** booking with `BookingStatus = "PaymentPending"`. No AvailabilityBlocks are created.
 
 ### POST `/api/Razorpay/verify`
-On successful verification, booking/payment pricing breakdown fields are persisted for audit + reconciliation.
+- **Idempotency**: If the same `RazorpayPaymentId` has already been completed, returns `200` without side effects.
+- **Success path**: Sets `BookingStatus = "Confirmed"`, `PaymentStatus = "completed"`, persists pricing breakdown fields, creates AvailabilityBlock rows, emits `booking.confirmed` outbox event. All within a single DB transaction.
+- **Failure path**: Deletes the draft booking and payment row. Ensures no AvailabilityBlock rows exist for the booking.
 
 ---
 

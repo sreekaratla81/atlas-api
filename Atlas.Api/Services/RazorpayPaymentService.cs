@@ -59,6 +59,30 @@ namespace Atlas.Api.Services
             {
                 var booking = await GetOrCreateBookingAsync(request);
 
+                var recentCutoff = DateTime.UtcNow.AddMinutes(-10);
+                var existingPending = await _context.Payments
+                    .Where(p => p.Booking.ListingId == booking.ListingId
+                             && p.Booking.CheckinDate == booking.CheckinDate
+                             && p.Booking.CheckoutDate == booking.CheckoutDate
+                             && p.Status == "pending"
+                             && p.RazorpayOrderId != null
+                             && p.ReceivedOn > recentCutoff)
+                    .OrderByDescending(p => p.ReceivedOn)
+                    .FirstOrDefaultAsync();
+
+                if (existingPending is not null)
+                {
+                    await transaction.CommitAsync();
+                    return new RazorpayOrderResponse
+                    {
+                        KeyId = _keyId,
+                        OrderId = existingPending.RazorpayOrderId!,
+                        Amount = existingPending.Amount,
+                        Currency = booking.Currency,
+                        BookingId = existingPending.BookingId
+                    };
+                }
+
                 var breakdown = await ResolveBreakdownForOrderAsync(request, booking);
 
                 const decimal MaxSaneOrderAmount = 500_000m;

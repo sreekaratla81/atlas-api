@@ -682,6 +682,8 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 - Client amount is ignored for pricing decisions (backward-compatible field retained).
 - Server computes final amount from public pricing or validated quote.
 - Creates a **draft** booking with `BookingStatus = "PaymentPending"`. No AvailabilityBlocks are created.
+- **Idempotent within 10 minutes**: If a pending Razorpay payment already exists for the same listing + check-in + check-out dates (created in the last 10 minutes), the existing order is returned instead of creating a new one. This prevents duplicate Razorpay orders from concurrent browser tabs.
+- **Amount guardrail**: Orders with `FinalAmount` outside ₹1–₹5,00,000 are rejected.
 
 ### POST `/api/Razorpay/verify`
 - **Idempotency**: If the same `RazorpayPaymentId` has already been completed, returns `200` without side effects.

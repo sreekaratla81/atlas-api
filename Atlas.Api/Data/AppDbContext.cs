@@ -56,6 +56,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<ListingPricingRule>(modelBuilder);
             ApplyTenantQueryFilter<ChannelConfig>(modelBuilder);
             ApplyTenantQueryFilter<BookingInvoice>(modelBuilder);
+            ApplyTenantQueryFilter<AddOnService>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -1085,6 +1086,32 @@ namespace Atlas.Api.Data
                 e.HasIndex(i => i.InvoiceNumber).IsUnique();
             });
 
+            // ---------- AddOnService ----------
+            modelBuilder.Entity<AddOnService>(e =>
+            {
+                e.ToTable("AddOnServices");
+                e.HasKey(a => a.Id);
+                e.Property(a => a.Name).HasMaxLength(100).IsRequired();
+                e.Property(a => a.Description).HasMaxLength(500);
+                e.Property(a => a.Price).HasColumnType("decimal(18,2)");
+                e.Property(a => a.PriceType).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired().HasDefaultValue("per_booking");
+                e.Property(a => a.Category).HasColumnType("varchar(50)").HasMaxLength(50);
+                e.Property(a => a.IsActive).HasDefaultValue(true);
+                e.Property(a => a.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+            });
+
+            // ---------- ListingAddOn (join table) ----------
+            modelBuilder.Entity<ListingAddOn>(e =>
+            {
+                e.ToTable("ListingAddOns");
+                e.HasKey(la => la.Id);
+                e.Property(la => la.IsEnabled).HasDefaultValue(true);
+                e.Property(la => la.OverridePrice).HasColumnType("decimal(18,2)");
+                e.HasOne(la => la.Listing).WithMany().HasForeignKey(la => la.ListingId).OnDelete(deleteBehavior);
+                e.HasOne(la => la.AddOnService).WithMany().HasForeignKey(la => la.AddOnServiceId).OnDelete(deleteBehavior);
+                e.HasIndex(la => new { la.ListingId, la.AddOnServiceId }).IsUnique();
+            });
+
             ConfigureTenantOwnership(modelBuilder, deleteBehavior);
         }
 
@@ -1113,6 +1140,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<ListingPricingRule>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<ChannelConfig>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<BookingInvoice>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<AddOnService>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -1265,5 +1293,7 @@ namespace Atlas.Api.Data
         public DbSet<ListingPricingRule> ListingPricingRules { get; set; }
         public DbSet<ChannelConfig> ChannelConfigs { get; set; }
         public DbSet<BookingInvoice> BookingInvoices { get; set; }
+        public DbSet<AddOnService> AddOnServices { get; set; }
+        public DbSet<ListingAddOn> ListingAddOns { get; set; }
     }
 }

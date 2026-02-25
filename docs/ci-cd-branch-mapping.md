@@ -3,7 +3,7 @@
 ## Branch → environment rule
 
 | Branch | Deploys to | How |
-|--------|------------|-----|
+| --- | --- | --- |
 | **dev** | **Dev only** (`atlas-homes-api-dev`) | `ci-deploy-dev.yml` (CI and Deploy to Dev) runs on push to dev; deploy-dev job runs only when ref is dev (push or workflow_dispatch from dev). |
 | **main** | **Prod only** (`atlas-homes-api`) | `deploy-prod.yml` runs on push to main (when `DEPLOY_PROD_ON_MAIN` is set); manual prod deploy via workflow_dispatch is allowed only when run from the main branch (guard step fails otherwise). |
 

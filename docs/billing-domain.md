@@ -3,6 +3,7 @@
 ## Overview
 
 AtlasHomestays uses a credit-based billing model with subscription tiers:
+
 - New tenants receive free trial credits on onboarding.
 - Credits are consumed per booking creation.
 - When credits are exhausted or an invoice is overdue, the tenant enters **LOCKED** mode.
@@ -11,7 +12,7 @@ AtlasHomestays uses a credit-based billing model with subscription tiers:
 
 ## Subscription State Machine
 
-```
+```text
                     ┌──── CreditsExhausted ────┐
                     │                           ▼
   ┌──────┐     ┌───────┐     ┌──────────┐     ┌───────────┐
@@ -27,7 +28,7 @@ AtlasHomestays uses a credit-based billing model with subscription tiers:
 ### States
 
 | Status | Meaning | Writes Allowed? |
-|--------|---------|-----------------|
+| --- | --- | --- |
 | Trial | Free trial period, has credits | Yes |
 | Active | Paid subscription with credits | Yes |
 | PastDue | Period ended, within grace period (7 days default) | Yes (grace) |
@@ -37,7 +38,7 @@ AtlasHomestays uses a credit-based billing model with subscription tiers:
 ### Lock Triggers
 
 | Trigger | LockReason | Resolution |
-|---------|------------|------------|
+| --- | --- | --- |
 | Credits reach 0 after booking | `CreditsExhausted` | Pay invoice / admin credits adjust |
 | Invoice overdue past grace period | `InvoiceOverdue` | Pay invoice |
 | Manual admin action | `Manual` | Admin unlock |
@@ -50,7 +51,7 @@ Append-only table. **Never update or delete rows.** Balance = `SUM(CreditsDelta)
 ### Ledger Entry Types
 
 | Type | CreditsDelta | When |
-|------|-------------|------|
+| --- | --- | --- |
 | Grant | +N | Onboarding (500), plan subscription, admin adjust |
 | Debit | -1 | Each booking creation |
 | Adjust | ±N | Manual admin adjustment |
@@ -59,14 +60,14 @@ Append-only table. **Never update or delete rows.** Balance = `SUM(CreditsDelta)
 ### What Consumes Credits
 
 | Action | Cost | Reference |
-|--------|------|-----------|
+| --- | --- | --- |
 | Booking creation | 1 credit | BookingId |
 | (Future) WhatsApp notification | 1 credit | MessageId |
 | (Future) SMS notification | 0.5 credit | MessageId |
 
 ## Invoice Lifecycle
 
-```
+```text
 Draft → Issued → Paid
                  └──→ Overdue (past DueAtUtc + grace)
                  └──→ Void (canceled/reversed)
@@ -81,10 +82,13 @@ Draft → Issued → Paid
 ### API Layer (BillingLockFilter)
 
 Global `IAsyncActionFilter` in the MVC pipeline:
+
 - **Blocks**: POST, PUT, PATCH, DELETE requests → returns HTTP 402 with body:
+
   ```json
   { "code": "TENANT_LOCKED", "reason": "CreditsExhausted", "balance": 0, "invoiceId": "...", "payUrl": "/billing/invoices/.../pay-link" }
   ```
+
 - **Allows**: GET, HEAD, OPTIONS (read-only) always.
 - **Exempt** (via attributes):
   - `[AllowWhenLocked]`: Billing endpoints (pay invoice, subscribe, view plans).
@@ -100,7 +104,7 @@ Global `IAsyncActionFilter` in the MVC pipeline:
 ## Plans
 
 | Code | Name | Monthly Price (INR) | Credits | Notes |
-|------|------|--------------------:|--------:|-------|
+| --- | --- | --- | --- | --- |
 | FREE_TRIAL | Free Trial | 0 | 500 | Auto-created on onboarding |
 | STARTER | Starter | 999 | 200 | (Seed when needed) |
 | GROWTH | Growth | 2499 | 1000 | (Seed when needed) |

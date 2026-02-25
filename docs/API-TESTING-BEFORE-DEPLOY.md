@@ -11,7 +11,7 @@ This doc explains how to ensure the API is safe to deploy and that **UI dependen
 ## What each layer validates
 
 | Layer | What it catches |
-|-------|------------------|
+| --- | --- |
 | Unit tests | Logic, mocks, no host. |
 | Integration tests | Host builds, DB + migrations, endpoint behavior with test data. |
 | UI contract tests | Same requests as guest/admin portals; tenant header; no "Tenant could not be resolved" in responses. |

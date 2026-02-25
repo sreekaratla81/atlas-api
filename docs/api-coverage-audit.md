@@ -13,7 +13,7 @@ For each FE surface, endpoints the FE will need and why:
 ### Table: Admin Portal
 
 | # | Needed endpoint / capability | Why |
-|---|------------------------------|-----|
+| --- | --- | --- |
 | 1 | **Properties** – List, Get, Create, Update, Delete | Admin CRUD for properties. |
 | 2 | **Listings** – List, Get, Create, Update, Delete | Admin CRUD for listings. |
 | 3 | **Guests** – List, Get, Create, Update, Delete | Admin CRUD for guests. |
@@ -33,7 +33,7 @@ For each FE surface, endpoints the FE will need and why:
 ### Table: Guest Portal
 
 | # | Needed endpoint / capability | Why |
-|---|------------------------------|-----|
+| --- | --- | --- |
 | 1 | **Public listings** – List (tenant-scoped, no internal fields) | Discovery; must not expose WifiPassword, internal IDs, etc. |
 | 2 | **Availability search** – By property + date range + guests | Check availability and get nightly rates. |
 | 3 | **Pricing breakdown** – By listing + checkIn + checkOut | Show base, discount, fee, final amount. |
@@ -46,7 +46,7 @@ For each FE surface, endpoints the FE will need and why:
 ## Step 2 – Existing vs missing (API Gap Map)
 
 | Needed endpoint / capability | Exists? | Existing route/controller | Missing pieces | Priority | Notes / assumptions |
-|-----------------------------|--------|---------------------------|----------------|----------|----------------------|
+| --- | --- | --- | --- | --- | --- |
 | **Admin: Properties CRUD** | Yes | `GET/POST/PUT/DELETE /properties`, PropertiesController | None | — | Document that TenantId is server-managed. |
 | **Admin: Listings CRUD** | Yes | `GET/POST/PUT/DELETE /listings`, ListingsController | None | — | Same. |
 | **Admin: Guests CRUD** | Yes | `GET/POST/PUT/DELETE /guests`, GuestsController | None | — | Same. |
@@ -163,7 +163,7 @@ For each FE surface, endpoints the FE will need and why:
 ## Summary: Gap list and priorities
 
 | Priority | Item | Action |
-|----------|------|--------|
+| --- | --- | --- |
 | P0 | Public listings safe DTO | Add PublicListingDto; change or add GET /listings/public response. |
 | P0 | Booking by externalReservationId | Add GET /bookings/by-reference?externalReservationId=... (or equivalent). |
 | P0 | MessageTemplate CRUD | New controller + DTOs; List, Get, Create, Update, Delete. |
@@ -185,7 +185,8 @@ For each FE surface, endpoints the FE will need and why:
 
 ### Files changed
 
-**New files**
+### New files
+
 - `Atlas.Api/DTOs/PublicListingDto.cs`
 - `Atlas.Api/DTOs/MessageTemplateDtos.cs`
 - `Atlas.Api/DTOs/CommunicationLogDtos.cs`
@@ -198,7 +199,8 @@ For each FE surface, endpoints the FE will need and why:
 - `Atlas.Api.IntegrationTests/CommunicationLogsApiTests.cs`
 - `Atlas.Api.IntegrationTests/AutomationSchedulesApiTests.cs`
 
-**Modified files**
+### Modified files
+
 - `Atlas.Api/Controllers/ListingsController.cs` — GET /listings/public returns `PublicListingDto`
 - `Atlas.Api/Controllers/BookingsController.cs` — GET /bookings/by-reference; GET /bookings gains listingId, bookingId
 - `Atlas.Api/Controllers/PaymentsController.cs` — GET /api/payments gains bookingId, receivedFrom, receivedTo, page, pageSize
@@ -213,7 +215,7 @@ For each FE surface, endpoints the FE will need and why:
 ### New endpoints summary
 
 | Method | Route | Purpose |
-|--------|--------|--------|
+| --- | --- | --- |
 | GET | /listings/public | Public listings (safe DTO, no wifi) |
 | GET | /bookings/by-reference?externalReservationId= | Booking by external id |
 | GET | /bookings | + query: listingId, bookingId |

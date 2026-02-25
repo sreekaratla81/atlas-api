@@ -3,16 +3,19 @@
 This document is derived from the codebase and is maintained for use as **AI context** (e.g. ChatGPT, Cursor). Keep it in sync when adding or changing controllers or DTOs. See `api-examples.http` for runnable examples.
 
 ## Base URL
+
 - **Production**: `https://atlas-homes-api-gxdqfjc2btc0atbv.centralus-01.azurewebsites.net`
 - **Local**: `https://localhost:<port>` (e.g. 5001)
 
 **Path conventions:** The app does **not** use a global path base. Most routes are under the root (e.g. `/properties`, `/listings`, `/bookings`, `/availability`, `/admin/reports`). A few controllers use the `api/` prefix in their route: **Payments** (`/api/payments`), **Incidents** (`/api/incidents`), **Users** (`/api/users`), **Razorpay** (`/api/Razorpay`). When calling locally, use base `https://localhost:<port>` and append the path (e.g. `GET /properties`, `GET /api/payments`).
 
 ## Authentication / Authorization
+
 - JWT authentication middleware is present in `Atlas.Api/Program.cs` but **commented out**, and `UseAuthentication()`/`UseAuthorization()` are not enabled. As coded, endpoints do **not** require authentication.
 - The only explicit authorization attribute is `[AllowAnonymous]` on `AdminReportsController` (`Atlas.Api/Controllers/AdminReportsController.cs`).
 
 ## Conventions
+
 - **Swagger / OpenAPI**: Interactive docs at `/swagger` when not in Production. Use for exploratory testing. Swagger UI is disabled in Production.
 - **Validation errors**: Several endpoints call `ValidationProblem(ModelState)` which produces `ProblemDetails` responses (usually `application/problem+json`) when model or business rules fail. Other errors sometimes return plain strings (see multiple controllers).
 - **Filtering**: No global pagination/sorting. Endpoint-specific filters are documented under each endpoint.
@@ -20,11 +23,13 @@ This document is derived from the codebase and is maintained for use as **AI con
 ## Endpoints
 
 ### Health
+
 - **`GET /health`** — Liveness probe; returns 200 with `{ "status": "healthy" }`. No authentication. Use for load balancer or platform health checks.
 
 ### Operations (`Atlas.Api/Controllers/OpsController.cs`)
 
 #### `GET /ops/db-info`
+
 - **Purpose**: Return operational environment metadata without exposing secrets.
 - **Request body**: none
 - **Response**: JSON object containing `environment` (ASPNETCORE_ENVIRONMENT), `server` (SQL Server name), `database` (database name), and `marker` (value from the `EnvironmentMarker` table indicating DEV/PROD alignment).
@@ -32,6 +37,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 on success; 500-style `ProblemDetails` if the marker record is missing.
 
 #### `GET /ops/outbox`
+
 - **Purpose**: Read-only list of outbox messages for ops diagnostics. Tenant-scoped via EF filters.
 - **Query params**: `fromUtc` (DateTime?, optional), `toUtc` (DateTime?, optional), `published` (bool?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
 - **Request body**: none
@@ -41,6 +47,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Availability (`Atlas.Api/Controllers/AvailabilityController.cs`)
 
 #### `GET /availability`
+
 - **Purpose**: Get availability for a property within a date range.
 - **Query params**:
   - `propertyId` (int, required)
@@ -52,6 +59,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 400, 404, 500 (not explicitly annotated; inferred from code paths)
 
 #### `GET /availability/listing-availability`
+
 - **Purpose**: Get listing availability for a date range (e.g. for calendar UI).
 - **Query params**: `listingId` (int, required), `startDate` (DateTime, required), `months` (int, optional, default 2, 1–12)
 - **Request body**: none
@@ -59,11 +67,13 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 400, 500
 
 #### `POST /availability/blocks`
+
 - **Purpose**: Block availability for a listing in a date range (creates/removes blocks; overlapping blocked periods return 422).
 - **Request body**: `AvailabilityBlockRequestDto` with `ListingId`, `StartDate`, `EndDate`
 - **Response**: 200 with `{ message, blockedDates }` or 422 on conflict, 500 on error
 
 #### `PATCH /availability/update-inventory`
+
 - **Purpose**: Set inventory (available/blocked) for a single listing date.
 - **Query params**: `listingId` (int), `date` (DateTime), `inventory` (bool)
 - **Response**: 200 OK or 400/404/500
@@ -71,6 +81,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Properties (`Atlas.Api/Controllers/PropertiesController.cs`)
 
 #### `GET /properties`
+
 - **Purpose**: List all properties.
 - **Query params**: none
 - **Request body**: none
@@ -78,6 +89,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `GET /properties/{id}`
+
 - **Purpose**: Get a property by id.
 - **Query params**: none
 - **Request body**: none
@@ -85,6 +97,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 404 (not explicitly annotated)
 
 #### `POST /properties`
+
 - **Purpose**: Create a property.
 - **Request body**: `Property`
   - **Required fields**: `Name`, `Address`, `Type`, `OwnerName`, `ContactPhone`, `Status` (required properties in `Atlas.Api/Models/Property.cs`)
@@ -92,6 +105,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 201, 400, 500 (not explicitly annotated)
 
 #### `PUT /properties/{id}`
+
 - **Purpose**: Update a property.
 - **Request body**: `Property`
   - **Required fields**: `Id` (route/body must match), `Name`, `Address`, `Type`, `OwnerName`, `ContactPhone`, `Status`
@@ -99,11 +113,13 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 204, 400, 404, 500 (not explicitly annotated)
 
 #### `DELETE /properties/{id}`
+
 - **Purpose**: Delete a property.
 - **Request body**: none
 - **Response**: `IActionResult`
 - **Status codes**: 204, 404, 409, 500
 - **409 Conflict**: Returned when the property has associated listings. Response body is `application/problem+json`:
+
   ```json
   { "status": 409, "title": "Conflict", "detail": "Cannot delete property with N active listing(s). Remove or reassign listings first.", "instance": "/properties/{id}" }
   ```
@@ -111,24 +127,28 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Listings (`Atlas.Api/Controllers/ListingsController.cs`)
 
 #### `GET /listings`
+
 - **Purpose**: List all listings (includes `Property`).
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<Listing>>` (listing list)
 - **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `GET /listings/{id}`
+
 - **Purpose**: Get a listing by id (includes `Property`).
 - **Request body**: none
 - **Response**: `ActionResult<Listing>` (listing)
 - **Status codes**: 200, 404, 500 (not explicitly annotated)
 
 #### `GET /listings/public`
+
 - **Purpose**: List listings for public/guest-facing use (tenant-scoped). Returns a safe DTO only; excludes WifiName, WifiPassword, TenantId, and internal-only fields.
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<PublicListingDto>>` — each item has `Id`, `PropertyId`, `PropertyName`, `PropertyAddress`, `Name`, `Floor`, `Type`, `CheckInTime`, `CheckOutTime`, `Status`, `MaxGuests`.
 - **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `POST /listings`
+
 - **Purpose**: Create a listing.
 - **Request body**: `Listing`
   - **Required fields**: `PropertyId`, `Property`, `Name`, `Type`, `Status`, `WifiName`, `WifiPassword`, `Floor`, `MaxGuests` (required/non-nullable properties in `Atlas.Api/Models/Listing.cs`)
@@ -136,6 +156,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 201, 400, 500 (not explicitly annotated)
 
 #### `PUT /listings/{id}`
+
 - **Purpose**: Update a listing.
 - **Request body**: `Listing`
   - **Required fields**: `Id` (route/body must match), `PropertyId`, `Property`, `Name`, `Type`, `Status`, `WifiName`, `WifiPassword`, `Floor`, `MaxGuests`
@@ -143,11 +164,13 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 204, 400, 404, 500 (not explicitly annotated)
 
 #### `DELETE /listings/{id}`
+
 - **Purpose**: Delete a listing.
 - **Request body**: none
 - **Response**: `IActionResult`
 - **Status codes**: 204, 404, 409, 500
 - **409 Conflict**: Returned when the listing has associated bookings or availability blocks. Response body is `application/problem+json`:
+
   ```json
   { "status": 409, "title": "Conflict", "detail": "Cannot delete listing with N booking(s) and M availability block(s). Remove related records first.", "instance": "/listings/{id}" }
   ```
@@ -155,18 +178,21 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Guests (`Atlas.Api/Controllers/GuestsController.cs`)
 
 #### `GET /guests`
+
 - **Purpose**: List all guests.
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<Guest>>` (guest list)
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /guests/{id}`
+
 - **Purpose**: Get a guest by id.
 - **Request body**: none
 - **Response**: `ActionResult<Guest>` (guest)
 - **Status codes**: 200, 404 (not explicitly annotated)
 
 #### `POST /guests`
+
 - **Purpose**: Create a guest.
 - **Request body**: `Guest`
   - **Required fields**: `Name`, `Phone`, `Email` (required properties in `Atlas.Api/Models/Guest.cs`)
@@ -174,6 +200,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 201, 400 (not explicitly annotated)
 
 #### `PUT /guests/{id}`
+
 - **Purpose**: Update a guest.
 - **Request body**: `Guest`
   - **Required fields**: `Id` (route/body must match), `Name`, `Phone`, `Email`
@@ -181,6 +208,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 204, 400, 404 (not explicitly annotated)
 
 #### `DELETE /guests/{id}`
+
 - **Purpose**: Delete a guest.
 - **Request body**: none
 - **Response**: `IActionResult`
@@ -189,6 +217,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Bookings (`Atlas.Api/Controllers/BookingsController.cs`)
 
 #### `GET /bookings`
+
 - **Purpose**: List bookings with optional filters.
 - **Query params**:
   - `checkinStart` (DateTime?, optional)
@@ -201,6 +230,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `GET /bookings/by-reference`
+
 - **Purpose**: Get a booking by external reservation id (e.g. for guest confirmation page). Tenant-scoped.
 - **Query params**: `externalReservationId` (string, required)
 - **Request body**: none
@@ -208,12 +238,14 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 400 (missing param), 404, 500
 
 #### `GET /bookings/{id}`
+
 - **Purpose**: Get a booking by id.
 - **Request body**: none
 - **Response**: `ActionResult<BookingDto>` (booking)
 - **Status codes**: 200, 404, 500 (not explicitly annotated)
 
 #### `POST /bookings`
+
 - **Purpose**: Create a booking.
 - **Request body**: `CreateBookingRequest`
   - **Required**: `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `AmountReceived`, `GuestsPlanned`, `GuestsActual`, `ExtraGuestCharge`, `PaymentStatus`
@@ -222,6 +254,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 201, 400, 404, 500 (not explicitly annotated)
 
 #### `PUT /bookings/{id}`
+
 - **Purpose**: Update a booking.
 - **Request body**: `UpdateBookingRequest`
   - **Required**: `Id` (match route), `ListingId`, `GuestId`, `CheckinDate`, `CheckoutDate`, `BookingSource`, `PaymentStatus`, `AmountReceived`
@@ -230,24 +263,28 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 204, 400, 404, 500 (not explicitly annotated)
 
 #### `DELETE /bookings/{id}`
+
 - **Purpose**: Delete a booking.
 - **Request body**: none
 - **Response**: `IActionResult`
 - **Status codes**: 204, 404, 500 (not explicitly annotated)
 
 #### `POST /bookings/{id}/cancel`
+
 - **Purpose**: Cancel a booking.
 - **Request body**: none
 - **Response**: `ActionResult<BookingDto>` (updated booking)
 - **Status codes**: 200, 400, 404, 500 (not explicitly annotated)
 
 #### `POST /bookings/{id}/checkin`
+
 - **Purpose**: Mark a booking as checked in.
 - **Request body**: none
 - **Response**: `ActionResult<BookingDto>` (updated booking)
 - **Status codes**: 200, 400, 404, 500 (not explicitly annotated)
 
 #### `POST /bookings/{id}/checkout`
+
 - **Purpose**: Mark a booking as checked out.
 - **Request body**: none
 - **Response**: `ActionResult<BookingDto>` (updated booking)
@@ -256,18 +293,21 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Bank Accounts (`Atlas.Api/Controllers/BankAccountsController.cs`)
 
 #### `GET /bankaccounts`
+
 - **Purpose**: List bank accounts.
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<BankAccountResponseDto>>` (bank accounts)
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /bankaccounts/{id}`
+
 - **Purpose**: Get a bank account by id.
 - **Request body**: none
 - **Response**: `ActionResult<BankAccountResponseDto>` (bank account)
 - **Status codes**: 200, 404 (not explicitly annotated)
 
 #### `POST /bankaccounts`
+
 - **Purpose**: Create a bank account.
 - **Request body**: `BankAccountRequestDto`
   - **Required fields**: `BankName`, `AccountNumber`, `IFSC`, `AccountType` (non-nullable properties in `Atlas.Api/DTOs/BankAccountRequestDto.cs`)
@@ -275,6 +315,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 201, 400 (not explicitly annotated)
 
 #### `PUT /bankaccounts/{id}`
+
 - **Purpose**: Update a bank account.
 - **Request body**: `BankAccountRequestDto`
   - **Required fields**: `BankName`, `AccountNumber`, `IFSC`, `AccountType`
@@ -282,6 +323,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 204, 400, 404 (not explicitly annotated)
 
 #### `DELETE /bankaccounts/{id}`
+
 - **Purpose**: Delete a bank account.
 - **Request body**: none
 - **Response**: `IActionResult`
@@ -290,6 +332,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Payments (`Atlas.Api/Controllers/PaymentsController.cs`)
 
 #### `GET /api/payments`
+
 - **Purpose**: List payments with optional filters and pagination.
 - **Query params**: `bookingId` (int?, optional), `receivedFrom` (DateTime?, optional), `receivedTo` (DateTime?, optional), `page` (int, default 1), `pageSize` (int, default 100, max 500)
 - **Request body**: none
@@ -297,12 +340,14 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /api/payments/{id}`
+
 - **Purpose**: Get a payment by id.
 - **Request body**: none
 - **Response**: `ActionResult<Payment>` (payment)
 - **Status codes**: 200, 404 (not explicitly annotated)
 
 #### `POST /api/payments`
+
 - **Purpose**: Create a payment.
 - **Request body**: `Payment`
   - **Required**: `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`
@@ -311,6 +356,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 201, 400 (not explicitly annotated)
 
 #### `PUT /api/payments/{id}`
+
 - **Purpose**: Update a payment.
 - **Request body**: `Payment`
   - **Required**: `Id` (route/body must match), `BookingId`, `Amount`, `Method`, `Type`, `ReceivedOn`
@@ -319,6 +365,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 204, 400, 404 (not explicitly annotated)
 
 #### `DELETE /api/payments/{id}`
+
 - **Purpose**: Delete a payment.
 - **Request body**: none
 - **Response**: `IActionResult`
@@ -327,18 +374,21 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Incidents (`Atlas.Api/Controllers/IncidentsController.cs`)
 
 #### `GET /api/incidents`
+
 - **Purpose**: List incidents.
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<Incident>>` (incidents)
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /api/incidents/{id}`
+
 - **Purpose**: Get an incident by id.
 - **Request body**: none
 - **Response**: `ActionResult<Incident>` (incident)
 - **Status codes**: 200, 404 (not explicitly annotated)
 
 #### `POST /api/incidents`
+
 - **Purpose**: Create an incident.
 - **Request body**: `Incident`
   - **Required fields**: `ListingId`, `Description`, `ActionTaken`, `Status`, `CreatedBy`, `CreatedOn` (non-nullable/required in `Atlas.Api/Models/Incident.cs`)
@@ -346,6 +396,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 201, 400 (not explicitly annotated)
 
 #### `PUT /api/incidents/{id}`
+
 - **Purpose**: Update an incident.
 - **Request body**: `Incident`
   - **Required fields**: `Id` (route/body must match), `ListingId`, `Description`, `ActionTaken`, `Status`, `CreatedBy`, `CreatedOn`
@@ -353,6 +404,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 204, 400, 404 (not explicitly annotated)
 
 #### `DELETE /api/incidents/{id}`
+
 - **Purpose**: Delete an incident.
 - **Request body**: none
 - **Response**: `IActionResult`
@@ -361,18 +413,21 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Users (`Atlas.Api/Controllers/UsersController.cs`)
 
 #### `GET /api/users`
+
 - **Purpose**: List users.
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<User>>` (users)
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /api/users/{id}`
+
 - **Purpose**: Get a user by id.
 - **Request body**: none
 - **Response**: `ActionResult<User>` (user)
 - **Status codes**: 200, 404 (not explicitly annotated)
 
 #### `POST /api/users`
+
 - **Purpose**: Create a user.
 - **Request body**: `User`
   - **Required fields**: `Name`, `Phone`, `Email`, `PasswordHash`, `Role` (required properties in `Atlas.Api/Models/User.cs`)
@@ -380,6 +435,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 201, 400 (not explicitly annotated)
 
 #### `PUT /api/users/{id}`
+
 - **Purpose**: Update a user.
 - **Request body**: `User`
   - **Required fields**: `Id` (route/body must match), `Name`, `Phone`, `Email`, `PasswordHash`, `Role`
@@ -387,6 +443,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 204, 400, 404 (not explicitly annotated)
 
 #### `DELETE /api/users/{id}`
+
 - **Purpose**: Delete a user.
 - **Request body**: none
 - **Response**: `IActionResult`
@@ -395,6 +452,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Message Templates (`Atlas.Api/Controllers/MessageTemplatesController.cs`)
 
 #### `GET /api/message-templates`
+
 - **Purpose**: List message templates with optional filters and pagination. Tenant-scoped.
 - **Query params**: `eventType` (string?, optional), `channel` (string?, optional), `isActive` (bool?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
 - **Request body**: none
@@ -402,24 +460,28 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 500
 
 #### `GET /api/message-templates/{id}`
+
 - **Purpose**: Get a message template by id.
 - **Request body**: none
 - **Response**: `ActionResult<MessageTemplateResponseDto>`; 404 if not found.
 - **Status codes**: 200, 404, 500
 
 #### `POST /api/message-templates`
+
 - **Purpose**: Create a message template. TenantId is set server-side.
 - **Request body**: `MessageTemplateCreateUpdateDto` — `EventType`, `Channel`, `ScopeType`, `Language`, `Body` (required); `TemplateKey`, `ScopeId`, `TemplateVersion`, `IsActive`, `Subject` (optional).
 - **Response**: 201 with `MessageTemplateResponseDto`
 - **Status codes**: 201, 400, 422, 500
 
 #### `PUT /api/message-templates/{id}`
+
 - **Purpose**: Update a message template.
 - **Request body**: `MessageTemplateCreateUpdateDto` (same as POST)
 - **Response**: 200 with `MessageTemplateResponseDto`
 - **Status codes**: 200, 400, 404, 422, 500
 
 #### `DELETE /api/message-templates/{id}`
+
 - **Purpose**: Delete a message template.
 - **Request body**: none
 - **Response**: 204
@@ -428,6 +490,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Communication Logs (`Atlas.Api/Controllers/CommunicationLogsController.cs`)
 
 #### `GET /api/communication-logs`
+
 - **Purpose**: List communication logs with filters and pagination. Tenant-scoped.
 - **Query params**: `bookingId` (int?, optional), `guestId` (int?, optional), `fromUtc` (DateTime?, optional), `toUtc` (DateTime?, optional), `channel` (string?, optional), `status` (string?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
 - **Request body**: none
@@ -437,6 +500,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Automation Schedules (`Atlas.Api/Controllers/AutomationSchedulesController.cs`)
 
 #### `GET /api/automation-schedules`
+
 - **Purpose**: List automation schedules with filters and pagination. Tenant-scoped.
 - **Query params**: `bookingId` (int?, optional), `status` (string?, optional), `eventType` (string?, optional), `page` (int, default 1), `pageSize` (int, default 50, max 200)
 - **Request body**: none
@@ -446,6 +510,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Reports (`Atlas.Api/Controllers/ReportsController.cs`)
 
 #### `GET /reports/calendar-earnings`
+
 - **Purpose**: Get calendarized booking earnings for a listing/month.
 - **Query params**:
   - `listingId` (int, required)
@@ -457,6 +522,7 @@ This document is derived from the codebase and is maintained for use as **AI con
   the check-out date excluded. This matches the booking calendar display.
 
 #### `GET /reports/bank-account-earnings`
+
 - **Purpose**: Get earnings by bank account for a fixed fiscal year.
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<BankAccountEarnings>>` (bank account earnings)
@@ -467,6 +533,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 > Marked `[AllowAnonymous]`.
 
 #### `GET /admin/reports/bookings`
+
 - **Purpose**: Get booking report rows filtered by date/listings.
 - **Query params**:
   - `startDate` (DateTime?, optional)
@@ -477,12 +544,14 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /admin/reports/listings`
+
 - **Purpose**: Get listing report rows.
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<ListingInfo>>` (listing report rows)
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /admin/reports/payouts`
+
 - **Purpose**: Get payout report rows filtered by date/listings.
 - **Query params**:
   - `startDate` (DateTime?, optional)
@@ -493,12 +562,14 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /admin/reports/earnings/monthly`
+
 - **Purpose**: Get rolling 12-month earnings summary.
 - **Request body**: none
 - **Response**: `ActionResult<IEnumerable<MonthlyEarningsSummary>>` (month summaries)
 - **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `POST /admin/reports/earnings/monthly`
+
 - **Purpose**: Get 12-month earnings summary with filter.
 - **Request body**: `ReportFilter`
   - **Required fields**: none (all properties nullable in `Atlas.Api/Models/Reports/ReportFilter.cs`)
@@ -506,6 +577,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200, 500 (not explicitly annotated)
 
 #### `GET /admin/reports/payouts/daily`
+
 - **Purpose**: Get daily payout report rows filtered by date/listings.
 - **Query params**:
   - `startDate` (DateTime?, optional)
@@ -516,6 +588,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /admin/reports/bookings/source`
+
 - **Purpose**: Get booking counts grouped by source.
 - **Query params**:
   - `startDate` (DateTime?, optional)
@@ -526,6 +599,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Status codes**: 200 (not explicitly annotated)
 
 #### `GET /admin/reports/bookings/calendar`
+
 - **Purpose**: Get calendar booking rows.
 - **Query params**:
   - `startDate` (DateTime?, optional)
@@ -538,12 +612,14 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Infrastructure (`Atlas.Api/Program.cs`)
 
 #### `OPTIONS /test-cors`
+
 - **Purpose**: CORS preflight test endpoint.
 - **Request body**: none
 - **Response**: `IResult` (OK)
 - **Status codes**: 200 (not explicitly annotated)
 
 ## Tenant Resolution
+
 - Tenant is resolved in order: **1)** `X-Tenant-Slug` header, **2)** known Atlas API host on Azure (`atlas-homes-api*.azurewebsites.net`), **3)** default tenant only in Development/IntegrationTest/Testing/Local. There is no subdomain-based resolution.
 - Known-host fallback: When the request is to the Atlas API Azure host (dev or prod), the default tenant is used so `/listings`, Swagger, and direct browser calls work without the header.
 - In Production, requests from **unknown hosts** without the header get `400` with `{"error":"Tenant could not be resolved."}`.
@@ -552,6 +628,7 @@ This document is derived from the codebase and is maintained for use as **AI con
 ### Admin Calendar (`Atlas.Api/Controllers/AdminCalendarController.cs`)
 
 #### `GET /admin/calendar/availability`
+
 - **Purpose**: Return availability calendar cells for one property (optionally one listing), tenant-scoped.
 - **Tenant scoping behavior**: Listing/pricing/rate/inventory/block queries are constrained by EF global filters (`TenantId`), so only rows owned by the resolved tenant are included.
 - **Query params**:
@@ -571,6 +648,7 @@ This document is derived from the codebase and is maintained for use as **AI con
   - `404` when `listingId` is provided but not visible to the current tenant
 
 #### `PUT /admin/calendar/availability`
+
 - **Purpose**: Bulk upsert listing daily availability and optional price overrides, tenant-scoped.
 - **Tenant scoping behavior**: `TenantId` is assigned by the DbContext tenant ownership rule; clients must not pass `tenantId` in payloads.
 - **Request body**: `AdminCalendarAvailabilityBulkUpsertRequestDto`
@@ -590,13 +668,14 @@ This document is derived from the codebase and is maintained for use as **AI con
   - `404` when one or more referenced listings are not visible to the current tenant
   - `409` when an `Idempotency-Key` is reused with a different payload hash
 
-
 ## Tenant Pricing Settings API
 
 ### GET `/tenant/settings/pricing`
+
 Returns current tenant pricing configuration.
 
 Response:
+
 ```json
 {
   "convenienceFeePercent": 3.0,
@@ -607,9 +686,11 @@ Response:
 ```
 
 ### PUT `/tenant/settings/pricing`
+
 Updates tenant pricing configuration.
 
 Request:
+
 ```json
 {
   "convenienceFeePercent": 5,
@@ -623,9 +704,11 @@ Validation: both percentages must be in `0..100`.
 ## Pricing API
 
 ### GET `/pricing/breakdown`
+
 Query params: `listingId`, `checkIn`, `checkOut`.
 
 Returns server-computed breakdown:
+
 - `BaseAmount`
 - `DiscountAmount = BaseAmount * GlobalDiscountPercent / 100`
 - `ConvenienceFeeAmount = (BaseAmount - DiscountAmount) * ConvenienceFeePercent / 100` when `FeeMode=CustomerPays`
@@ -638,9 +721,11 @@ Rounding strategy: amount components are rounded to 2 decimal places using midpo
 ## Quotes API
 
 ### POST `/quotes`
+
 Issues signed HMAC-SHA256 quote token.
 
 Request payload includes:
+
 - tenant identity (resolved server-side)
 - `listingId`, `checkIn`, `checkOut`, `guests`
 - `quotedBaseAmount`
@@ -649,6 +734,7 @@ Request payload includes:
 - nonce (generated server-side)
 
 ### GET `/quotes/validate?token=...`
+
 Validates signature, expiry, and tenant match.
 Returns breakdown if valid.
 
@@ -658,7 +744,7 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 
 ### Booking lifecycle (Razorpay flow)
 
-```
+```text
   /order                       /verify (success)
  ────────►  PaymentPending  ──────────────────►  Confirmed
             (draft, no                         + AvailabilityBlocks created
@@ -678,6 +764,7 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
   No ghost records remain. Guest record is preserved for future bookings.
 
 ### POST `/api/Razorpay/order`
+
 - Client must send booking draft or quote token.
 - Client amount is ignored for pricing decisions (backward-compatible field retained).
 - Server computes final amount from public pricing or validated quote.
@@ -686,6 +773,7 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 - **Amount guardrail**: Orders with `FinalAmount` outside ₹1–₹5,00,000 are rejected.
 
 ### POST `/api/Razorpay/verify`
+
 - **Idempotency**: If the same `RazorpayPaymentId` has already been completed, returns `200` without side effects.
 - **Success path**: Sets `BookingStatus = "Confirmed"`, `PaymentStatus = "completed"`, persists pricing breakdown fields, creates AvailabilityBlock rows, emits `booking.confirmed` outbox event. All within a single DB transaction.
 - **Failure path**: Deletes the draft booking and payment row. Ensures no AvailabilityBlock rows exist for the booking.
@@ -695,6 +783,7 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 ## Onboarding (`Atlas.Api/Controllers/OnboardingController.cs`)
 
 ### POST `/onboarding/start`
+
 - **Auth**: AllowAnonymous (rate-limited)
 - **Purpose**: Start tenant onboarding. Creates Tenant + User (Owner) + draft Property + draft Listing + TenantProfile + onboarding checklist.
 - **Request body**: `{ email, phone, displayName, password, city?, pincode?, propertyType?, roomCount?, addressLine?, airbnbUrl? }`
@@ -702,17 +791,20 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 - **Errors**: 409 if email already exists or slug collision.
 
 ### GET `/onboarding/status`
+
 - **Auth**: Bearer JWT
 - **Purpose**: Retrieve onboarding status, profile summary, checklist, and publish blockers.
 - **Response** (200): `{ onboardingStatus, profile: {...}, checklist: [...], publishBlockers: [...] }`
 
 ### PUT `/onboarding/profile`
+
 - **Auth**: Bearer JWT
 - **Purpose**: Update tenant legal/tax profile.
 - **Request body**: Partial fields: `{ legalName?, displayName?, businessType?, registeredAddressLine?, city?, state?, pincode?, pan?, gstin?, placeOfSupplyState?, primaryEmail?, primaryPhone? }`
 - **Notes**: PAN is stored as hash + last4 only (never plaintext).
 
 ### POST `/onboarding/documents`
+
 - **Auth**: Bearer JWT
 - **Content-Type**: multipart/form-data
 - **Purpose**: Upload a KYC document.
@@ -720,12 +812,14 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 - **Response** (201): `{ id, docType, fileUrl, originalFileName, status, createdAtUtc }`
 
 ### POST `/onboarding/airbnb/prefill`
+
 - **Auth**: Bearer JWT
 - **Purpose**: Extract public metadata from Airbnb listing URL or pasted text. Does NOT auto-save.
 - **Request body**: `{ airbnbUrl?, pastedText? }`
 - **Response** (200): `{ title?, locationText?, propertyType?, amenities[], houseRules[], maxGuests?, description?, source, warnings[] }`
 
 ### POST `/onboarding/publish`
+
 - **Auth**: Bearer JWT
 - **Purpose**: Validate publish-gate checklist and activate listings.
 - **Response** (200): `{ status: "published", listingsActivated }` or 422 with `{ error, blockers[] }`.
@@ -735,12 +829,14 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 ## Tenant Registration (`Atlas.Api/Controllers/TenantsController.cs`)
 
 ### POST `/tenants/register`
+
 - **Auth**: AllowAnonymous
 - **Purpose**: Self-serve tenant registration (simpler than onboarding; does not create property/listing).
 - **Request body**: `{ tenantName, slug, ownerName, ownerEmail, ownerPhone, password }`
 - **Response** (201): `{ tenantId, tenantName, slug, token }`
 
 ### GET `/tenants/{slug}/public`
+
 - **Auth**: AllowAnonymous
 - **Purpose**: Fetch public tenant info for guest portal branding.
 - **Response** (200): `{ id, name, slug, logoUrl?, brandColor? }`
@@ -750,14 +846,17 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 ## Platform Admin (`Atlas.Api/Controllers/PlatformController.cs`)
 
 ### GET `/platform/tenants`
+
 - **Auth**: Bearer JWT with role `platform-admin`
 - **Purpose**: List all tenants.
 
 ### POST `/platform/tenants`
+
 - **Auth**: Bearer JWT with role `platform-admin`
 - **Purpose**: Create a new tenant (admin-managed).
 
 ### PATCH `/platform/tenants/{id}`
+
 - **Auth**: Bearer JWT with role `platform-admin`
 - **Purpose**: Activate/suspend/update a tenant.
 
@@ -766,45 +865,55 @@ Policy: global discount is **not** applied to quoted bookings by default unless 
 ## Billing (`Atlas.Api/Controllers/BillingController.cs`)
 
 ### Error Code: TENANT_LOCKED (HTTP 402)
+
 All mutating endpoints (POST/PUT/PATCH/DELETE) return 402 when the tenant is billing-locked:
+
 ```json
 { "code": "TENANT_LOCKED", "reason": "CreditsExhausted|InvoiceOverdue|Manual|ChargeFailed", "balance": 0, "invoiceId": "...", "payUrl": "/billing/invoices/.../pay-link" }
 ```
+
 GET endpoints continue to work (read-only access is always allowed).
 Billing endpoints marked `[AllowWhenLocked]` are exempt from this check.
 
 ### GET `/billing/entitlements`
+
 - **Auth**: Bearer JWT (`[AllowWhenLocked]`)
 - **Purpose**: Current tenant billing state for UI gating.
 - **Response** (200): `{ isLocked, lockReason, creditsBalance, subscriptionStatus, isWithinGracePeriod, planCode, periodEndUtc, overdueInvoiceId }`
 
 ### GET `/billing/plans`
+
 - **Auth**: Bearer JWT (`[AllowWhenLocked]`)
 - **Purpose**: List all active billing plans.
 - **Response** (200): `[{ id, code, name, monthlyPriceInr, creditsIncluded, seatLimit, listingLimit }]`
 
 ### POST `/billing/subscribe`
+
 - **Auth**: Bearer JWT (`[AllowWhenLocked]`)
 - **Purpose**: Subscribe to a plan. Creates/updates subscription, grants plan credits, issues invoice.
 - **Request body**: `{ planCode, autoRenew }`
 - **Response** (200): `{ subscriptionStatus, invoiceId }`
 
 ### GET `/billing/invoices`
+
 - **Auth**: Bearer JWT (`[AllowWhenLocked]`)
 - **Purpose**: List all invoices for the current tenant.
 - **Response** (200): `[{ id, periodStartUtc, periodEndUtc, amountInr, taxGstRate, taxAmountInr, totalInr, status, dueAtUtc, paidAtUtc, paymentLinkId, pdfUrl, createdAtUtc }]`
 
 ### POST `/billing/invoices/{id}/pay-link`
+
 - **Auth**: Bearer JWT (`[AllowWhenLocked]`)
 - **Purpose**: Create a Razorpay payment link for an invoice.
 - **Response** (200): `{ paymentLinkUrl, paymentLinkId }`
 
 ### POST `/billing/webhooks/razorpay`
+
 - **Auth**: AllowAnonymous (signature verification required — see billing-domain.md)
 - **Purpose**: Razorpay webhook callback. Marks invoice paid, records payment, unlocks tenant.
 - **Request body**: `{ paymentLinkId, paymentId, status }`
 
 ### POST `/billing/credits/adjust`
+
 - **Auth**: Bearer JWT with role `platform-admin`
 - **Purpose**: Manually adjust tenant credits (grant or debit).
 - **Request body**: `{ creditsDelta, reason }`

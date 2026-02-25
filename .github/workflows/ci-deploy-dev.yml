@@ -153,6 +153,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID_DEV }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
+      # Enforce 32-bit platform so win-x86 publish matches the host. Prevents HTTP 500.30 when portal was set to 64-bit.
+      - name: Set App Service to 32-bit (required for win-x86 deploy)
+        run: |
+          az webapp config set --name atlas-homes-api-dev --resource-group atlas-dev-rg --use-32bit-worker-process true
+
       - name: Normalize SqlClient runtime layout
         shell: pwsh
         env:

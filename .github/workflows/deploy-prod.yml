@@ -220,6 +220,12 @@ jobs:
           tenant-id: ${{ env.TARGET_ENV == 'dev' && secrets.AZURE_TENANT_ID_DEV || secrets.AZURE_TENANT_ID_PROD }}
           subscription-id: ${{ env.TARGET_ENV == 'dev' && secrets.AZURE_SUBSCRIPTION_ID_DEV || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
 
+      # Enforce 32-bit platform so win-x86 publish matches the host. Prevents HTTP 500.30 when portal was set to 64-bit.
+      - name: Set App Service to 32-bit (required for win-x86 deploy)
+        if: env.SHOULD_DEPLOY == 'true'
+        run: |
+          az webapp config set --name ${{ env.APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --use-32bit-worker-process true
+
       - name: Validate deploy artifacts
         if: env.SHOULD_DEPLOY == 'true'
         shell: pwsh

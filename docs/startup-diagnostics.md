@@ -5,7 +5,7 @@
 If you see **HTTP Error 500.30 - ASP.NET Core app failed to start** on Azure:
 
 - **Cause**: App Service is **32-bit** but the deployed app is 64-bit (or vice versa). Basic tier is 32-bit.
-- **Prevention**: CI already publishes with `-r win-x86` and `scripts/validate-publish.ps1` **fails the pipeline** if the exe is not 32-bit, so deploy never uploads a mismatched build. Do not change the publish step to `win-x64` unless you set Azure App Service **Configuration > General settings > Platform** to **64 Bit**.
+- **Prevention**: CI publishes with `-r win-x86`, validates the exe is 32-bit via `scripts/validate-publish.ps1`, and **sets the App Service to 32-bit** before each deploy (`az webapp config set --use-32bit-worker-process true`), so the host always matches the artifact even if the portal was changed. Do not change the publish step to `win-x64` unless you set Azure App Service **Configuration > General settings > Platform** to **64 Bit** and remove the 32-bit config step from the workflow.
 - **Fix**: In Azure Portal, **App Service > Configuration > General settings**: set **Platform** to **32 Bit**. Redeploy the artifact produced by CI (which is win-x86). Or switch to 64-bit and use `-r win-x64` in the workflow (and update the validate script).
 
 ## 1) Enable temporary ANCM stdout + detailed errors for Development

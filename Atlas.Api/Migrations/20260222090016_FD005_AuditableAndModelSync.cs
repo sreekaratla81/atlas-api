@@ -18,24 +18,17 @@ namespace Atlas.Api.Migrations
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
-            migrationBuilder.CreateTable(
-                name: "EnvironmentMarker",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Marker = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_EnvironmentMarker", x => x.Id);
-                });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_EnvironmentMarker_Marker",
-                table: "EnvironmentMarker",
-                column: "Marker",
-                unique: true);
+            migrationBuilder.Sql(@"
+                IF OBJECT_ID(N'[EnvironmentMarker]', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [EnvironmentMarker] (
+                        [Id] int NOT NULL IDENTITY(1,1),
+                        [Marker] varchar(10) NOT NULL,
+                        CONSTRAINT [PK_EnvironmentMarker] PRIMARY KEY ([Id])
+                    );
+                    CREATE UNIQUE INDEX [IX_EnvironmentMarker_Marker] ON [EnvironmentMarker] ([Marker]);
+                END
+            ");
         }
 
         /// <inheritdoc />

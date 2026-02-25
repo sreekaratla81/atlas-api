@@ -420,6 +420,7 @@ namespace Atlas.Api
             var requiredOrigins = new[]
             {
                 "http://localhost:5173",
+                "http://localhost:5174", // Guest portal (RatebotaiRepo)
                 "https://localhost:7018",
                 "https://admin.atlashomestays.com",
                 "https://dev.atlashomestays.com",
@@ -434,6 +435,7 @@ namespace Atlas.Api
             if (env.IsDevelopment())
             {
                 origins.Add("http://127.0.0.1:5173");
+                origins.Add("http://127.0.0.1:5174"); // Guest portal (RatebotaiRepo)
                 origins.Add("https://127.0.0.1:7018");
             }
 

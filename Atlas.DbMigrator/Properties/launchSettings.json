@@ -4,7 +4,7 @@
       "commandName": "Project",
       "commandLineArgs": "--connection \"%ATLAS_DB_CONNECTION%\" --check-only",
       "environmentVariables": {
-        "ATLAS_DB_CONNECTION": "Server=.;Database=atlasdb-dev-latest;Trusted_Connection=True;TrustServerCertificate=True"
+        "ATLAS_DB_CONNECTION": "Server=(local)\\SQLEXPRESS;Database=atlasdb-7;Trusted_Connection=True;TrustServerCertificate=True"
       }
     }
   }

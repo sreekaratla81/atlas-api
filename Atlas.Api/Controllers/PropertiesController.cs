@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
 using Atlas.Api.Models;
+using Atlas.Api.Services.Tenancy;
 
 namespace Atlas.Api.Controllers
 {
@@ -17,11 +18,13 @@ namespace Atlas.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<PropertiesController> _logger;
+        private readonly ITenantContextAccessor _tenantContextAccessor;
 
-        public PropertiesController(AppDbContext context, ILogger<PropertiesController> logger)
+        public PropertiesController(AppDbContext context, ILogger<PropertiesController> logger, ITenantContextAccessor tenantContextAccessor)
         {
             _context = context;
             _logger = logger;
+            _tenantContextAccessor = tenantContextAccessor;
         }
 
         [HttpGet]
@@ -57,6 +60,7 @@ namespace Atlas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<PropertyResponseDto>> Create(PropertyCreateDto dto)
         {
+            var tenantId = _tenantContextAccessor.TenantId ?? throw new InvalidOperationException("Tenant context is required. Set X-Tenant-Slug header.");
             var item = new Property
             {
                 Name = dto.Name,
@@ -66,7 +70,7 @@ namespace Atlas.Api.Controllers
                 ContactPhone = dto.ContactPhone,
                 CommissionPercent = dto.CommissionPercent,
                 Status = dto.Status,
-                TenantId = 0
+                TenantId = tenantId
             };
             _context.Properties.Add(item);
             await _context.SaveChangesAsync();

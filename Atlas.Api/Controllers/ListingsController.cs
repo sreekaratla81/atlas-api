@@ -102,7 +102,6 @@ namespace Atlas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<Listing>> Create(Listing item)
         {
-            item.TenantId = 0;
             try
             {
                 // Ensure the associated Property exists and attach it to the context
@@ -111,6 +110,9 @@ namespace Atlas.Api.Controllers
                 {
                     return BadRequest();
                 }
+
+                // Inherit TenantId from the property
+                item.TenantId = property.TenantId;
 
                 // Replace any deserialized Property instance with the tracked entity
                 item.Property = property;

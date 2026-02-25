@@ -1213,7 +1213,7 @@
         "tags": [
           "Availability"
         ],
-        "summary": "Get listing availability for a date range. Guest-facing; no auth required.",
+        "summary": "Get listing availability for a date range",
         "parameters": [
           {
             "name": "listingId",
@@ -1842,6 +1842,7 @@
         "tags": [
           "Bookings"
         ],
+        "summary": "Get booking by external reservation ID. Guest-facing; no auth required.",
         "parameters": [
           {
             "name": "externalReservationId",
@@ -3513,6 +3514,7 @@
         "tags": [
           "Listings"
         ],
+        "summary": "Get listing by ID. Guest-facing; no auth required.",
         "parameters": [
           {
             "name": "id",
@@ -4813,7 +4815,7 @@
         "tags": [
           "Pricing"
         ],
-        "summary": "Get pricing summary for the current date only. Returns all listings with that day's baseAmount, discountAmount, convenienceFeePercent, finalAmount, globalDiscountPercent. Uses the same logic as pricing/breakdown.",
+        "summary": "Get pricing summary for the current date only. Returns all listings with that day's baseAmount, discountAmount, convenienceFeePercent, finalAmount, globalDiscountPercent. Uses the same logic as pricing/breakdown. Guest-facing; no auth required.",
         "responses": {
           "200": {
             "description": "OK",
@@ -4833,7 +4835,7 @@
         "tags": [
           "Pricing"
         ],
-        "summary": "Get calendar pricing breakdown for a listing. Query parameters: listingId, startDate (yyyy-MM-dd), months (1-12).",
+        "summary": "Get calendar pricing breakdown for a listing. Query parameters: listingId, startDate (yyyy-MM-dd), months (1-12). Guest-facing; no auth required.",
         "parameters": [
           {
             "name": "listingId",
@@ -4882,7 +4884,7 @@
         "tags": [
           "Pricing"
         ],
-        "summary": "Guest-facing price breakdown for a check-in/check-out range.\r\nApplies base/weekend rates, daily overrides, global discount, and convenience fee.",
+        "summary": "Guest-facing price breakdown for a check-in/check-out range.\r\nApplies base/weekend rates, daily overrides, global discount, and convenience fee. No auth required.",
         "parameters": [
           {
             "name": "listingId",

@@ -77,12 +77,11 @@ namespace Atlas.Api.Controllers
             }
         }
         /// <summary>
-        /// Get listing availability for a date range. Guest-facing; no auth required.
+        /// Get listing availability for a date range
         /// </summary>
         /// <param name="listingId">Required: Listing ID</param>
         /// <param name="startDate">Required: Start date for date range (defaults to 30 days)</param>
         /// <param name="months">Optional: Number of months from start date (default: 2)</param>
-        [AllowAnonymous]
         [HttpGet("listing-availability")]
         [ProducesResponseType(typeof(ListingAvailabilityResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

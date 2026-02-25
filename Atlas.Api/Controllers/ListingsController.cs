@@ -79,6 +79,7 @@ namespace Atlas.Api.Controllers
             }
         }
 
+        /// <summary>Get listing by ID. Guest-facing; no auth required.</summary>
         [AllowAnonymous]
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ListingResponseDto), StatusCodes.Status200OK)]

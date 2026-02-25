@@ -141,8 +141,9 @@ public class PricingController : ControllerBase
     }
 
     /// <summary>
-    /// Get pricing summary for the current date only. Returns all listings with that day's baseAmount, discountAmount, convenienceFeePercent, finalAmount, globalDiscountPercent. Uses the same logic as pricing/breakdown.
+    /// Get pricing summary for the current date only. Returns all listings with that day's baseAmount, discountAmount, convenienceFeePercent, finalAmount, globalDiscountPercent. Uses the same logic as pricing/breakdown. Guest-facing; no auth required.
     /// </summary>
+    [AllowAnonymous]
     [HttpGet("daily-summary")]
     [ProducesResponseType(typeof(DailyPricingSummaryDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<DailyPricingSummaryDto>> GetDailySummary(CancellationToken cancellationToken = default)
@@ -178,7 +179,7 @@ public class PricingController : ControllerBase
     }
 
     /// <summary>
-    /// Get calendar pricing breakdown for a listing. Query parameters: listingId, startDate (yyyy-MM-dd), months (1-12).
+    /// Get calendar pricing breakdown for a listing. Query parameters: listingId, startDate (yyyy-MM-dd), months (1-12). Guest-facing; no auth required.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("breakdown")]
@@ -223,7 +224,7 @@ public class PricingController : ControllerBase
 
     /// <summary>
     /// Guest-facing price breakdown for a check-in/check-out range.
-    /// Applies base/weekend rates, daily overrides, global discount, and convenience fee.
+    /// Applies base/weekend rates, daily overrides, global discount, and convenience fee. No auth required.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("guest-breakdown")]

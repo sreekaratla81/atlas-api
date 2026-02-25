@@ -142,6 +142,8 @@ namespace Atlas.Api.Controllers
             }
         }
 
+        /// <summary>Get booking by external reservation ID. Guest-facing; no auth required.</summary>
+        [AllowAnonymous]
         [HttpGet("by-reference")]
         [ProducesResponseType(typeof(BookingDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

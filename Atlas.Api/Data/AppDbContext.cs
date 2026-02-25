@@ -52,6 +52,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<PropertyComplianceProfile>(modelBuilder);
             ApplyTenantQueryFilter<OnboardingChecklistItem>(modelBuilder);
             ApplyTenantQueryFilter<AuditLog>(modelBuilder);
+            ApplyTenantQueryFilter<PromoCode>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -988,6 +989,22 @@ namespace Atlas.Api.Data
                 .HasForeignKey(x => x.GuestId)
                 .OnDelete(deleteBehavior);
 
+            // ---------- PromoCode ----------
+            modelBuilder.Entity<PromoCode>(e =>
+            {
+                e.ToTable("PromoCodes");
+                e.HasKey(p => p.Id);
+                e.Property(p => p.Code).HasColumnType("varchar(50)").HasMaxLength(50).IsRequired();
+                e.Property(p => p.DiscountType).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired().HasDefaultValue("Percent");
+                e.Property(p => p.DiscountValue).HasColumnType("decimal(18,2)");
+                e.Property(p => p.ValidFrom).HasColumnType("datetime");
+                e.Property(p => p.ValidTo).HasColumnType("datetime");
+                e.Property(p => p.TimesUsed).HasDefaultValue(0);
+                e.Property(p => p.IsActive).HasDefaultValue(true);
+                e.Property(p => p.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.HasIndex(p => new { p.TenantId, p.Code }).IsUnique();
+            });
+
             ConfigureTenantOwnership(modelBuilder, deleteBehavior);
         }
 
@@ -1012,6 +1029,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<QuoteRedemption>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<WhatsAppInboundMessage>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<ConsumedEvent>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<PromoCode>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -1159,5 +1177,6 @@ namespace Atlas.Api.Data
         public DbSet<BillingInvoice> BillingInvoices { get; set; }
         public DbSet<BillingPayment> BillingPayments { get; set; }
         public DbSet<ListingPhoto> ListingPhotos { get; set; }
+        public DbSet<PromoCode> PromoCodes { get; set; }
     }
 }

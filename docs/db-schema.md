@@ -3,7 +3,9 @@
 This document reflects the schema defined by `AppDbContext` and the entity classes in `Atlas.Api/Models`. Indexes are defined in `AppDbContext.OnModelCreating`; see the model configuration for composite indexes (e.g. tenant + date, tenant + status).
 
 ## AutomationSchedule
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | bigint | No |
@@ -17,18 +19,23 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | AttemptCount | int | No |
 | LastError | text | Yes |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - BookingId → Bookings.Id (logical; no FK in schema)
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many rows per tenant/booking.
 
 ## AvailabilityBlock
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | bigint | No |
@@ -44,23 +51,29 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | CreatedAtUtc | datetime | No |
 | UpdatedAtUtc | datetime | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - ListingId → Listings.Id
 - BookingId → Bookings.Id
 
-**Indexes**
+### Indexes
+
 - (TenantId, ListingId, StartDate, EndDate)
 - (BookingId)
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many blocks per listing; optionally one booking.
 
 ## BankAccounts
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -71,20 +84,26 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | AccountType | nvarchar(50) | No |
 | CreatedAt | datetime2 | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 
-**Indexes**
+### Indexes
+
 - (TenantId, AccountNumber)
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many per tenant.
 
 ## Bookings
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -120,23 +139,29 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | Notes | nvarchar(max) | No |
 | CreatedAt | datetime2 | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - ListingId → Listings.Id
 - GuestId → Guests.Id
 - BankAccountId → BankAccounts.Id
 
-**Indexes**
+### Indexes
+
 - (TenantId, ListingId)
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many bookings per listing and per guest; optionally one bank account.
 
 ## CommunicationLog
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | bigint | No |
@@ -158,24 +183,30 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | CreatedAtUtc | datetime | No |
 | SentAtUtc | datetime | Yes |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - BookingId → Bookings.Id
 - GuestId → Guests.Id
 - TemplateId → MessageTemplate.Id
 
-**Indexes**
+### Indexes
+
 - Unique on IdempotencyKey
 - (TenantId, BookingId)
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; optionally one booking, one guest, one message template.
 
 ## Guests
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -185,17 +216,22 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | Email | nvarchar(max) | No |
 | IdProofUrl | nvarchar(max) | Yes |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many guests per tenant.
 
 ## Incidents
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -207,17 +243,22 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | CreatedBy | nvarchar(max) | No |
 | CreatedOn | datetime2 | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - None (ListingId/BookingId not enforced as FKs in schema)
 
-**Relationships**
+### Relationships
+
 - Not tenant-owned; references listing and optional booking by id.
 
 ## ListingDailyRate
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | bigint | No |
@@ -231,22 +272,28 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | UpdatedByUserId | int | Yes |
 | UpdatedAtUtc | datetime | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - ListingId → Listings.Id
 
-**Indexes**
+### Indexes
+
 - Unique index on (TenantId, ListingId, Date)
 
-**Relationships**
+### Relationships
+
 - Many daily rates belong to one tenant.
 - Many daily rates belong to one listing.
 
 ## ListingPricing
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | TenantId | int | No |
@@ -257,21 +304,27 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | Currency | varchar(10) | No |
 | UpdatedAtUtc | datetime | No |
 
-**Primary Key**
+### Primary Key
+
 - ListingId
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - ListingId → Listings.Id
 
-**Indexes**
+### Indexes
+
 - Unique index on (TenantId, ListingId)
 
-**Relationships**
+### Relationships
+
 - Each listing pricing row corresponds to one tenant-owned listing (one-to-one).
 
 ## Listings
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -287,22 +340,28 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | WifiPassword | nvarchar(max) | No |
 | MaxGuests | int | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - PropertyId → Properties.Id
 
-**Indexes**
+### Indexes
+
 - Non-unique index on (TenantId, PropertyId)
 
-**Relationships**
+### Relationships
+
 - Many listings belong to one tenant.
 - Many listings belong to one property.
 
 ## MessageTemplate
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -320,20 +379,26 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | CreatedAtUtc | datetime | No |
 | UpdatedAtUtc | datetime | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 
-**Indexes**
+### Indexes
+
 - (TenantId, EventType, Channel)
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many templates per tenant.
 
 ## OutboxMessage
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | uniqueidentifier | No |
@@ -355,36 +420,47 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | AggregateId | varchar(50) | Yes (legacy) |
 | HeadersJson | text | Yes |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; outbox for domain events. Topic/EntityId are primary; AggregateType/AggregateId are legacy.
 
 ## EnvironmentMarker
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
 | Marker | varchar(10) | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Indexes**
+### Indexes
+
 - Unique index on Marker
 
-**Foreign Keys**
+### Foreign Keys
+
 - None
 
-**Relationships**
+### Relationships
+
 - None
 
 ## Payments
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -403,21 +479,27 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | RazorpaySignature | nvarchar(200) | Yes |
 | Status | nvarchar(20) | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - BookingId → Bookings.Id
 
-**Indexes**
+### Indexes
+
 - (TenantId, BookingId)
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many payments per booking.
 
 ## Properties
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -430,17 +512,22 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | CommissionPercent | decimal(5,2) | Yes |
 | Status | nvarchar(max) | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many properties per tenant.
 
 ## Users
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -451,23 +538,29 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | PasswordHash | nvarchar(max) | No |
 | Role | nvarchar(max) | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 
-**Relationships**
+### Relationships
+
 - Tenant-owned; many users per tenant.
 
 ## Multi-tenant additions
+
 - Core domain tables include a non-null `TenantId` column and enforce tenant isolation through EF Core global query filters.
 - Tenant-owned entities: `Properties`, `Listings`, `Bookings`, `Guests`, `Payments`, `ListingPricing`, `ListingDailyRate`, `ListingDailyInventory`, `AvailabilityBlock`, `BankAccounts`, `Users`, `MessageTemplate`, `CommunicationLog`, `OutboxMessage`, `AutomationSchedule`, `TenantPricingSettings`, `QuoteRedemption`. `Incidents` is not tenant-owned.
 - `TenantId` is automatically populated on insert and validated on update in `SaveChanges`/`SaveChangesAsync`.
 - `TenantId` is used in uniqueness constraints where tenant-scoped uniqueness is required to prevent cross-tenant collisions.
 
 ## Tenants
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | int | No |
@@ -476,17 +569,22 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | Status | varchar(20) | No |
 | CreatedAtUtc | datetime | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Unique Indexes**
+### Unique Indexes
+
 - `IX_Tenants_Slug` (Slug)
 
-**Relationships**
+### Relationships
+
 - One tenant has many rows across tenant-owned domain tables through `TenantId` (canonical table name: `Tenants`).
 
 ## ListingDailyInventory
-**Columns**
+
+### Columns
+
 | Column | Type | Nullable |
 | --- | --- | --- |
 | Id | bigint | No |
@@ -499,22 +597,28 @@ This document reflects the schema defined by `AppDbContext` and the entity class
 | UpdatedByUserId | int | Yes |
 | UpdatedAtUtc | datetime | No |
 
-**Primary Key**
+### Primary Key
+
 - Id
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - ListingId → Listings.Id
 
-**Unique Indexes**
+### Unique Indexes
+
 - `UX_ListingDailyInventory_TenantId_ListingId_Date` (`TenantId`, `ListingId`, `Date`)
 
-**Relationships**
+### Relationships
+
 - Many daily inventory rows belong to one tenant.
 - Many daily inventory rows belong to one listing.
 
 ## Calendar query indexes
+
 The admin calendar endpoints rely on tenant-scoped predicates and date windows. Key indexes are:
+
 - `Listings`: (`TenantId`, `PropertyId`) for property-level listing lookup per tenant.
 - `ListingPricing`: unique (`TenantId`, `ListingId`) for per-listing base/weekend rate resolution.
 - `ListingDailyRate`: unique (`TenantId`, `ListingId`, `Date`) for per-day price overrides.
@@ -526,14 +630,15 @@ The admin calendar endpoints rely on tenant-scoped predicates and date windows. 
 Tenant-scoped pricing knobs used by public pricing and quoted bookings.
 
 | Column | Type | Null | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | TenantId | int | No | PK; FK → Tenants.Id (one row per tenant) |
 | ConvenienceFeePercent | decimal(5,2) | No | Default `3.00` |
 | GlobalDiscountPercent | decimal(5,2) | No | Default `0.00` |
 | UpdatedAtUtc | datetime | No | Default `GETUTCDATE()` |
 | UpdatedBy | varchar(100) | Yes | Audit field |
 
-**Indexes**
+### Indexes
+
 - Unique on TenantId
 
 ## QuoteRedemption
@@ -541,14 +646,15 @@ Tenant-scoped pricing knobs used by public pricing and quoted bookings.
 One-time quote nonce redemption table with tenant-safe replay protection.
 
 | Column | Type | Null | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Id | bigint | No | PK identity |
 | TenantId | int | No | FK → Tenants.Id |
 | Nonce | varchar(50) | No | Unique with TenantId (`UNIQUE (TenantId, Nonce)`) |
 | RedeemedAtUtc | datetime | No | Redemption timestamp |
 | BookingId | int | Yes | FK → Bookings.Id (optional) |
 
-**Foreign Keys**
+### Foreign Keys
+
 - TenantId → Tenants.Id
 - BookingId → Bookings.Id
 
@@ -569,6 +675,7 @@ One-time quote nonce redemption table with tenant-safe replay protection.
 ---
 
 ## TenantProfile
+
 Extended legal/tax/compliance profile for a tenant (1:1 with Tenant).
 
 | Column | Type | Nullable | Notes |
@@ -593,6 +700,7 @@ Extended legal/tax/compliance profile for a tenant (1:1 with Tenant).
 | UpdatedAtUtc | datetime2 | No | Auto-set |
 
 ## HostKycDocument
+
 KYC/compliance documents uploaded by a host. Tenant-scoped.
 
 | Column | Type | Nullable | Notes |
@@ -609,9 +717,12 @@ KYC/compliance documents uploaded by a host. Tenant-scoped.
 | CreatedAtUtc | datetime2 | No | Auto-set |
 | UpdatedAtUtc | datetime2 | No | Auto-set |
 
-**Index**: (TenantId, DocType)
+### Index
+
+(TenantId, DocType)
 
 ## PropertyComplianceProfile
+
 Compliance profile for a property (1:1 with Property). Tenant-scoped.
 
 | Column | Type | Nullable | Notes |
@@ -627,6 +738,7 @@ Compliance profile for a property (1:1 with Property). Tenant-scoped.
 | UpdatedAtUtc | datetime2 | No | Auto-set |
 
 ## OnboardingChecklistItem
+
 Tracks onboarding tasks per tenant. Tenant-scoped.
 
 | Column | Type | Nullable | Notes |
@@ -643,9 +755,12 @@ Tracks onboarding tasks per tenant. Tenant-scoped.
 | CreatedAtUtc | datetime2 | No | Auto-set |
 | UpdatedAtUtc | datetime2 | No | Auto-set |
 
-**Unique Index**: (TenantId, Key)
+### Unique Index
+
+(TenantId, Key)
 
 ## AuditLog
+
 Immutable audit trail. Tenant-scoped. Append-only.
 
 | Column | Type | Nullable | Notes |
@@ -659,11 +774,14 @@ Immutable audit trail. Tenant-scoped. Append-only.
 | TimestampUtc | datetime | No | Default: GETUTCDATE() |
 | PayloadJson | nvarchar(max) | Yes | Sensitive fields must be redacted |
 
-**Index**: (TenantId, TimestampUtc)
+### Index
+
+(TenantId, TimestampUtc)
 
 ---
 
 ## BillingPlans
+
 Available subscription plans. Not tenant-scoped (global).
 
 | Column | Type | Nullable | Notes |
@@ -677,9 +795,12 @@ Available subscription plans. Not tenant-scoped (global).
 | ListingLimit | int | Yes | Future: max listings |
 | IsActive | bit | No | |
 
-**Unique Index**: Code
+### Unique Index
+
+Code
 
 ## TenantSubscriptions
+
 Active subscription per tenant.
 
 | Column | Type | Nullable | Notes |
@@ -699,7 +820,9 @@ Active subscription per tenant.
 | CreatedAtUtc | datetime2 | No | Auto-set |
 | UpdatedAtUtc | datetime2 | No | Auto-set |
 
-**Index**: TenantId
+### Index
+
+TenantId
 
 ## TenantCreditsLedger
 
@@ -716,7 +839,9 @@ Append-only credit ledger. Balance = SUM(CreditsDelta). Never update or delete r
 | ReferenceId | varchar(50) | Yes | e.g. BookingId |
 | CreatedAtUtc | datetime | No | Default: GETUTCDATE() |
 
-**Index**: TenantId
+### Index
+
+TenantId
 
 ## BillingInvoices
 
@@ -742,7 +867,9 @@ Invoices per tenant for subscription billing.
 | CreatedAtUtc | datetime2 | No | Auto-set |
 | UpdatedAtUtc | datetime2 | No | Auto-set |
 
-**Index**: (TenantId, Status)
+### Index
+
+(TenantId, Status)
 
 ## BillingPayments
 

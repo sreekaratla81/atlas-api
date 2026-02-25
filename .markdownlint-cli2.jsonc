@@ -2,10 +2,11 @@
   "config": {
     "default": true,
     "MD013": false,
+    "MD024": { "siblings_only": true },
     "MD033": false,
     "MD041": false
   },
-  "globs": ["**/*.md"],
-  "ignores": ["**/bin/**", "**/obj/**", "**/TestResults/**", "**/.git/**"]
+  "globs": ["docs/**/*.md","README.md"],
+  "ignores": ["**/bin/**", "**/obj/**", "**/TestResults/**", "**/.git/**", "**/node_modules/**", "**/.nuget/**"]
 }
 

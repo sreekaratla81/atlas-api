@@ -21,6 +21,14 @@
 
 From `atlas-api/`:
 
+**Full release gate (run before committing)** — runs the same steps as the Docs Guardrails workflow (link check, Mermaid, OpenAPI generate + diff, markdown lint, spell check):
+
+```bash
+node ./scripts/docs/run-release-gate.mjs
+```
+
+Link check and Mermaid only (faster, but does not run markdown lint or spell check):
+
 ```bash
 node ./scripts/docs/guardrails.mjs
 ```
@@ -33,10 +41,11 @@ Regenerate:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-openapi.ps1
 ```
 
-Optional (lint only changed files):
+Optional (lint/spell a subset of files manually):
 
 ```bash
 npx --yes markdownlint-cli2 "docs/**/*.md" "README.md"
 npx --yes cspell lint -c ./cspell.json "docs/**/*.md" "README.md"
 ```
 
+**Why CI failed but local didn’t:** `guardrails.mjs` only checks links and Mermaid. Markdown lint and spell check run as separate workflow steps in CI. Use `run-release-gate.mjs` locally to run the full gate before pushing.

@@ -11,6 +11,7 @@ This folder is the single source of truth for API, schema, and operations. **The
 ## Gates & feature roadmap
 
 Cross-repo docs (gates, backlog, feature execution) live in **atlas-e2e/docs**:
+
 - [DEVSECOPS-GATES-BASELINE.md](../../atlas-e2e/docs/delivery/DEVSECOPS-GATES-BASELINE.md) — 16-gate DevSecOps model, CI gates, branch protection
 - [ATLAS-HIGH-VALUE-BACKLOG.md](../../atlas-e2e/docs/product/ATLAS-HIGH-VALUE-BACKLOG.md) — prioritized feature roadmap and implementation status
 - [ATLAS-FEATURE-EXECUTION-PROMPT.md](../../atlas-e2e/docs/product/ATLAS-FEATURE-EXECUTION-PROMPT.md) — workflow for implementing the next feature

@@ -13,4 +13,3 @@ Track API surface area and the associated automated coverage here. Add a row whe
 - Focus on domain logic, services, and helper classes; these are expected to have strong direct unit coverage.
 - Controllers are covered indirectly via contract and smoke suites; they are not counted toward per-file targets.
 - Entity Framework migrations are excluded from coverage (also enforced via `coverage.runsettings`).
-

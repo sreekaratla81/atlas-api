@@ -47,6 +47,7 @@ public class TenantResolutionMiddleware
         return value.Equals("/health", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/auth", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("/auth/", StringComparison.OrdinalIgnoreCase) // e.g. /api/v1/auth/login
             || value.StartsWith("/tenants", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/platform", StringComparison.OrdinalIgnoreCase)
             || value.Equals("/onboarding/start", StringComparison.OrdinalIgnoreCase)

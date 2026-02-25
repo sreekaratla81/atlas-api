@@ -416,6 +416,7 @@ namespace Atlas.Api
         internal static string[] BuildAllowedOrigins(IConfiguration config, IWebHostEnvironment env)
         {
             // Guest portal (Razorpay/order) calls from www and apex; both must be allowed for prod.
+            // Note: WithOrigins() requires exact origins; add Cloudflare Pages origins via Cors:AdditionalOrigins if needed.
             var requiredOrigins = new[]
             {
                 "http://localhost:5173",
@@ -425,7 +426,6 @@ namespace Atlas.Api
                 "https://devadmin.atlashomestays.com",
                 "https://www.atlashomestays.com",
                 "https://atlashomestays.com",
-                "https://*.pages.dev"
             };
 
             var origins = ImmutableArray.CreateBuilder<string>();

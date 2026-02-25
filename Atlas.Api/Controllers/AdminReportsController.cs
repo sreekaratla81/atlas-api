@@ -1,5 +1,6 @@
 using Atlas.Api.Constants;
 using Atlas.Api.Data;
+using Atlas.Api.DTOs;
 using Atlas.Api.Models.Reports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -269,6 +270,193 @@ namespace Atlas.Api.Controllers
                 Amount = b.AmountReceived,
                 Status = b.AmountReceived > 0 ? "Paid" : "Unpaid"
             }).ToListAsync();
+
+            return Ok(result);
+        }
+
+        private static readonly string[] ActiveBookingStatuses =
+        {
+            BookingStatuses.Confirmed,
+            BookingStatuses.CheckedIn,
+            BookingStatuses.CheckedOut
+        };
+
+        [HttpGet("analytics")]
+        [ProducesResponseType(typeof(AnalyticsDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<AnalyticsDto>> GetAnalytics(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] int? listingId)
+        {
+            var totalDays = (int)(endDate.Date - startDate.Date).TotalDays;
+            if (totalDays <= 0)
+                return BadRequest("endDate must be after startDate.");
+
+            var listingsQuery = _context.Listings
+                .Where(l => l.Status == ListingStatuses.Active);
+            if (listingId.HasValue)
+                listingsQuery = listingsQuery.Where(l => l.Id == listingId.Value);
+
+            var listings = await listingsQuery
+                .Select(l => new { l.Id, l.Name })
+                .ToListAsync();
+
+            var bookingsQuery = _context.Bookings
+                .Where(b => ActiveBookingStatuses.Contains(b.BookingStatus))
+                .Where(b => b.CheckinDate < endDate && b.CheckoutDate > startDate);
+            if (listingId.HasValue)
+                bookingsQuery = bookingsQuery.Where(b => b.ListingId == listingId.Value);
+
+            var bookings = await bookingsQuery
+                .Select(b => new { b.ListingId, b.CheckinDate, b.CheckoutDate, b.AmountReceived })
+                .ToListAsync();
+
+            var byListing = new List<ListingAnalytics>();
+            foreach (var listing in listings)
+            {
+                var nightsAvailable = totalDays;
+                var listingBookings = bookings.Where(b => b.ListingId == listing.Id).ToList();
+
+                var nightsSold = listingBookings.Sum(b =>
+                {
+                    var effectiveStart = b.CheckinDate < startDate ? startDate.Date : b.CheckinDate.Date;
+                    var effectiveEnd = b.CheckoutDate > endDate ? endDate.Date : b.CheckoutDate.Date;
+                    return Math.Max(0, (int)(effectiveEnd - effectiveStart).TotalDays);
+                });
+
+                var revenue = listingBookings.Sum(b => b.AmountReceived);
+
+                byListing.Add(new ListingAnalytics
+                {
+                    ListingId = listing.Id,
+                    ListingName = listing.Name,
+                    NightsAvailable = nightsAvailable,
+                    NightsSold = nightsSold,
+                    Revenue = revenue,
+                    OccupancyRate = nightsAvailable > 0
+                        ? Math.Round(nightsSold * 100m / nightsAvailable, 2) : 0,
+                    Adr = nightsSold > 0
+                        ? Math.Round(revenue / nightsSold, 2) : 0,
+                    RevPar = nightsAvailable > 0
+                        ? Math.Round(revenue / nightsAvailable, 2) : 0
+                });
+            }
+
+            var totalNightsAvailable = byListing.Sum(l => l.NightsAvailable);
+            var totalNightsSold = byListing.Sum(l => l.NightsSold);
+            var totalRevenue = byListing.Sum(l => l.Revenue);
+
+            return Ok(new AnalyticsDto
+            {
+                StartDate = startDate,
+                EndDate = endDate,
+                TotalNightsAvailable = totalNightsAvailable,
+                TotalNightsSold = totalNightsSold,
+                TotalRevenue = totalRevenue,
+                OccupancyRate = totalNightsAvailable > 0
+                    ? Math.Round(totalNightsSold * 100m / totalNightsAvailable, 2) : 0,
+                Adr = totalNightsSold > 0
+                    ? Math.Round(totalRevenue / totalNightsSold, 2) : 0,
+                RevPar = totalNightsAvailable > 0
+                    ? Math.Round(totalRevenue / totalNightsAvailable, 2) : 0,
+                ByListing = byListing
+            });
+        }
+
+        [HttpGet("analytics/trends")]
+        [ProducesResponseType(typeof(IEnumerable<MonthlyTrend>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<MonthlyTrend>>> GetAnalyticsTrends()
+        {
+            var now = DateTime.UtcNow;
+            var startMonth = new DateTime(now.Year, now.Month, 1).AddMonths(-11);
+
+            var listings = await _context.Listings
+                .Where(l => l.Status == ListingStatuses.Active)
+                .CountAsync();
+
+            var bookings = await _context.Bookings
+                .Where(b => ActiveBookingStatuses.Contains(b.BookingStatus))
+                .Where(b => b.CheckoutDate > startMonth && b.CheckinDate < startMonth.AddMonths(12))
+                .Select(b => new { b.CheckinDate, b.CheckoutDate, b.AmountReceived })
+                .ToListAsync();
+
+            var trends = new List<MonthlyTrend>();
+            for (int i = 0; i < 12; i++)
+            {
+                var monthStart = startMonth.AddMonths(i);
+                var monthEnd = monthStart.AddMonths(1);
+                var daysInMonth = (int)(monthEnd - monthStart).TotalDays;
+                var nightsAvailable = daysInMonth * listings;
+
+                var monthBookings = bookings
+                    .Where(b => b.CheckinDate < monthEnd && b.CheckoutDate > monthStart)
+                    .ToList();
+
+                var nightsSold = monthBookings.Sum(b =>
+                {
+                    var effectiveStart = b.CheckinDate < monthStart ? monthStart : b.CheckinDate.Date;
+                    var effectiveEnd = b.CheckoutDate > monthEnd ? monthEnd : b.CheckoutDate.Date;
+                    return Math.Max(0, (int)(effectiveEnd - effectiveStart).TotalDays);
+                });
+
+                var revenue = monthBookings.Sum(b => b.AmountReceived);
+
+                trends.Add(new MonthlyTrend
+                {
+                    Year = monthStart.Year,
+                    Month = monthStart.Month,
+                    OccupancyRate = nightsAvailable > 0
+                        ? Math.Round(nightsSold * 100m / nightsAvailable, 2) : 0,
+                    Adr = nightsSold > 0
+                        ? Math.Round(revenue / nightsSold, 2) : 0,
+                    RevPar = nightsAvailable > 0
+                        ? Math.Round(revenue / nightsAvailable, 2) : 0,
+                    Revenue = revenue,
+                    BookingsCount = monthBookings.Count
+                });
+            }
+
+            return Ok(trends);
+        }
+
+        [HttpGet("analytics/channel-performance")]
+        [ProducesResponseType(typeof(IEnumerable<ChannelPerformance>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<ChannelPerformance>>> GetChannelPerformance(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate)
+        {
+            var query = _context.Bookings
+                .Where(b => ActiveBookingStatuses.Contains(b.BookingStatus));
+
+            if (startDate.HasValue)
+                query = query.Where(b => b.CheckinDate >= startDate.Value);
+            if (endDate.HasValue)
+                query = query.Where(b => b.CheckoutDate <= endDate.Value);
+
+            var bookings = await query
+                .Select(b => new { b.BookingSource, b.CheckinDate, b.CheckoutDate, b.AmountReceived })
+                .ToListAsync();
+
+            var totalRevenue = bookings.Sum(b => b.AmountReceived);
+
+            var result = bookings
+                .GroupBy(b => b.BookingSource ?? "Unknown")
+                .Select(g =>
+                {
+                    var revenue = g.Sum(b => b.AmountReceived);
+                    var nightsSold = g.Sum(b => Math.Max(0, (int)(b.CheckoutDate.Date - b.CheckinDate.Date).TotalDays));
+                    return new ChannelPerformance
+                    {
+                        Channel = g.Key,
+                        BookingsCount = g.Count(),
+                        Revenue = revenue,
+                        Adr = nightsSold > 0 ? Math.Round(revenue / nightsSold, 2) : 0,
+                        SharePercent = totalRevenue > 0
+                            ? Math.Round(revenue * 100m / totalRevenue, 2) : 0
+                    };
+                })
+                .OrderByDescending(c => c.Revenue)
+                .ToList();
 
             return Ok(result);
         }

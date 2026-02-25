@@ -49,3 +49,5 @@ npx --yes cspell lint -c ./cspell.json "docs/**/*.md" "README.md"
 ```
 
 **Why CI failed but local didn’t:** `guardrails.mjs` only checks links and Mermaid. Markdown lint and spell check run as separate workflow steps in CI. Use `run-release-gate.mjs` locally to run the full gate before pushing.
+
+**Why guest 401s (e.g. GET /listings, GET /pricing/breakdown) aren’t caught by integration tests:** Integration tests use `CustomWebApplicationFactory` with `ASPNETCORE_ENVIRONMENT=IntegrationTest`. When the environment is not Production (or when `Jwt__Key` is unset), the API uses a permissive default authorization policy, so `[Authorize]` does not require a JWT and unauthenticated requests succeed. On dev/prod, JWT is enabled and those same requests return 401 until the endpoint has `[AllowAnonymous]`. To catch guest 401s locally, run E2E (or a manual curl) against a host that has JWT enabled (e.g. dev API URL with `Jwt__Key` set).

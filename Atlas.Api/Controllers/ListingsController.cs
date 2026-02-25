@@ -26,6 +26,7 @@ namespace Atlas.Api.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<ListingResponseDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<ListingResponseDto>>> GetAll()
@@ -78,6 +79,7 @@ namespace Atlas.Api.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ListingResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

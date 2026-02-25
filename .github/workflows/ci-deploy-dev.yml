@@ -51,10 +51,10 @@ jobs:
 
       - name: Publish (for dev deploy)
         if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        # win-x86 for 32-bit Azure App Service (Basic tier). Do not switch to win-x64 without upgrading plan.
+        # MUST be win-x86: Azure App Service (Basic) is 32-bit. win-x64 causes HTTP 500.30 on startup. Validate step enforces this.
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
-      - name: Validate publish artifacts
+      - name: Validate publish artifacts (32-bit check)
         if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         shell: pwsh
         run: ./scripts/validate-publish.ps1 -PublishPath ./publish

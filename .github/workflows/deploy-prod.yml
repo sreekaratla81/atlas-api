@@ -133,7 +133,7 @@ jobs:
         run: dotnet run --project Atlas.DbMigrator -- --connection "$env:MIGRATOR_CONNECTION"
 
       - name: Publish
-        # win-x86 for 32-bit Azure App Service (Basic tier). Do not switch to win-x64 without upgrading plan.
+        # MUST be win-x86 if Azure App Service is 32-bit (Basic tier). win-x64 causes HTTP 500.30. See docs/startup-diagnostics.md.
         run: dotnet publish ./Atlas.Api/Atlas.Api.csproj -c Release -o ./publish -r win-x86 --self-contained true
 
       - name: Normalize SqlClient runtime layout
@@ -176,6 +176,10 @@ jobs:
             exit 1
           }
           Write-Host "All required publish artifacts are present."
+
+      - name: Validate 32-bit (prevent 500.30 on Azure)
+        shell: pwsh
+        run: ./scripts/validate-publish.ps1 -PublishPath ./publish
 
       - name: Skip prod deployment message
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_PROD_ON_MAIN != 'true'

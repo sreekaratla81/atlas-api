@@ -1,5 +1,13 @@
 # App Service startup diagnostics (Development only)
 
+## 0) HTTP 500.30 — app failed to start (platform mismatch)
+
+If you see **HTTP Error 500.30 - ASP.NET Core app failed to start** on Azure:
+
+- **Cause**: App Service is **32-bit** but the deployed app is 64-bit (or vice versa). Basic tier is 32-bit.
+- **Prevention**: CI already publishes with `-r win-x86` and `scripts/validate-publish.ps1` **fails the pipeline** if the exe is not 32-bit, so deploy never uploads a mismatched build. Do not change the publish step to `win-x64` unless you set Azure App Service **Configuration > General settings > Platform** to **64 Bit**.
+- **Fix**: In Azure Portal, **App Service > Configuration > General settings**: set **Platform** to **32 Bit**. Redeploy the artifact produced by CI (which is win-x86). Or switch to 64-bit and use `-r win-x64` in the workflow (and update the validate script).
+
 ## 1) Enable temporary ANCM stdout + detailed errors for Development
 
 This repo now uses transform-based behavior so diagnostics are only enabled for Development deployments.

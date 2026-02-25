@@ -55,6 +55,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<PromoCode>(modelBuilder);
             ApplyTenantQueryFilter<ListingPricingRule>(modelBuilder);
             ApplyTenantQueryFilter<ChannelConfig>(modelBuilder);
+            ApplyTenantQueryFilter<BookingInvoice>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -1058,6 +1059,32 @@ namespace Atlas.Api.Data
                 e.HasIndex(r => new { r.TenantId, r.ListingId, r.RuleType });
             });
 
+            // ---------- BookingInvoice ----------
+            modelBuilder.Entity<BookingInvoice>(e =>
+            {
+                e.ToTable("BookingInvoices");
+                e.HasKey(i => i.Id);
+                e.Property(i => i.InvoiceNumber).HasColumnType("varchar(50)").HasMaxLength(50).IsRequired();
+                e.Property(i => i.GuestName).HasMaxLength(200);
+                e.Property(i => i.GuestEmail).HasMaxLength(200);
+                e.Property(i => i.GuestPhone).HasColumnType("varchar(20)").HasMaxLength(20);
+                e.Property(i => i.PropertyName).HasMaxLength(200);
+                e.Property(i => i.ListingName).HasMaxLength(200);
+                e.Property(i => i.BaseAmount).HasColumnType("decimal(18,2)");
+                e.Property(i => i.GstRate).HasColumnType("decimal(5,4)");
+                e.Property(i => i.GstAmount).HasColumnType("decimal(18,2)");
+                e.Property(i => i.TotalAmount).HasColumnType("decimal(18,2)");
+                e.Property(i => i.SupplierGstin).HasColumnType("varchar(15)").HasMaxLength(15);
+                e.Property(i => i.SupplierLegalName).HasMaxLength(200);
+                e.Property(i => i.SupplierAddress).HasMaxLength(500);
+                e.Property(i => i.PlaceOfSupply).HasColumnType("varchar(50)").HasMaxLength(50);
+                e.Property(i => i.GeneratedAt).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.Property(i => i.Status).HasColumnType("varchar(20)").HasMaxLength(20).HasDefaultValue("generated");
+                e.HasOne(i => i.Booking).WithMany().HasForeignKey(i => i.BookingId).OnDelete(deleteBehavior);
+                e.HasIndex(i => i.BookingId).IsUnique();
+                e.HasIndex(i => i.InvoiceNumber).IsUnique();
+            });
+
             ConfigureTenantOwnership(modelBuilder, deleteBehavior);
         }
 
@@ -1085,6 +1112,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<PromoCode>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<ListingPricingRule>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<ChannelConfig>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<BookingInvoice>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -1236,5 +1264,6 @@ namespace Atlas.Api.Data
         public DbSet<Review> Reviews { get; set; }
         public DbSet<ListingPricingRule> ListingPricingRules { get; set; }
         public DbSet<ChannelConfig> ChannelConfigs { get; set; }
+        public DbSet<BookingInvoice> BookingInvoices { get; set; }
     }
 }

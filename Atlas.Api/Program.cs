@@ -103,6 +103,7 @@ namespace Atlas.Api
             builder.Services.AddMemoryCache();
             builder.Services.Configure<QuoteOptions>(builder.Configuration.GetSection("Quotes"));
             builder.Services.AddScoped<IRazorpayPaymentService, RazorpayPaymentService>();
+            builder.Services.AddScoped<IInvoiceService, InvoiceService>();
             builder.Services.AddScoped<ITenantPricingSettingsService, TenantPricingSettingsService>();
             builder.Services.AddScoped<IQuoteService, QuoteService>();
             builder.Services.AddScoped<Atlas.Api.Services.IEmailService, Atlas.Api.Services.EmailService>();

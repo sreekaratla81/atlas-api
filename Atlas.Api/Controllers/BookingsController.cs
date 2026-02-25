@@ -32,6 +32,7 @@ namespace Atlas.Api.Controllers
         private readonly ITenantContextAccessor _tenantAccessor;
         private readonly BookingScheduleService _scheduleService;
         private readonly Atlas.Api.Services.IRazorpayPaymentService _razorpayService;
+        private readonly Atlas.Api.Services.IInvoiceService _invoiceService;
         private const string ActiveAvailabilityStatus = BlockStatuses.Active;
         private const string CancelledAvailabilityStatus = BookingStatuses.Cancelled;
         private const string BookingBlockType = "Booking";
@@ -46,7 +47,8 @@ namespace Atlas.Api.Controllers
             CreditsService credits,
             ITenantContextAccessor tenantAccessor,
             BookingScheduleService scheduleService,
-            Atlas.Api.Services.IRazorpayPaymentService razorpayService)
+            Atlas.Api.Services.IRazorpayPaymentService razorpayService,
+            Atlas.Api.Services.IInvoiceService invoiceService)
         {
             _context = context;
             _logger = logger;
@@ -55,6 +57,7 @@ namespace Atlas.Api.Controllers
             _tenantAccessor = tenantAccessor;
             _scheduleService = scheduleService;
             _razorpayService = razorpayService;
+            _invoiceService = invoiceService;
         }
 
         [HttpGet]
@@ -597,6 +600,33 @@ namespace Atlas.Api.Controllers
             {
                 _logger.LogError(ex, "Error processing refund for BookingId={BookingId}", id);
                 return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpGet("{id}/invoice")]
+        [ProducesResponseType(typeof(BookingInvoice), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetOrGenerateInvoice(int id, CancellationToken ct)
+        {
+            try
+            {
+                var booking = await _context.Bookings.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id, ct);
+                if (booking is null) return NotFound(new { error = "Booking not found." });
+
+                var invoice = await _invoiceService.GetInvoiceByBookingIdAsync(id, ct)
+                              ?? await _invoiceService.GenerateInvoiceAsync(id, ct);
+
+                return Ok(invoice);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invoice generation failed for booking {BookingId}", id);
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving invoice for booking {BookingId}", id);
+                return StatusCode(500, "Internal server error");
             }
         }
 

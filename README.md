@@ -92,7 +92,7 @@ If you set `ATLAS_DEV_SQL_CONNECTION_STRING` in the launch profile environment v
 pass `%ATLAS_DEV_SQL_CONNECTION_STRING%` in the command line arguments so the migrator
 expands it at runtime.
 
-```
+```bash
 --connection "%ATLAS_DEV_SQL_CONNECTION_STRING%" --check-only
 ```
 

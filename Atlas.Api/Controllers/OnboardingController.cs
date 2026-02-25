@@ -4,6 +4,7 @@ using Atlas.Api.Filters;
 using Atlas.Api.Models;
 using Atlas.Api.Services.Auth;
 using Atlas.Api.Services.Onboarding;
+using Atlas.Api.Services.Storage;
 using Atlas.Api.Services.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,14 +29,16 @@ public class OnboardingController : ControllerBase
     private readonly OnboardingService _onboarding;
     private readonly ITenantContextAccessor _tenantAccessor;
     private readonly Services.Billing.CreditsService _credits;
+    private readonly IFileStorageService _storage;
 
-    public OnboardingController(AppDbContext db, IJwtTokenService jwt, OnboardingService onboarding, ITenantContextAccessor tenantAccessor, Services.Billing.CreditsService credits)
+    public OnboardingController(AppDbContext db, IJwtTokenService jwt, OnboardingService onboarding, ITenantContextAccessor tenantAccessor, Services.Billing.CreditsService credits, IFileStorageService storage)
     {
         _db = db;
         _jwt = jwt;
         _onboarding = onboarding;
         _tenantAccessor = tenantAccessor;
         _credits = credits;
+        _storage = storage;
     }
 
     /// <summary>
@@ -253,15 +256,16 @@ public class OnboardingController : ControllerBase
     {
         var tenantId = _tenantAccessor.TenantId ?? 0;
 
-        // TODO: Upload file to blob storage (Azure Blob / S3 / Cloudflare R2).
-        // For now, store a placeholder URL. Replace with actual blob upload.
-        var fileUrl = $"/uploads/{tenantId}/{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+        var ext = Path.GetExtension(file.FileName);
+        var blobName = $"t{tenantId}/kyc/{Guid.NewGuid()}{ext}";
+        await using var stream = file.OpenReadStream();
+        var upload = await _storage.UploadAsync("documents", blobName, stream, file.ContentType, ct);
 
         var doc = new HostKycDocument
         {
             TenantId = tenantId,
             DocType = docType,
-            FileUrl = fileUrl,
+            FileUrl = upload.Url,
             OriginalFileName = file.FileName,
             Status = "Pending",
         };

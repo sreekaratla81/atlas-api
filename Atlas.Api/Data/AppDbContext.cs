@@ -537,6 +537,19 @@ namespace Atlas.Api.Data
                 e.HasOne(p => p.Invoice).WithMany().HasForeignKey(p => p.InvoiceId).OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<ListingPhoto>(e =>
+            {
+                e.ToTable("ListingPhotos");
+                e.HasKey(p => p.Id);
+                e.Property(p => p.Url).HasColumnType("nvarchar(1000)");
+                e.Property(p => p.OriginalFileName).HasColumnType("nvarchar(200)");
+                e.Property(p => p.ContentType).HasColumnType("varchar(20)");
+                e.Property(p => p.Caption).HasColumnType("nvarchar(300)");
+                e.Property(p => p.CreatedAtUtc).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.Property(p => p.UpdatedAtUtc).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.HasOne(p => p.Listing).WithMany(l => l.Photos).HasForeignKey(p => p.ListingId).OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Guest)
                 .WithMany()
@@ -1145,5 +1158,6 @@ namespace Atlas.Api.Data
         public DbSet<TenantCreditsLedger> TenantCreditsLedger { get; set; }
         public DbSet<BillingInvoice> BillingInvoices { get; set; }
         public DbSet<BillingPayment> BillingPayments { get; set; }
+        public DbSet<ListingPhoto> ListingPhotos { get; set; }
     }
 }

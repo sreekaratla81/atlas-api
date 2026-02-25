@@ -34,5 +34,7 @@ namespace Atlas.Api.Models
         public ICollection<ListingDailyInventory> DailyInventories { get; set; } = new List<ListingDailyInventory>();
         [ValidateNever]
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+        [ValidateNever]
+        public ICollection<ListingPhoto> Photos { get; set; } = new List<ListingPhoto>();
     }
 }

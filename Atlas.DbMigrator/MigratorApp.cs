@@ -1,5 +1,6 @@
 using Atlas.Api.Data;
 using Atlas.Api.Models;
+using Atlas.Api.Models.Billing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -52,6 +53,7 @@ public sealed class MigratorApp
                 }
 
                 await SeedPlatformAdminAsync(db, logger, cancellationToken);
+                await SeedBillingPlansAsync(db, logger, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -81,6 +83,23 @@ public sealed class MigratorApp
         });
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Seeded platform-admin user {Email} on tenant {Slug}.", email, atlas.Slug);
+    }
+
+    private static async Task SeedBillingPlansAsync(AppDbContext db, ILogger logger, CancellationToken ct)
+    {
+        if (await db.BillingPlans.AnyAsync(ct)) return;
+
+        var plans = new BillingPlan[]
+        {
+            new() { Code = "FREE_TRIAL",  Name = "Free Trial",  MonthlyPriceInr = 0,   CreditsIncluded = 500,  ListingLimit = 2,  SeatLimit = 1 },
+            new() { Code = "STARTER",     Name = "Starter",     MonthlyPriceInr = 499,  CreditsIncluded = 2000, ListingLimit = 5,  SeatLimit = 2 },
+            new() { Code = "GROWTH",      Name = "Growth",      MonthlyPriceInr = 999,  CreditsIncluded = 10000, ListingLimit = 20, SeatLimit = 5 },
+            new() { Code = "PRO",         Name = "Pro",         MonthlyPriceInr = 1999, CreditsIncluded = 50000, ListingLimit = null, SeatLimit = null },
+        };
+
+        db.BillingPlans.AddRange(plans);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Seeded {Count} billing plans.", plans.Length);
     }
 
     internal static async Task<int> RunAsync(

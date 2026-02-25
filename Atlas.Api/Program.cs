@@ -15,7 +15,9 @@ using Atlas.Api.Models;
 using Atlas.Api.Services;
 using Atlas.Api.Models.Dtos.Razorpay;
 using Atlas.Api.Services.Auth;
+using Atlas.Api.Services.Storage;
 using Atlas.Api.Services.Tenancy;
+using Azure.Storage.Blobs;
 using Microsoft.Extensions.Options;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
@@ -122,6 +124,18 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.Onboarding.OnboardingService>();
             builder.Services.AddScoped<Atlas.Api.Services.Billing.IEntitlementsService, Atlas.Api.Services.Billing.EntitlementsService>();
             builder.Services.AddScoped<Atlas.Api.Services.Billing.CreditsService>();
+
+            var blobConnStr = builder.Configuration["AzureBlob:ConnectionString"];
+            if (!string.IsNullOrWhiteSpace(blobConnStr) && !IsPlaceholderValue(blobConnStr))
+            {
+                builder.Services.AddSingleton(new BlobServiceClient(blobConnStr));
+                builder.Services.AddSingleton<IFileStorageService, AzureBlobStorageService>();
+            }
+            else
+            {
+                builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+            }
+
             // Do not register TenantResolutionMiddleware in DI; RequestDelegate is provided by the pipeline in UseMiddleware<T>()
 
             ValidateRequiredConfiguration(builder.Configuration, env);
@@ -162,6 +176,8 @@ namespace Atlas.Api
             builder.Services.AddHostedService<Atlas.Api.Services.Consumers.BookingEventsNotificationConsumer>();
             builder.Services.AddHostedService<Atlas.Api.Services.Consumers.StayEventsNotificationConsumer>();
             builder.Services.AddHostedService<Atlas.Api.Services.HoldCleanupHostedService>();
+            builder.Services.AddHostedService<Atlas.Api.Services.Scheduling.AutomationSchedulerHostedService>();
+            builder.Services.AddScoped<Atlas.Api.Services.Scheduling.BookingScheduleService>();
 
             builder.Services.Configure<Atlas.Api.Services.Msg91Settings>(builder.Configuration.GetSection("Msg91"));
             builder.Services.AddHttpClient("MSG91");
@@ -169,9 +185,13 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.Notifications.NotificationOrchestrator>();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
-            // JWT disabled when not set, placeholder, or key too short for HS256 (256 bits). Enables easy dev login; set 32+ char secret before production.
             var jwtEnabled = !string.IsNullOrWhiteSpace(jwtKey) && !IsPlaceholderValue(jwtKey)
                 && Encoding.UTF8.GetByteCount(jwtKey!) >= 32;
+
+            if (!jwtEnabled && builder.Environment.IsProduction())
+                throw new InvalidOperationException(
+                    "JWT authentication is required in Production. " +
+                    "Set Jwt__Key (or Jwt:Key) to a 32+ character secret in Azure App Service > Configuration > Application Settings.");
 
             if (jwtEnabled)
             {
@@ -299,6 +319,9 @@ namespace Atlas.Api
             // Optional: HTTPS redirect
             // app.UseHttpsRedirection();
 
+            var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+            startupLogger.LogInformation("JWT authentication: {Status}", jwtEnabled ? "ENABLED" : "DISABLED (permissive auth — set Jwt__Key in Azure App Settings for production)");
+
             if (jwtEnabled)
             {
                 app.UseAuthentication();
@@ -315,6 +338,7 @@ namespace Atlas.Api
                 return Results.Ok(new
                 {
                     status = "healthy",
+                    auth = new { jwtEnabled },
                     asyncPipeline = new
                     {
                         enabled = pipelineActive,
@@ -348,6 +372,8 @@ namespace Atlas.Api
                     queriedAtUtc = DateTime.UtcNow
                 });
             });
+
+            app.UseStaticFiles();
 
             // No path base: match dev URLs exactly — /listings/5, /availability/listing-availability, /api/Razorpay/order (only base URL differs between dev and prod).
             app.MapControllers();

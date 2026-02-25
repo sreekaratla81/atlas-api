@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Atlas.Api.DTOs;
 
 /// <summary>Automation schedule data returned by the API.</summary>
@@ -13,4 +15,17 @@ public class AutomationScheduleDto
     public DateTime? CompletedAtUtc { get; set; }
     public int AttemptCount { get; set; }
     public string? LastError { get; set; }
+}
+
+/// <summary>Request to create a manual automation schedule.</summary>
+public class CreateAutomationScheduleDto
+{
+    [Required]
+    public int BookingId { get; set; }
+
+    [Required]
+    public string EventType { get; set; } = string.Empty;
+
+    [Required]
+    public DateTime DueAtUtc { get; set; }
 }

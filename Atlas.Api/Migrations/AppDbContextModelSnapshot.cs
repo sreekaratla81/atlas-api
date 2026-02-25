@@ -1057,6 +1057,65 @@ namespace Atlas.Api.Migrations
                     b.ToTable("ListingDailyRate", (string)null);
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.ListingPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Caption")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<bool>("IsCover")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ListingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OriginalFileName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("ListingPhotos", (string)null);
+                });
+
             modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
                 {
                     b.Property<int>("ListingId")
@@ -2081,6 +2140,25 @@ namespace Atlas.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.ListingPhoto", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.Listing", "Listing")
+                        .WithMany("Photos")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Atlas.Api.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("Atlas.Api.Models.ListingPricing", b =>
                 {
                     b.HasOne("Atlas.Api.Models.Listing", "Listing")
@@ -2270,6 +2348,8 @@ namespace Atlas.Api.Migrations
                     b.Navigation("DailyInventories");
 
                     b.Navigation("DailyRates");
+
+                    b.Navigation("Photos");
 
                     b.Navigation("Pricing");
                 });

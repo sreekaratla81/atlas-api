@@ -13,6 +13,7 @@ public static class EventTypes
     public const string StayPrecheckoutDue = "stay.precheckout.due";
     public const string StayPostcheckoutDue = "stay.postcheckout.due";
 
+    public const string InvoiceDue = "invoice.due";
     public const string WhatsAppInboundReceived = "whatsapp.inbound.received";
 
     public static bool IsBookingEvent(string eventType) =>
@@ -25,5 +26,5 @@ public static class EventTypes
         eventType == StayCheckedIn || eventType == StayCheckedOut;
 
     public static bool IsStayEvent(string eventType) =>
-        IsStayReminderEvent(eventType) || IsStayLifecycleEvent(eventType);
+        IsStayReminderEvent(eventType) || IsStayLifecycleEvent(eventType) || eventType == InvoiceDue;
 }

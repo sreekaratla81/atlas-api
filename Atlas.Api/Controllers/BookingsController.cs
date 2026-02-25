@@ -7,6 +7,7 @@ using Atlas.Api.DTOs;
 using Atlas.Api.Events;
 using Atlas.Api.Models;
 using Atlas.Api.Services.Billing;
+using Atlas.Api.Services.Scheduling;
 using Atlas.Api.Services.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +30,7 @@ namespace Atlas.Api.Controllers
 #pragma warning restore CS0618
         private readonly CreditsService _credits;
         private readonly ITenantContextAccessor _tenantAccessor;
+        private readonly BookingScheduleService _scheduleService;
         private const string ActiveAvailabilityStatus = BlockStatuses.Active;
         private const string CancelledAvailabilityStatus = BookingStatuses.Cancelled;
         private const string BookingBlockType = "Booking";
@@ -41,13 +43,15 @@ namespace Atlas.Api.Controllers
             Atlas.Api.Services.IBookingWorkflowPublisher bookingWorkflowPublisher,
 #pragma warning restore CS0618
             CreditsService credits,
-            ITenantContextAccessor tenantAccessor)
+            ITenantContextAccessor tenantAccessor,
+            BookingScheduleService scheduleService)
         {
             _context = context;
             _logger = logger;
             _bookingWorkflowPublisher = bookingWorkflowPublisher;
             _credits = credits;
             _tenantAccessor = tenantAccessor;
+            _scheduleService = scheduleService;
         }
 
         [HttpGet]
@@ -261,6 +265,7 @@ namespace Atlas.Api.Controllers
                     });
 
                     AddBookingConfirmedOutbox(booking, guest);
+                    _scheduleService.CreateSchedulesForConfirmedBooking(booking);
                 }
 
                 AddBookingCreatedOutbox(booking, guest);
@@ -395,6 +400,7 @@ namespace Atlas.Api.Controllers
                     var guestForConfirm = await _context.Guests.AsNoTracking().FirstOrDefaultAsync(g => g.Id == existingBooking.GuestId);
                     if (guestForConfirm != null)
                         AddBookingConfirmedOutbox(existingBooking, guestForConfirm);
+                    _scheduleService.CreateSchedulesForConfirmedBooking(existingBooking);
                 }
                 else if (IsCancelledStatus(existingBooking.BookingStatus))
                 {
@@ -402,6 +408,7 @@ namespace Atlas.Api.Controllers
                     AddOutboxMessage("booking.events", EventTypes.BookingCancelled, existingBooking.Id.ToString(),
                         new { bookingId = existingBooking.Id, guestId = existingBooking.GuestId, cancelledAtUtc = existingBooking.CancelledAtUtc,
                               guest = guestForCancel != null ? new { guestForCancel.Phone, guestForCancel.Email } : (object?)null });
+                    await _scheduleService.CancelSchedulesForBookingAsync(existingBooking.Id);
                 }
 
                 try
@@ -473,6 +480,7 @@ namespace Atlas.Api.Controllers
                 booking.CancelledAtUtc = DateTime.UtcNow;
 
                 await SyncAvailabilityBlockAsync(booking);
+                await _scheduleService.CancelSchedulesForBookingAsync(booking.Id);
                 var guestForCancel = await _context.Guests.AsNoTracking().FirstOrDefaultAsync(g => g.Id == booking.GuestId);
                 AddOutboxMessage("booking.events", EventTypes.BookingCancelled, booking.Id.ToString(), new { bookingId = booking.Id, guestId = booking.GuestId, cancelledAtUtc = booking.CancelledAtUtc, guest = guestForCancel != null ? new { guestForCancel.Phone, guestForCancel.Email } : (object?)null });
                 await _context.SaveChangesAsync();

@@ -10,7 +10,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("api/communication-logs")]
 [Produces("application/json")]
-[AllowAnonymous]
+[Authorize]
 public class CommunicationLogsController : ControllerBase
 {
     private readonly AppDbContext _context;

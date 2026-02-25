@@ -125,6 +125,9 @@ namespace Atlas.Api
             builder.Services.AddScoped<Atlas.Api.Services.Billing.IEntitlementsService, Atlas.Api.Services.Billing.EntitlementsService>();
             builder.Services.AddScoped<Atlas.Api.Services.Billing.CreditsService>();
 
+            builder.Services.AddHttpClient<Atlas.Api.Services.ChannexService>();
+            builder.Services.AddScoped<Atlas.Api.Services.IChannexService, Atlas.Api.Services.ChannexService>();
+
             var blobConnStr = builder.Configuration["AzureBlob:ConnectionString"];
             if (!string.IsNullOrWhiteSpace(blobConnStr) && !IsPlaceholderValue(blobConnStr))
             {

@@ -54,6 +54,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<AuditLog>(modelBuilder);
             ApplyTenantQueryFilter<PromoCode>(modelBuilder);
             ApplyTenantQueryFilter<ListingPricingRule>(modelBuilder);
+            ApplyTenantQueryFilter<ChannelConfig>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -1025,6 +1026,22 @@ namespace Atlas.Api.Data
                 e.HasIndex(r => r.ListingId);
             });
 
+            // ---------- ChannelConfig ----------
+            modelBuilder.Entity<ChannelConfig>(e =>
+            {
+                e.ToTable("ChannelConfigs");
+                e.HasKey(c => c.Id);
+                e.Property(c => c.Provider).HasColumnType("varchar(50)").HasMaxLength(50).IsRequired().HasDefaultValue("channex");
+                e.Property(c => c.ApiKey).HasColumnType("nvarchar(500)").HasMaxLength(500);
+                e.Property(c => c.ExternalPropertyId).HasColumnType("varchar(200)").HasMaxLength(200);
+                e.Property(c => c.IsConnected).HasDefaultValue(false);
+                e.Property(c => c.LastSyncAt).HasColumnType("datetime");
+                e.Property(c => c.LastSyncError).HasColumnType("nvarchar(500)").HasMaxLength(500);
+                e.Property(c => c.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.HasOne(c => c.Property).WithMany().HasForeignKey(c => c.PropertyId).OnDelete(deleteBehavior);
+                e.HasIndex(c => new { c.TenantId, c.PropertyId, c.Provider }).IsUnique();
+            });
+
             // ---------- ListingPricingRule ----------
             modelBuilder.Entity<ListingPricingRule>(e =>
             {
@@ -1067,6 +1084,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<ConsumedEvent>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<PromoCode>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<ListingPricingRule>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ChannelConfig>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -1217,5 +1235,6 @@ namespace Atlas.Api.Data
         public DbSet<PromoCode> PromoCodes { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<ListingPricingRule> ListingPricingRules { get; set; }
+        public DbSet<ChannelConfig> ChannelConfigs { get; set; }
     }
 }

@@ -255,7 +255,7 @@ public class OnboardingController : ControllerBase
     [ProducesResponseType(typeof(HostKycDocumentDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> UploadDocument(
         [FromForm] string docType,
-        [FromForm] IFormFile file,
+        IFormFile file,
         CancellationToken ct)
     {
         var tenantId = _tenantAccessor.TenantId ?? 0;

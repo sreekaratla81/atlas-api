@@ -49,7 +49,6 @@ Run locally:
 dotnet test Atlas.Api.IntegrationTests/Atlas.Api.IntegrationTests.csproj --configuration Release --collect:"XPlat Code Coverage" --settings tests/coverage/coverage.controllers.runsettings
 ```
 
-
 The controller coverage workflow parses the generated `coverage.cobertura.xml` report and fails if controller coverage is below:
 
 - Line coverage: **95%**

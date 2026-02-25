@@ -702,6 +702,7 @@ Active subscription per tenant.
 **Index**: TenantId
 
 ## TenantCreditsLedger
+
 Append-only credit ledger. Balance = SUM(CreditsDelta). Never update or delete rows.
 
 | Column | Type | Nullable | Notes |
@@ -718,6 +719,7 @@ Append-only credit ledger. Balance = SUM(CreditsDelta). Never update or delete r
 **Index**: TenantId
 
 ## BillingInvoices
+
 Invoices per tenant for subscription billing.
 
 | Column | Type | Nullable | Notes |
@@ -743,6 +745,7 @@ Invoices per tenant for subscription billing.
 **Index**: (TenantId, Status)
 
 ## BillingPayments
+
 Payment records per invoice.
 
 | Column | Type | Nullable | Notes |

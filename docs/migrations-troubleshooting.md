@@ -4,7 +4,7 @@
 
 A common failure during `Update-Database` is a SQL Server error like:
 
-```
+```text
 'AK_BankAccounts_TempId' is not a constraint.
 ```
 
@@ -42,7 +42,7 @@ END
 
 ## How to run
 
-```
+```bash
 dotnet ef database update
 ```
 
@@ -50,7 +50,7 @@ dotnet ef database update
 
 If you see `Invalid column name 'Inventory'`, it indicates schema drift between the database and the expected model. Resolve it by running the DbMigrator; it is the only supported migration path (do not apply migrations on API startup). Use the exact command below with your connection string:
 
-```
+```bash
 dotnet run --project Atlas.DbMigrator -- --connection "$env:ATLAS_DB_CONNECTION"
 ```
 
@@ -62,6 +62,7 @@ This means the **production database has not had EF migrations applied** (or was
 
 - **Option A – GitHub Actions:** Run the **Build and Deploy to Prod** workflow via **workflow_dispatch**, and choose environment **prod**. That run will check for pending migrations and apply them, then deploy.
 - **Option B – Local:** With the prod connection string (e.g. from Azure or secrets), run:
+
   ```bash
   dotnet run --project Atlas.DbMigrator -- --connection "<ATLAS_PROD_SQL_CONNECTION_STRING>"
   ```
@@ -77,6 +78,7 @@ The migration `20260220132813_PendingModelSync` previously tried to ALTER table 
 When `AppDbContextModelSnapshot` gets out of sync with the migration history, running `dotnet ef migrations add RestoreSnapshot` (or similar) can cause EF to generate a migration that **recreates the entire schema**—`CreateTable` for all tables. Since `InitialBaseline` already creates those tables, applying such a migration fails with "There is already an object named 'X' in the database." This anti-pattern has occurred multiple times.
 
 **Correct approach when snapshot is out of sync:**
+
 1. Run `dotnet ef migrations add SyncSnapshot` (or a descriptive name).
 2. Inspect the generated migration.
 3. If it contains `CreateTable` for tables that `InitialBaseline` creates, **clear the `Up()` method**—make it empty. The Designer file updates the snapshot; that's all you need.

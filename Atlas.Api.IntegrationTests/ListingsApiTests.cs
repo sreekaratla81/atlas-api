@@ -1,4 +1,6 @@
 using Atlas.Api.Data;
+using System.Net;
+using System.Text.Json;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -121,5 +123,24 @@ public class ListingsApiTests : IntegrationTestBase
     {
         var response = await Client.DeleteAsync(ApiRoute("listings/1"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_Returns409_WhenListingHasBookings()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        var guest = await DataSeeder.SeedGuestAsync(db);
+        await DataSeeder.SeedBookingAsync(db, property, listing, guest);
+
+        var response = await Client.DeleteAsync(ApiRoute($"listings/{listing.Id}"));
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(body);
+        var detail = json.RootElement.GetProperty("detail").GetString();
+        Assert.Contains("booking", detail!, StringComparison.OrdinalIgnoreCase);
     }
 }

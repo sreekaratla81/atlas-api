@@ -102,7 +102,11 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Purpose**: Delete a property.
 - **Request body**: none
 - **Response**: `IActionResult`
-- **Status codes**: 204, 404, 500 (not explicitly annotated)
+- **Status codes**: 204, 404, 409, 500
+- **409 Conflict**: Returned when the property has associated listings. Response body is `application/problem+json`:
+  ```json
+  { "status": 409, "title": "Conflict", "detail": "Cannot delete property with N active listing(s). Remove or reassign listings first.", "instance": "/properties/{id}" }
+  ```
 
 ### Listings (`Atlas.Api/Controllers/ListingsController.cs`)
 
@@ -142,7 +146,11 @@ This document is derived from the codebase and is maintained for use as **AI con
 - **Purpose**: Delete a listing.
 - **Request body**: none
 - **Response**: `IActionResult`
-- **Status codes**: 204, 404, 500 (not explicitly annotated)
+- **Status codes**: 204, 404, 409, 500
+- **409 Conflict**: Returned when the listing has associated bookings or availability blocks. Response body is `application/problem+json`:
+  ```json
+  { "status": 409, "title": "Conflict", "detail": "Cannot delete listing with N booking(s) and M availability block(s). Remove related records first.", "instance": "/listings/{id}" }
+  ```
 
 ### Guests (`Atlas.Api/Controllers/GuestsController.cs`)
 

@@ -98,10 +98,24 @@ namespace Atlas.Api.Controllers
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Delete(int id)
         {
             var item = await _context.Properties.FirstOrDefaultAsync(x => x.Id == id);
             if (item == null) return NotFound();
+
+            var listingCount = await _context.Listings.CountAsync(l => l.PropertyId == id);
+            if (listingCount > 0)
+            {
+                return Conflict(new ProblemDetails
+                {
+                    Status = 409,
+                    Title = "Conflict",
+                    Detail = $"Cannot delete property with {listingCount} active listing(s). Remove or reassign listings first.",
+                    Instance = HttpContext.Request.Path
+                });
+            }
+
             _context.Properties.Remove(item);
             await _context.SaveChangesAsync();
             return NoContent();

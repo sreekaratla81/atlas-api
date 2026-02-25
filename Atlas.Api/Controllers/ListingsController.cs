@@ -171,21 +171,33 @@ namespace Atlas.Api.Controllers
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Delete(int id)
         {
-            try
+            var item = await _context.Listings.FirstOrDefaultAsync(x => x.Id == id);
+            if (item == null) return NotFound();
+
+            var bookingCount = await _context.Bookings.CountAsync(b => b.ListingId == id);
+            var blockCount = await _context.AvailabilityBlocks.CountAsync(ab => ab.ListingId == id);
+
+            if (bookingCount > 0 || blockCount > 0)
             {
-                var item = await _context.Listings.FirstOrDefaultAsync(x => x.Id == id);
-                if (item == null) return NotFound();
-                _context.Listings.Remove(item);
-                await _context.SaveChangesAsync();
-                return NoContent();
+                var parts = new List<string>();
+                if (bookingCount > 0) parts.Add($"{bookingCount} booking(s)");
+                if (blockCount > 0) parts.Add($"{blockCount} availability block(s)");
+
+                return Conflict(new ProblemDetails
+                {
+                    Status = 409,
+                    Title = "Conflict",
+                    Detail = $"Cannot delete listing with {string.Join(" and ", parts)}. Remove related records first.",
+                    Instance = HttpContext.Request.Path
+                });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting listing {ListingId}", id);
-                return StatusCode(500, new { error = "Internal server error" });
-            }
+
+            _context.Listings.Remove(item);
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
 
         private static ListingResponseDto MapToDto(Listing listing) => new()

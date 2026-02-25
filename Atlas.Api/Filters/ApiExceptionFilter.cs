@@ -32,6 +32,7 @@ public sealed class ApiExceptionFilter : IExceptionFilter
             UnauthorizedAccessException ex => (401, ex.Message),
             DbUpdateConcurrencyException => (409, "The record was modified by another request. Please retry."),
             DbUpdateException dbEx when IsUniqueConstraintViolation(dbEx) => (409, "A record with the same key already exists."),
+            DbUpdateException dbEx when IsForeignKeyViolation(dbEx) => (409, "Cannot delete this record because it has related data. Remove dependent records first."),
             DbUpdateException => (422, "A database validation error occurred."),
             _ => (0, (string?)null)
         };
@@ -41,11 +42,28 @@ public sealed class ApiExceptionFilter : IExceptionFilter
         _logger.LogWarning(context.Exception, "ApiExceptionFilter handled {StatusCode} for {Path}.",
             statusCode, context.HttpContext.Request.Path);
 
-        var payload = new Dictionary<string, object?> { ["error"] = message };
-        if (_env.IsDevelopment())
-            payload["detail"] = context.Exception.ToString();
+        var problem = new ProblemDetails
+        {
+            Status = statusCode,
+            Title = statusCode switch
+            {
+                400 => "Bad Request",
+                401 => "Unauthorized",
+                404 => "Not Found",
+                409 => "Conflict",
+                422 => "Validation Error",
+                _ => "Error"
+            },
+            Detail = message,
+            Instance = context.HttpContext.Request.Path
+        };
+        problem.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
 
-        context.Result = new ObjectResult(payload) { StatusCode = statusCode };
+        context.Result = new ObjectResult(problem)
+        {
+            StatusCode = statusCode,
+            ContentTypes = { "application/problem+json" }
+        };
         context.ExceptionHandled = true;
     }
 
@@ -56,5 +74,13 @@ public sealed class ApiExceptionFilter : IExceptionFilter
             || msg.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
             || msg.Contains("2627", StringComparison.OrdinalIgnoreCase)
             || msg.Contains("2601", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsForeignKeyViolation(DbUpdateException ex)
+    {
+        var msg = ex.InnerException?.Message ?? ex.Message;
+        return msg.Contains("FOREIGN KEY", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("REFERENCE constraint", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("547", StringComparison.OrdinalIgnoreCase);
     }
 }

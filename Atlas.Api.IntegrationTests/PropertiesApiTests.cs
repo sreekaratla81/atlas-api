@@ -1,5 +1,7 @@
 using Atlas.Api.Data;
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Atlas.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -200,5 +202,22 @@ public class PropertiesApiTests : IntegrationTestBase
         // non-existent id to ensure the API returns NotFound.
         var response = await Client.DeleteAsync(ApiRoute("properties/999"));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_Returns409_WhenPropertyHasListings()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        await DataSeeder.SeedListingAsync(db, property);
+
+        var response = await Client.DeleteAsync(ApiRoute($"properties/{property.Id}"));
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(body);
+        var detail = json.RootElement.GetProperty("detail").GetString();
+        Assert.Contains("listing", detail!, StringComparison.OrdinalIgnoreCase);
     }
 }

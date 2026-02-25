@@ -110,9 +110,10 @@ namespace Atlas.Api.Services
                 booking.QuoteTokenNonce = breakdown.QuoteTokenNonce;
                 booking.QuoteExpiresAtUtc = breakdown.QuoteExpiresAtUtc;
 
+                // Razorpay expects amount in smallest currency unit (paise); use long to avoid Int32 overflow for large amounts.
                 var orderRequest = new
                 {
-                    amount = (int)(breakdown.FinalAmount * 100),
+                    amount = (long)(breakdown.FinalAmount * 100),
                     currency = request.Currency,
                     receipt = $"booking_{booking.Id}",
                     payment_capture = 1

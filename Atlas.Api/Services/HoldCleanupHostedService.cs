@@ -44,13 +44,33 @@ public sealed class HoldCleanupHostedService : BackgroundService
 
     private async Task CleanupExpiredHoldsAsync(CancellationToken cancellationToken)
     {
+        var cutoff = DateTime.UtcNow.AddMinutes(-HoldExpiryMinutes);
+
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var tenantIds = await db.AvailabilityBlocks
+                .IgnoreQueryFilters()
+                .Where(b => b.Status == "Hold" && b.CreatedAtUtc < cutoff)
+                .Select(b => b.TenantId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            foreach (var tenantId in tenantIds)
+            {
+                await CleanupExpiredHoldsForTenantAsync(tenantId, cutoff, cancellationToken);
+            }
+        }
+    }
+
+    private async Task CleanupExpiredHoldsForTenantAsync(int tenantId, DateTime cutoff, CancellationToken cancellationToken)
+    {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var cutoff = DateTime.UtcNow.AddMinutes(-HoldExpiryMinutes);
 
         var expiredBlocks = await db.AvailabilityBlocks
             .IgnoreQueryFilters()
-            .Where(b => b.Status == "Hold" && b.CreatedAtUtc < cutoff)
+            .Where(b => b.TenantId == tenantId && b.Status == "Hold" && b.CreatedAtUtc < cutoff)
             .ToListAsync(cancellationToken);
 
         foreach (var block in expiredBlocks)
@@ -69,7 +89,7 @@ public sealed class HoldCleanupHostedService : BackgroundService
         {
             var holdBookings = await db.Bookings
                 .IgnoreQueryFilters()
-                .Where(b => expiredBookingIds.Contains(b.Id) && b.BookingStatus == "Hold")
+                .Where(b => b.TenantId == tenantId && expiredBookingIds.Contains(b.Id) && b.BookingStatus == "Hold")
                 .ToListAsync(cancellationToken);
 
             foreach (var booking in holdBookings)
@@ -81,8 +101,9 @@ public sealed class HoldCleanupHostedService : BackgroundService
         if (expiredBlocks.Count > 0)
         {
             await db.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Expired {BlockCount} hold blocks and {BookingCount} hold bookings older than {Minutes}m.",
-                expiredBlocks.Count, expiredBookingIds.Count, HoldExpiryMinutes);
+            var bookingCount = expiredBlocks.Count(b => b.BookingId.HasValue);
+            _logger.LogInformation("Expired {BlockCount} hold blocks and {BookingCount} hold bookings for tenant {TenantId} (older than {Minutes}m).",
+                expiredBlocks.Count, bookingCount, tenantId, HoldExpiryMinutes);
         }
     }
 }

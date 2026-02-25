@@ -4,6 +4,7 @@ using Atlas.Api.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace Atlas.Api.Data
@@ -1228,6 +1229,20 @@ namespace Atlas.Api.Data
         private void ApplyTenantOwnershipRules()
         {
             var tenantId = GetResolvedTenantId();
+
+            // When no request context (e.g. background job), allow SaveChanges only if all modified tenant-owned entities belong to the same tenant.
+            if (tenantId == FallbackTenantId)
+            {
+                var modifiedTenantIds = ChangeTracker.Entries<ITenantOwnedEntity>()
+                    .Where(e => e.State == EntityState.Modified)
+                    .Select(e => e.Entity.TenantId)
+                    .Distinct()
+                    .ToList();
+                if (modifiedTenantIds.Count > 1)
+                    throw new InvalidOperationException("Tenant mismatch detected for a tenant-owned entity.");
+                if (modifiedTenantIds.Count == 1)
+                    tenantId = modifiedTenantIds[0];
+            }
 
             foreach (var entry in ChangeTracker.Entries<ITenantOwnedEntity>())
             {

@@ -195,6 +195,12 @@ namespace Atlas.Api.Controllers
                 });
             }
 
+            // Remove child records that have FK to Listing so delete does not violate FK_ListingDailyRate_Listings_ListingId etc.
+            var dailyRates = await _context.ListingDailyRates.Where(r => r.ListingId == id).ToListAsync();
+            var dailyInventories = await _context.ListingDailyInventories.Where(i => i.ListingId == id).ToListAsync();
+            _context.ListingDailyRates.RemoveRange(dailyRates);
+            _context.ListingDailyInventories.RemoveRange(dailyInventories);
+
             _context.Listings.Remove(item);
             await _context.SaveChangesAsync();
             return NoContent();

@@ -67,7 +67,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -145,7 +147,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -223,7 +227,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
         var request = new CreateBookingRequest
         {
             ListingId = listing.Id,
@@ -258,7 +264,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.Get(1);
 
@@ -278,7 +286,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
         var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" };
 
         var result = await controller.Update(2, booking);
@@ -300,7 +310,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.Delete(1);
 
@@ -328,7 +340,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.GetAll(null, null, null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -357,7 +371,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.GetAll(new DateTime(2025, 7, 1), new DateTime(2025, 7, 31), null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -394,7 +410,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.GetAll(null, null, null, null, null);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -467,7 +485,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(mockContext.Object, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(mockContext.Object, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(mockContext.Object, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
         var booking = new UpdateBookingRequest { Id = 1, ListingId = 1, GuestId = 1, BookingSource = "a", Notes = "n", PaymentStatus = "Pending" };
 
         var result = await controller.Update(1, booking);
@@ -557,7 +577,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
         var request = new UpdateBookingRequest
         {
             Id = booking.Id,
@@ -653,7 +675,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.Cancel(booking.Id);
 
@@ -692,7 +716,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.Cancel(booking.Id);
 
@@ -726,7 +752,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.CheckIn(booking.Id);
 
@@ -762,7 +790,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.CheckIn(booking.Id);
 
@@ -797,7 +827,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.CheckOut(booking.Id);
 
@@ -833,7 +865,9 @@ public class BookingsControllerTests
             new NoOpBookingWorkflowPublisher(),
             new CreditsService(context, NullLogger<CreditsService>.Instance),
             new StubTenantContextAccessor(),
-            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance));
+            new BookingScheduleService(context, NullLogger<BookingScheduleService>.Instance),
+            null!,
+            null!);
 
         var result = await controller.CheckOut(booking.Id);
 

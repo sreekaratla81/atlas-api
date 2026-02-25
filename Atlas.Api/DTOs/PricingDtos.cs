@@ -41,4 +41,15 @@ namespace Atlas.Api.DTOs
         public DateTime CheckOut { get; set; }
         public int Guests { get; set; }
     }
+
+    /// <summary>Result of resolving LOS and seasonal pricing rules for a stay.</summary>
+    public class PricingRuleDiscountResult
+    {
+        public decimal LosDiscountPercent { get; set; }
+        public int? LosRuleId { get; set; }
+        public decimal SeasonalDiscountPercent { get; set; }
+        public int? SeasonalRuleId { get; set; }
+        /// <summary>Multiplicative factor to apply to the base amount (e.g. 0.85 = 15% off).</summary>
+        public decimal CombinedMultiplier { get; set; } = 1m;
+    }
 }

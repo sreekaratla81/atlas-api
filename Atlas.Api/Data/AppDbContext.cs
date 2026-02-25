@@ -53,6 +53,7 @@ namespace Atlas.Api.Data
             ApplyTenantQueryFilter<OnboardingChecklistItem>(modelBuilder);
             ApplyTenantQueryFilter<AuditLog>(modelBuilder);
             ApplyTenantQueryFilter<PromoCode>(modelBuilder);
+            ApplyTenantQueryFilter<ListingPricingRule>(modelBuilder);
 
             var deleteBehavior = ResolveDeleteBehavior();
 
@@ -1024,6 +1025,22 @@ namespace Atlas.Api.Data
                 e.HasIndex(r => r.ListingId);
             });
 
+            // ---------- ListingPricingRule ----------
+            modelBuilder.Entity<ListingPricingRule>(e =>
+            {
+                e.ToTable("ListingPricingRules");
+                e.HasKey(r => r.Id);
+                e.Property(r => r.RuleType).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired().HasDefaultValue("LOS");
+                e.Property(r => r.DiscountPercent).HasColumnType("decimal(5,2)");
+                e.Property(r => r.SeasonStart).HasColumnType("date");
+                e.Property(r => r.SeasonEnd).HasColumnType("date");
+                e.Property(r => r.Label).HasMaxLength(100);
+                e.Property(r => r.IsActive).HasDefaultValue(true);
+                e.Property(r => r.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("GETUTCDATE()");
+                e.HasOne(r => r.Listing).WithMany(l => l.PricingRules).HasForeignKey(r => r.ListingId).OnDelete(deleteBehavior);
+                e.HasIndex(r => new { r.TenantId, r.ListingId, r.RuleType });
+            });
+
             ConfigureTenantOwnership(modelBuilder, deleteBehavior);
         }
 
@@ -1049,6 +1066,7 @@ namespace Atlas.Api.Data
             ConfigureTenantOwnedEntity<WhatsAppInboundMessage>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<ConsumedEvent>(modelBuilder, deleteBehavior);
             ConfigureTenantOwnedEntity<PromoCode>(modelBuilder, deleteBehavior);
+            ConfigureTenantOwnedEntity<ListingPricingRule>(modelBuilder, deleteBehavior);
 
             modelBuilder.Entity<Listing>().HasIndex(x => new { x.TenantId, x.PropertyId });
             modelBuilder.Entity<Booking>().HasIndex(x => new { x.TenantId, x.ListingId });
@@ -1198,5 +1216,6 @@ namespace Atlas.Api.Data
         public DbSet<ListingPhoto> ListingPhotos { get; set; }
         public DbSet<PromoCode> PromoCodes { get; set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<ListingPricingRule> ListingPricingRules { get; set; }
     }
 }

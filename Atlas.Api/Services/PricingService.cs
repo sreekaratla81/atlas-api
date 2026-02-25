@@ -35,8 +35,53 @@ namespace Atlas.Api.Services
         {
             var (pricing, nightlyRates) = await GetBasePricingAsync(listingId, checkIn, checkOut);
             var baseAmount = nightlyRates.Sum(x => x.Rate);
+
+            var nights = (checkOut.Date - checkIn.Date).Days;
+            var ruleDiscount = await GetPricingRuleDiscountAsync(listingId, checkIn.Date, nights);
+            if (ruleDiscount.CombinedMultiplier < 1m)
+                baseAmount = RoundCurrency(baseAmount * ruleDiscount.CombinedMultiplier);
+
             var settings = await _tenantPricingSettingsService.GetCurrentAsync();
             return BuildBreakdown(listingId, pricing.Currency, baseAmount, settings, "Public", feeMode, applyGlobalDiscount: true);
+        }
+
+        /// <summary>
+        /// Resolves the best LOS and Seasonal pricing rules for a stay and returns
+        /// a combined multiplicative discount multiplier (e.g. 0.85 means 15% off).
+        /// </summary>
+        public async Task<PricingRuleDiscountResult> GetPricingRuleDiscountAsync(int listingId, DateTime checkInDate, int nights)
+        {
+            var rules = await _context.ListingPricingRules
+                .AsNoTracking()
+                .Where(r => r.ListingId == listingId && r.IsActive)
+                .ToListAsync();
+
+            var losRule = rules
+                .Where(r => r.RuleType == "LOS"
+                    && r.MinNights.HasValue && r.MinNights.Value <= nights
+                    && (!r.MaxNights.HasValue || r.MaxNights.Value >= nights))
+                .OrderByDescending(r => r.Priority)
+                .FirstOrDefault();
+
+            var seasonalRule = rules
+                .Where(r => r.RuleType == "Seasonal"
+                    && r.SeasonStart.HasValue && r.SeasonEnd.HasValue
+                    && checkInDate >= r.SeasonStart.Value
+                    && checkInDate <= r.SeasonEnd.Value)
+                .OrderByDescending(r => r.Priority)
+                .FirstOrDefault();
+
+            var losMultiplier = losRule is not null ? (1m - losRule.DiscountPercent / 100m) : 1m;
+            var seasonalMultiplier = seasonalRule is not null ? (1m - seasonalRule.DiscountPercent / 100m) : 1m;
+
+            return new PricingRuleDiscountResult
+            {
+                LosDiscountPercent = losRule?.DiscountPercent ?? 0m,
+                LosRuleId = losRule?.Id,
+                SeasonalDiscountPercent = seasonalRule?.DiscountPercent ?? 0m,
+                SeasonalRuleId = seasonalRule?.Id,
+                CombinedMultiplier = losMultiplier * seasonalMultiplier
+            };
         }
 
         public static PriceBreakdownDto BuildBreakdown(

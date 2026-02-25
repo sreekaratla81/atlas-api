@@ -36,5 +36,7 @@ namespace Atlas.Api.Models
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         [ValidateNever]
         public ICollection<ListingPhoto> Photos { get; set; } = new List<ListingPhoto>();
+        [ValidateNever]
+        public ICollection<ListingPricingRule> PricingRules { get; set; } = new List<ListingPricingRule>();
     }
 }

@@ -55,6 +55,8 @@ public class GuestPricingService : IGuestPricingService
         var weekendRate = pricing?.WeekendNightlyRate ?? pricing?.BaseNightlyRate ?? 0;
         var currency = pricing?.Currency ?? "INR";
 
+        const decimal MaxSaneNightlyRate = 500_000m;
+
         var days = new List<GuestDayAvailabilityRateDto>();
         for (var d = start; d < end; d = d.AddDays(1))
         {
@@ -62,6 +64,12 @@ public class GuestPricingService : IGuestPricingService
             var nightlyRate = PricingHelpers.ApplyGlobalDiscount(rawRate, globalDiscountPercent);
             var roomsAvailable = roomsByDate.TryGetValue(d, out var rooms) ? rooms : 1;
             var isAvailable = roomsAvailable > 0;
+
+            if (nightlyRate > MaxSaneNightlyRate || nightlyRate < 0)
+            {
+                nightlyRate = 0;
+                isAvailable = false;
+            }
 
             days.Add(new GuestDayAvailabilityRateDto
             {

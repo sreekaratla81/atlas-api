@@ -60,6 +60,12 @@ namespace Atlas.Api.Services
                 var booking = await GetOrCreateBookingAsync(request);
 
                 var breakdown = await ResolveBreakdownForOrderAsync(request, booking);
+
+                const decimal MaxSaneOrderAmount = 500_000m;
+                if (breakdown.FinalAmount <= 0 || breakdown.FinalAmount > MaxSaneOrderAmount)
+                    throw new InvalidOperationException(
+                        $"Order amount ₹{breakdown.FinalAmount:N0} is outside the allowed range (₹1–₹{MaxSaneOrderAmount:N0}). Please verify listing pricing.");
+
                 booking.PaymentStatus = "pending";
                 booking.TotalAmount = breakdown.FinalAmount;
                 booking.BaseAmount = breakdown.BaseAmount;

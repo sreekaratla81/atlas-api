@@ -633,6 +633,8 @@ Returns server-computed breakdown:
 
 Rounding strategy: amount components are rounded to 2 decimal places using midpoint-away-from-zero. Razorpay order amount uses paise conversion from `FinalAmount * 100`.
 
+**Pricing guardrails**: Nightly rates exceeding ₹5,00,000 are treated as data errors and clamped to ₹0 (with the day marked unavailable in guest-facing responses). Razorpay order creation rejects any `FinalAmount` outside the ₹1–₹5,00,000 range with HTTP 500 and an actionable error message.
+
 ## Quotes API
 
 ### POST `/quotes`

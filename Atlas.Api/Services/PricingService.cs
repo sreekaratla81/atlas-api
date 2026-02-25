@@ -107,6 +107,7 @@ namespace Atlas.Api.Services
                 .GroupBy(r => r.Date.Date)
                 .ToDictionary(group => group.Key, group => group.First().NightlyRate);
 
+            const decimal MaxSaneNightlyRate = 500_000m;
             var nightlyRates = new List<PricingNightlyRateDto>();
 
             for (var i = 0; i < totalNights; i++)
@@ -117,6 +118,13 @@ namespace Atlas.Api.Services
                 if (overrideLookup.TryGetValue(date, out var overrideRate))
                 {
                     baseRate = overrideRate;
+                }
+
+                if (baseRate < 0 || baseRate > MaxSaneNightlyRate)
+                {
+                    _logger.LogWarning("Listing {ListingId} has an invalid nightly rate {Rate} on {Date}; clamping to 0",
+                        listingId, baseRate, date.ToString("yyyy-MM-dd"));
+                    baseRate = 0;
                 }
 
                 nightlyRates.Add(new PricingNightlyRateDto

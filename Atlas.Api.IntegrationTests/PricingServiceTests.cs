@@ -35,6 +35,28 @@ public class PricingServiceTests : IntegrationTestBase
 
         await transaction.RollbackAsync();
     }
+
+    [Fact]
+    public async Task GetPricingAsync_ClampsAbsurdNightlyRate()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        var property = await DataSeeder.SeedPropertyAsync(db);
+        var listing = await DataSeeder.SeedListingAsync(db, property);
+        await DataSeeder.SeedListingPricingAsync(db, listing, 99_999_999m);
+
+        var service = new PricingService(db, new StubTenantPricingSettingsService(), NullLogger<PricingService>.Instance);
+
+        var result = await service.GetPricingAsync(listing.Id, new DateTime(2026, 3, 1), new DateTime(2026, 3, 2));
+
+        Assert.Single(result.NightlyRates);
+        Assert.Equal(0m, result.NightlyRates[0].Rate);
+        Assert.Equal(0m, result.TotalPrice);
+
+        await transaction.RollbackAsync();
+    }
 }
 
 

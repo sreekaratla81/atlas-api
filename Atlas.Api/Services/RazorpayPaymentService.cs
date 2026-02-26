@@ -40,6 +40,7 @@ namespace Atlas.Api.Services
         private readonly ILogger<RazorpayPaymentService> _logger;
         private readonly PricingService _pricingService;
         private readonly IQuoteService _quoteService;
+        private readonly IEmailService _emailService;
 
         public RazorpayPaymentService(
             AppDbContext context,
@@ -47,7 +48,8 @@ namespace Atlas.Api.Services
             IHttpClientFactory httpClientFactory,
             ILogger<RazorpayPaymentService> logger,
             PricingService pricingService,
-            IQuoteService quoteService)
+            IQuoteService quoteService,
+            IEmailService emailService)
         {
             _context = context;
             _keyId = config.Value.KeyId ?? throw new ArgumentNullException(nameof(config.Value.KeyId));
@@ -56,6 +58,7 @@ namespace Atlas.Api.Services
             _logger = logger;
             _pricingService = pricingService;
             _quoteService = quoteService;
+            _emailService = emailService;
 
             var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_keyId}:{_keySecret}"));
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
@@ -64,6 +67,30 @@ namespace Atlas.Api.Services
 
         public async Task<RazorpayOrderResponse> CreateOrderAsync(CreateRazorpayOrderRequest request)
         {
+            // Reject duplicate: if user pressed back after successful payment and resubmitted,
+            // do not create a new booking for the same listing + dates + guest.
+            if (request.BookingDraft != null)
+            {
+                var guestEmails = await _context.Bookings
+                    .AsNoTracking()
+                    .Where(b => b.ListingId == request.BookingDraft.ListingId
+                             && b.CheckinDate == request.BookingDraft.CheckinDate
+                             && b.CheckoutDate == request.BookingDraft.CheckoutDate
+                             && (b.BookingStatus == BookingStatuses.Confirmed
+                                 || b.BookingStatus == BookingStatuses.CheckedIn
+                                 || b.BookingStatus == BookingStatuses.CheckedOut))
+                    .Join(_context.Guests, b => b.GuestId, g => g.Id, (b, g) => g.Email)
+                    .ToListAsync();
+                var emailMatch = (request.GuestInfo.Email ?? "").Trim();
+                var existingConfirmed = guestEmails.Any(e =>
+                    string.Equals(e, emailMatch, StringComparison.OrdinalIgnoreCase));
+                if (existingConfirmed)
+                {
+                    throw new InvalidOperationException(
+                        "A confirmed booking already exists for these dates. Check your email for the booking confirmation.");
+                }
+            }
+
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -278,6 +305,20 @@ namespace Atlas.Api.Services
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Send confirmation email directly (does not depend on Service Bus / Outbox path)
+                try
+                {
+                    await _context.Entry(booking).Reference(b => b.Guest).LoadAsync();
+                    var sent = await _emailService.SendBookingConfirmationEmailAsync(booking, payment.RazorpayPaymentId ?? "");
+                    if (!sent)
+                        _logger.LogWarning("Booking confirmation email could not be sent for booking {BookingId}.", booking.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send booking confirmation email for booking {BookingId}.", booking.Id);
+                }
+
                 return true;
             }
             catch
@@ -408,6 +449,19 @@ namespace Atlas.Api.Services
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Send confirmation email directly (does not depend on Service Bus / Outbox path)
+                try
+                {
+                    await _context.Entry(booking).Reference(b => b.Guest).LoadAsync();
+                    var sent = await _emailService.SendBookingConfirmationEmailAsync(booking, razorpayPaymentId);
+                    if (!sent)
+                        _logger.LogWarning("Booking confirmation email could not be sent for booking {BookingId} (webhook).", booking.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send booking confirmation email for booking {BookingId} (webhook).", booking.Id);
+                }
 
                 _logger.LogInformation("Webhook reconcile: payment completed for BookingId={BookingId}, RazorpayOrderId={OrderId}.",
                     booking.Id, razorpayOrderId);

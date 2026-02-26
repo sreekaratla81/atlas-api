@@ -9,7 +9,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("api/promo-codes")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 public class PromoCodesController : ControllerBase
 {
     private readonly AppDbContext _context;

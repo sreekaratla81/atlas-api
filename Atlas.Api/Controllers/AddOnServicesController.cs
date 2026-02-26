@@ -9,7 +9,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("api/add-on-services")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 public class AddOnServicesController : ControllerBase
 {
     private readonly AppDbContext _db;

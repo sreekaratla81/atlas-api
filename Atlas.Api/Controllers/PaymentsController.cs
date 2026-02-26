@@ -12,7 +12,7 @@ namespace Atlas.Api.Controllers
     /// <summary>CRUD operations for payment records.</summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [Produces("application/json")]
     public class PaymentsController : ControllerBase
     {

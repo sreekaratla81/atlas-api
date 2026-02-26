@@ -11,7 +11,7 @@ namespace Atlas.Api.Controllers
     /// <summary>User account management. Requires authentication; users are scoped to the caller's tenant.</summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [Produces("application/json")]
     public class UsersController : ControllerBase
     {

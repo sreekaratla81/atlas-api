@@ -40,7 +40,6 @@ namespace Atlas.Api.Services
         private readonly ILogger<RazorpayPaymentService> _logger;
         private readonly PricingService _pricingService;
         private readonly IQuoteService _quoteService;
-        private readonly IEmailService _emailService;
 
         public RazorpayPaymentService(
             AppDbContext context,
@@ -48,8 +47,7 @@ namespace Atlas.Api.Services
             IHttpClientFactory httpClientFactory,
             ILogger<RazorpayPaymentService> logger,
             PricingService pricingService,
-            IQuoteService quoteService,
-            IEmailService emailService)
+            IQuoteService quoteService)
         {
             _context = context;
             _keyId = config.Value.KeyId ?? throw new ArgumentNullException(nameof(config.Value.KeyId));
@@ -58,7 +56,6 @@ namespace Atlas.Api.Services
             _logger = logger;
             _pricingService = pricingService;
             _quoteService = quoteService;
-            _emailService = emailService;
 
             var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_keyId}:{_keySecret}"));
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
@@ -287,18 +284,22 @@ namespace Atlas.Api.Services
                         guestEmail = guest.Email,
                         occurredAtUtc = DateTime.UtcNow
                     });
+                    var outboxNow = DateTime.UtcNow;
                     _context.OutboxMessages.Add(new OutboxMessage
                     {
+                        TenantId = booking.TenantId,
                         Topic = "booking.events",
                         EventType = EventTypes.BookingConfirmed,
                         EntityId = booking.Id.ToString(),
+                        AggregateId = booking.Id.ToString(),
                         PayloadJson = outboxPayload,
                         CorrelationId = Guid.NewGuid().ToString(),
-                        OccurredUtc = DateTime.UtcNow,
+                        OccurredUtc = outboxNow,
                         SchemaVersion = 1,
                         Status = "Pending",
-                        NextAttemptUtc = DateTime.UtcNow,
-                        CreatedAtUtc = DateTime.UtcNow,
+                        NextAttemptUtc = outboxNow,
+                        CreatedAtUtc = outboxNow,
+                        UpdatedAtUtc = outboxNow,
                         AttemptCount = 0
                     });
                 }
@@ -306,19 +307,7 @@ namespace Atlas.Api.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // Send confirmation email directly (does not depend on Service Bus / Outbox path)
-                try
-                {
-                    await _context.Entry(booking).Reference(b => b.Guest).LoadAsync();
-                    var sent = await _emailService.SendBookingConfirmationEmailAsync(booking, payment.RazorpayPaymentId ?? "");
-                    if (!sent)
-                        _logger.LogWarning("Booking confirmation email could not be sent for booking {BookingId}.", booking.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to send booking confirmation email for booking {BookingId}.", booking.Id);
-                }
-
+                // Email sent by ScheduleSenderWorker (Outbox Materializer creates AutomationSchedule, Sender sends)
                 return true;
             }
             catch
@@ -431,18 +420,22 @@ namespace Atlas.Api.Services
                         occurredAtUtc = DateTime.UtcNow,
                         source = "webhook"
                     });
+                    var nowUtc = DateTime.UtcNow;
                     _context.OutboxMessages.Add(new OutboxMessage
                     {
+                        TenantId = booking.TenantId,
                         Topic = "booking.events",
                         EventType = EventTypes.BookingConfirmed,
                         EntityId = booking.Id.ToString(),
+                        AggregateId = booking.Id.ToString(),
                         PayloadJson = outboxPayload,
                         CorrelationId = Guid.NewGuid().ToString(),
-                        OccurredUtc = DateTime.UtcNow,
+                        OccurredUtc = nowUtc,
                         SchemaVersion = 1,
                         Status = "Pending",
-                        NextAttemptUtc = DateTime.UtcNow,
-                        CreatedAtUtc = DateTime.UtcNow,
+                        NextAttemptUtc = nowUtc,
+                        CreatedAtUtc = nowUtc,
+                        UpdatedAtUtc = nowUtc,
                         AttemptCount = 0
                     });
                 }
@@ -450,19 +443,7 @@ namespace Atlas.Api.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // Send confirmation email directly (does not depend on Service Bus / Outbox path)
-                try
-                {
-                    await _context.Entry(booking).Reference(b => b.Guest).LoadAsync();
-                    var sent = await _emailService.SendBookingConfirmationEmailAsync(booking, razorpayPaymentId);
-                    if (!sent)
-                        _logger.LogWarning("Booking confirmation email could not be sent for booking {BookingId} (webhook).", booking.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to send booking confirmation email for booking {BookingId} (webhook).", booking.Id);
-                }
-
+                // Email sent by ScheduleSenderWorker (Outbox Materializer creates AutomationSchedule, Sender sends)
                 _logger.LogInformation("Webhook reconcile: payment completed for BookingId={BookingId}, RazorpayOrderId={OrderId}.",
                     booking.Id, razorpayOrderId);
                 return true;

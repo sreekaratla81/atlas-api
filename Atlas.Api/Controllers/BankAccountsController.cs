@@ -10,7 +10,7 @@ namespace Atlas.Api.Controllers
     /// <summary>CRUD operations for bank account records.</summary>
     [ApiController]
     [Route("bankaccounts")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [Produces("application/json")]
     public class BankAccountsController : ControllerBase
     {

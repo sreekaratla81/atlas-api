@@ -12,7 +12,7 @@ namespace Atlas.Api.Controllers;
 
 [ApiController]
 [Route("billing")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 [Produces("application/json")]
 public class BillingController : ControllerBase
 {

@@ -14,7 +14,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("listings")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     public class ListingsController : ControllerBase
     {
         private readonly AppDbContext _context;

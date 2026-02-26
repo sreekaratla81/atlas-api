@@ -14,7 +14,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("availability")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     public class AvailabilityController : ControllerBase
     {
         private readonly AppDbContext _context;

@@ -12,7 +12,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("listings/{listingId:int}/photos")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 public class ListingPhotosController : ControllerBase
 {
     private readonly AppDbContext _db;

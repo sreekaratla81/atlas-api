@@ -163,7 +163,7 @@ public class OnboardingController : ControllerBase
 
     /// <summary>Onboarding status with checklist and publish blockers.</summary>
     [HttpGet("status")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(typeof(OnboardingStatusResponseDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStatus(CancellationToken ct)
     {
@@ -207,7 +207,7 @@ public class OnboardingController : ControllerBase
 
     /// <summary>Update tenant profile (legal/tax details).</summary>
     [HttpPut("profile")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateProfile([FromBody] OnboardingProfileUpdateDto dto, CancellationToken ct)
     {
@@ -251,7 +251,7 @@ public class OnboardingController : ControllerBase
 
     /// <summary>Upload KYC document (multipart form).</summary>
     [HttpPost("documents")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(typeof(HostKycDocumentDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> UploadDocument(
         [FromForm] string docType,
@@ -298,7 +298,7 @@ public class OnboardingController : ControllerBase
 
     /// <summary>Prefill property info from Airbnb URL or pasted text (public metadata only).</summary>
     [HttpPost("airbnb/prefill")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(typeof(AirbnbPrefillResponseDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> AirbnbPrefill([FromBody] AirbnbPrefillRequestDto request)
     {
@@ -311,7 +311,7 @@ public class OnboardingController : ControllerBase
     /// Returns 200 on success, 422 with blockers if not ready.
     /// </summary>
     [HttpPost("publish")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Publish(CancellationToken ct)

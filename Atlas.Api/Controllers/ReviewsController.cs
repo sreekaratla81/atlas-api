@@ -20,7 +20,7 @@ public class ReviewsController : ControllerBase
 
     /// <summary>Guest submits a review after checkout.</summary>
     [HttpPost]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(typeof(ReviewResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -88,7 +88,7 @@ public class ReviewsController : ControllerBase
 
     /// <summary>Host responds to a review.</summary>
     [HttpPut("{id}/response")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(typeof(ReviewResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

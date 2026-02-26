@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Atlas.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 [Route("kyc")]
 [Produces("application/json")]
 public class KycController : ControllerBase

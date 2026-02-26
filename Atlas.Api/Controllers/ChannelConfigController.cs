@@ -9,7 +9,7 @@ using Atlas.Api.Services.Channels;
 namespace Atlas.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 [Route("api/channel-configs")]
 [Produces("application/json")]
 public class ChannelConfigController : ControllerBase

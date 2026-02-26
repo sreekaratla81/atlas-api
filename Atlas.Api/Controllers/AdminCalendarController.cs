@@ -14,7 +14,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("admin/calendar")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 public class AdminCalendarController : ControllerBase
 {
     private const string UpsertEventType = "AdminCalendarAvailabilityUpsert";

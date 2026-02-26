@@ -11,7 +11,7 @@ namespace Atlas.Api.Controllers
     /// <summary>Incident reporting and management.</summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [Produces("application/json")]
     public class IncidentsController : ControllerBase
     {

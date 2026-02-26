@@ -20,7 +20,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("bookings")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     public class BookingsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -415,7 +415,7 @@ namespace Atlas.Api.Controllers
                     var guestForCancel = await _context.Guests.AsNoTracking().FirstOrDefaultAsync(g => g.Id == existingBooking.GuestId);
                     AddOutboxMessage("booking.events", EventTypes.BookingCancelled, existingBooking.Id.ToString(),
                         new { bookingId = existingBooking.Id, guestId = existingBooking.GuestId, cancelledAtUtc = existingBooking.CancelledAtUtc,
-                              guest = guestForCancel != null ? new { guestForCancel.Phone, guestForCancel.Email } : (object?)null });
+                              guest = guestForCancel != null ? new { guestForCancel.Phone, guestForCancel.Email } : (object?)null }, tenantId: existingBooking.TenantId);
                     await _scheduleService.CancelSchedulesForBookingAsync(existingBooking.Id);
                 }
 
@@ -490,7 +490,7 @@ namespace Atlas.Api.Controllers
                 await SyncAvailabilityBlockAsync(booking);
                 await _scheduleService.CancelSchedulesForBookingAsync(booking.Id);
                 var guestForCancel = await _context.Guests.AsNoTracking().FirstOrDefaultAsync(g => g.Id == booking.GuestId);
-                AddOutboxMessage("booking.events", EventTypes.BookingCancelled, booking.Id.ToString(), new { bookingId = booking.Id, guestId = booking.GuestId, cancelledAtUtc = booking.CancelledAtUtc, guest = guestForCancel != null ? new { guestForCancel.Phone, guestForCancel.Email } : (object?)null });
+                AddOutboxMessage("booking.events", EventTypes.BookingCancelled, booking.Id.ToString(), new { bookingId = booking.Id, guestId = booking.GuestId, cancelledAtUtc = booking.CancelledAtUtc, guest = guestForCancel != null ? new { guestForCancel.Phone, guestForCancel.Email } : (object?)null }, tenantId: booking.TenantId);
                 await _context.SaveChangesAsync();
 
                 return Ok(MapToDto(booking));
@@ -525,7 +525,7 @@ namespace Atlas.Api.Controllers
                 booking.BookingStatus = "CheckedIn";
                 booking.CheckedInAtUtc = DateTime.UtcNow;
 
-                AddOutboxMessage("stay.events", EventTypes.StayCheckedIn, booking.Id.ToString(), new { bookingId = booking.Id, listingId = booking.ListingId, checkedInAtUtc = DateTime.UtcNow });
+                AddOutboxMessage("stay.events", EventTypes.StayCheckedIn, booking.Id.ToString(), new { bookingId = booking.Id, listingId = booking.ListingId, checkedInAtUtc = DateTime.UtcNow }, tenantId: booking.TenantId);
                 await _context.SaveChangesAsync();
 
                 return Ok(MapToDto(booking));
@@ -560,7 +560,7 @@ namespace Atlas.Api.Controllers
                 booking.BookingStatus = "CheckedOut";
                 booking.CheckedOutAtUtc = DateTime.UtcNow;
 
-                AddOutboxMessage("stay.events", EventTypes.StayCheckedOut, booking.Id.ToString(), new { bookingId = booking.Id, listingId = booking.ListingId, checkedOutAtUtc = DateTime.UtcNow });
+                AddOutboxMessage("stay.events", EventTypes.StayCheckedOut, booking.Id.ToString(), new { bookingId = booking.Id, listingId = booking.ListingId, checkedOutAtUtc = DateTime.UtcNow }, tenantId: booking.TenantId);
                 await _context.SaveChangesAsync();
 
                 return Ok(MapToDto(booking));
@@ -740,22 +740,26 @@ namespace Atlas.Api.Controllers
             }
         }
 
-        private void AddOutboxMessage(string topic, string eventType, string entityId, object payload, string? correlationId = null)
+        private void AddOutboxMessage(string topic, string eventType, string entityId, object payload, string? correlationId = null, int? tenantId = null)
         {
+            var now = DateTime.UtcNow;
             var correlation = correlationId ?? Guid.NewGuid().ToString();
             var payloadJson = JsonSerializer.Serialize(payload);
             var row = new OutboxMessage
             {
+                TenantId = tenantId ?? 0,
                 Topic = topic,
                 EventType = eventType,
                 EntityId = entityId,
+                AggregateId = entityId,
                 PayloadJson = payloadJson,
                 CorrelationId = correlation,
-                OccurredUtc = DateTime.UtcNow,
+                OccurredUtc = now,
                 SchemaVersion = 1,
                 Status = OutboxStatuses.Pending,
-                NextAttemptUtc = DateTime.UtcNow,
-                CreatedAtUtc = DateTime.UtcNow,
+                NextAttemptUtc = now,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now,
                 AttemptCount = 0
             };
             _context.OutboxMessages.Add(row);
@@ -775,7 +779,7 @@ namespace Atlas.Api.Controllers
                 guestEmail = guest.Email,
                 occurredAtUtc = DateTime.UtcNow
             };
-            AddOutboxMessage("booking.events", EventTypes.BookingConfirmed, booking.Id.ToString(), payload);
+            AddOutboxMessage("booking.events", EventTypes.BookingConfirmed, booking.Id.ToString(), payload, tenantId: booking.TenantId);
         }
 
         private void AddBookingCreatedOutbox(Booking booking, Guest guest)
@@ -793,7 +797,7 @@ namespace Atlas.Api.Controllers
                 guestEmail = guest.Email,
                 occurredAtUtc = DateTime.UtcNow
             };
-            AddOutboxMessage("booking.events", EventTypes.BookingCreated, booking.Id.ToString(), payload);
+            AddOutboxMessage("booking.events", EventTypes.BookingCreated, booking.Id.ToString(), payload, tenantId: booking.TenantId);
         }
     }
 }

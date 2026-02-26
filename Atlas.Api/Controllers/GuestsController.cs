@@ -13,7 +13,7 @@ namespace Atlas.Api.Controllers
     [ApiController]
     [Route("guests")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     public class GuestsController : ControllerBase
     {
         private readonly AppDbContext _context;

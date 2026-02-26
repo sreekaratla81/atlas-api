@@ -12,7 +12,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("api/message-templates")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 public class MessageTemplatesController : ControllerBase
 {
     private readonly AppDbContext _context;

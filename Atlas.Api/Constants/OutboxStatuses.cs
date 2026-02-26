@@ -4,6 +4,7 @@ namespace Atlas.Api.Constants;
 public static class OutboxStatuses
 {
     public const string Pending = "Pending";
+    public const string Processing = "Processing";
     public const string Published = "Published";
     public const string Failed = "Failed";
 }

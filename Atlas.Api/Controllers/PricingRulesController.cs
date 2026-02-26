@@ -8,7 +8,7 @@ namespace Atlas.Api.Controllers;
 
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 public class PricingRulesController : ControllerBase
 {
     private readonly AppDbContext _db;

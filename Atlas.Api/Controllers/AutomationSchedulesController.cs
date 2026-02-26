@@ -12,7 +12,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("api/automation-schedules")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 public class AutomationSchedulesController : ControllerBase
 {
     private readonly AppDbContext _context;

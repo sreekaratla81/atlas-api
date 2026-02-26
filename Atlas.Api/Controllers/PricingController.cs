@@ -10,7 +10,7 @@ namespace Atlas.Api.Controllers;
 [ApiController]
 [Route("pricing")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "platform-admin")]
 public class PricingController : ControllerBase
 {
     private readonly IGuestPricingService _guestPricingService;

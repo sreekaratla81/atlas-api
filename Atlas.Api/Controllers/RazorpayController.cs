@@ -38,8 +38,9 @@ namespace Atlas.Api.Controllers
         }
 
         /// <summary>
-        /// Creates a new Razorpay order for payment
+        /// Creates a new Razorpay order for payment. Guest-facing; no auth required.
         /// </summary>
+        [AllowAnonymous]
         [HttpPost("order")]
         [ProducesResponseType(typeof(RazorpayOrderResponse), 200)]
         [ProducesResponseType(400)]
@@ -149,7 +150,9 @@ namespace Atlas.Api.Controllers
         /// <summary>
         /// Verifies and processes a Razorpay payment.
         /// Idempotent: repeated calls with the same already-completed payment return 200 without side effects.
+        /// Guest-facing; no auth required.
         /// </summary>
+        [AllowAnonymous]
         [HttpPost("verify")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]

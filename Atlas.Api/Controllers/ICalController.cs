@@ -98,7 +98,7 @@ public class ICalController : ControllerBase
 
     /// <summary>List external iCal calendars linked to a listing.</summary>
     [HttpGet("/api/listings/{listingId:int}/external-calendars")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ListExternalCalendars(int listingId, CancellationToken ct)
     {
@@ -125,7 +125,7 @@ public class ICalController : ControllerBase
 
     /// <summary>Add an external iCal calendar URL to a listing.</summary>
     [HttpPost("/api/listings/{listingId:int}/external-calendars")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -167,7 +167,7 @@ public class ICalController : ControllerBase
 
     /// <summary>Remove an external iCal calendar.</summary>
     [HttpDelete("/api/external-calendars/{id:int}")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteExternalCalendar(int id, CancellationToken ct)
@@ -193,7 +193,7 @@ public class ICalController : ControllerBase
 
     /// <summary>Manually trigger sync for one external calendar.</summary>
     [HttpPost("/api/external-calendars/{id:int}/sync")]
-    [Authorize]
+    [Authorize(Roles = "platform-admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SyncExternalCalendar(

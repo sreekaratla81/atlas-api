@@ -182,6 +182,11 @@ namespace Atlas.Api
                     : sp.GetRequiredService<InMemoryEventBusPublisher>();
             });
             builder.Services.AddHostedService<OutboxDispatcherHostedService>();
+            builder.Services.AddScoped<Atlas.Api.Services.Outbox.IOutboxMaterializer, Atlas.Api.Services.Outbox.OutboxMaterializer>();
+            builder.Services.AddScoped<Atlas.Api.Services.Scheduling.IScheduleSender, Atlas.Api.Services.Scheduling.ScheduleSender>();
+            builder.Services.AddScoped<Atlas.Api.Services.Communication.ICommunicationSender, Atlas.Api.Services.Communication.CommunicationSender>();
+            builder.Services.AddHostedService<Atlas.Api.Services.Outbox.OutboxMaterializerWorker>();
+            builder.Services.AddHostedService<Atlas.Api.Services.Scheduling.ScheduleSenderWorker>();
             builder.Services.AddHostedService<Atlas.Api.Services.Consumers.BookingEventsNotificationConsumer>();
             builder.Services.AddHostedService<Atlas.Api.Services.Consumers.StayEventsNotificationConsumer>();
             builder.Services.AddHostedService<Atlas.Api.Services.HoldCleanupHostedService>();

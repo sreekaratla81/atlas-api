@@ -6,20 +6,23 @@ using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Services.Communication;
 
-/// <summary>Sends Email (SMTP), SMS (mock), WhatsApp (mock) for BookingConfirmedEvent with idempotency.</summary>
+/// <summary>Sends Email (SMTP), SMS (mock), WhatsApp (Meta Cloud API) for BookingConfirmedEvent with idempotency.</summary>
 public sealed class CommunicationSender : ICommunicationSender
 {
     private readonly AppDbContext _db;
     private readonly IEmailService _emailService;
+    private readonly Atlas.Api.Services.WhatsApp.IWhatsAppService _whatsAppService;
     private readonly ILogger<CommunicationSender> _logger;
 
     public CommunicationSender(
         AppDbContext db,
         IEmailService emailService,
+        Atlas.Api.Services.WhatsApp.IWhatsAppService whatsAppService,
         ILogger<CommunicationSender> logger)
     {
         _db = db;
         _emailService = emailService;
+        _whatsAppService = whatsAppService;
         _logger = logger;
     }
 
@@ -65,6 +68,7 @@ public sealed class CommunicationSender : ICommunicationSender
 
         bool success;
         string? providerMessageId = null;
+        string? lastError = null;
 
         switch (channel)
         {
@@ -75,7 +79,7 @@ public sealed class CommunicationSender : ICommunicationSender
                 (success, providerMessageId) = await SendSmsMockAsync(payload, cancellationToken).ConfigureAwait(false);
                 break;
             case "WhatsApp":
-                (success, providerMessageId) = await SendWhatsAppMockAsync(payload, cancellationToken).ConfigureAwait(false);
+                (success, providerMessageId, lastError) = await SendWhatsAppAsync(payload, cancellationToken).ConfigureAwait(false);
                 break;
             default:
                 _logger.LogWarning("Unknown channel {Channel}, skipping.", channel);
@@ -92,10 +96,11 @@ public sealed class CommunicationSender : ICommunicationSender
             ToAddress = channel == "Email" ? (payload.GuestEmail ?? "") : (payload.GuestPhone ?? ""),
             CorrelationId = correlationId,
             IdempotencyKey = idempotencyKey,
-            Provider = channel == "Email" ? "SMTP" : "Mock",
+            Provider = channel == "Email" ? "SMTP" : channel == "WhatsApp" ? "MetaWhatsApp" : "Mock",
             ProviderMessageId = providerMessageId,
             Status = success ? "Sent" : "Failed",
             AttemptCount = 1,
+            LastError = lastError,
             SentAtUtc = success ? DateTime.UtcNow : null
         };
 
@@ -181,17 +186,16 @@ public sealed class CommunicationSender : ICommunicationSender
         return Task.FromResult<(bool Success, string? ProviderMessageId)>((true, "mock-sms-" + Guid.NewGuid().ToString("N")[..12]));
     }
 
-    private Task<(bool Success, string? ProviderMessageId)> SendWhatsAppMockAsync(BookingConfirmedEvent payload, CancellationToken cancellationToken)
+    private async Task<(bool Success, string? ProviderMessageId, string? Error)> SendWhatsAppAsync(BookingConfirmedEvent payload, CancellationToken cancellationToken)
     {
         var phone = payload.GuestPhone?.Trim();
         if (string.IsNullOrWhiteSpace(phone))
         {
             _logger.LogDebug("Skipping WhatsApp for booking {BookingId}: no guest phone.", payload.BookingId);
-            return Task.FromResult((true, (string?)null));
+            return (true, null, null);
         }
 
-        var body = $"Your booking {payload.BookingId} is confirmed. Check-in: {payload.CheckinDate:yyyy-MM-dd}, Check-out: {payload.CheckoutDate:yyyy-MM-dd}.";
-        _logger.LogInformation("WhatsApp (mock): To={Phone}, Body={Body}", phone, body);
-        return Task.FromResult<(bool Success, string? ProviderMessageId)>((true, "mock-wa-" + Guid.NewGuid().ToString("N")[..12]));
+        return await _whatsAppService.SendBookingConfirmationAsync(
+            phone, payload.BookingId, payload.CheckinDate, payload.CheckoutDate, cancellationToken).ConfigureAwait(false);
     }
 }

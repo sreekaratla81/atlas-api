@@ -1,6 +1,7 @@
 using Atlas.Api.Constants;
 using Atlas.Api.Data;
 using Atlas.Api.DTOs;
+using Atlas.Api.Services.WhatsApp;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,11 +17,13 @@ namespace Atlas.Api.Controllers
     {
         private readonly AppDbContext _dbContext;
         private readonly IWebHostEnvironment _environment;
+        private readonly IWhatsAppService? _whatsAppService;
 
-        public OpsController(AppDbContext dbContext, IWebHostEnvironment environment)
+        public OpsController(AppDbContext dbContext, IWebHostEnvironment environment, IWhatsAppService? whatsAppService = null)
         {
             _dbContext = dbContext;
             _environment = environment;
+            _whatsAppService = whatsAppService;
         }
 
         /// <summary>Returns paginated outbox messages for ops diagnostics. Tenant-scoped.</summary>
@@ -98,6 +101,31 @@ namespace Atlas.Api.Controllers
                 server = connection.DataSource,
                 database = connection.Database,
                 marker
+            });
+        }
+
+        /// <summary>Test WhatsApp send (Development only). GET /ops/whatsapp-test?phone=6301534168</summary>
+        [HttpGet("whatsapp-test")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> TestWhatsApp([FromQuery] string phone, CancellationToken cancellationToken = default)
+        {
+            if (!_environment.IsDevelopment())
+                return NotFound();
+
+            if (_whatsAppService == null || string.IsNullOrWhiteSpace(phone))
+                return BadRequest(new { error = "WhatsApp service not configured or phone missing." });
+
+            var (success, msgId, error) = await _whatsAppService.SendBookingConfirmationAsync(
+                phone, 99999, DateTime.UtcNow.Date, DateTime.UtcNow.Date.AddDays(2), cancellationToken);
+
+            return Ok(new
+            {
+                success,
+                providerMessageId = msgId,
+                error,
+                phone,
+                message = success ? "WhatsApp hello_world sent." : "WhatsApp send failed. Check error."
             });
         }
     }

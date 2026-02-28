@@ -272,6 +272,29 @@ namespace Atlas.Api.Services
                 var guest = await _context.Guests.FindAsync(booking.GuestId);
                 if (guest != null)
                 {
+                    // Use guest info from verify request (checkout form at payment time) so Email/WhatsApp use what user entered
+                    if (request.GuestInfo != null)
+                    {
+                        var updated = false;
+                        if (!string.IsNullOrWhiteSpace(request.GuestInfo.Phone))
+                        {
+                            guest.Phone = request.GuestInfo.Phone;
+                            updated = true;
+                        }
+                        if (!string.IsNullOrWhiteSpace(request.GuestInfo.Email))
+                        {
+                            guest.Email = request.GuestInfo.Email;
+                            updated = true;
+                        }
+                        if (!string.IsNullOrWhiteSpace(request.GuestInfo.Name))
+                        {
+                            guest.Name = request.GuestInfo.Name;
+                            updated = true;
+                        }
+                        if (updated)
+                            await _context.SaveChangesAsync();
+                    }
+
                     var outboxPayload = JsonSerializer.Serialize(new
                     {
                         bookingId = booking.Id,
@@ -653,6 +676,15 @@ namespace Atlas.Api.Services
             if (guest.Id == 0)
             {
                 _context.Guests.Add(guest);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                // Update guest Name/Phone from current request so WhatsApp/SMS use the latest number
+                if (!string.IsNullOrWhiteSpace(request.GuestInfo.Name))
+                    guest.Name = request.GuestInfo.Name;
+                if (!string.IsNullOrWhiteSpace(request.GuestInfo.Phone))
+                    guest.Phone = request.GuestInfo.Phone;
                 await _context.SaveChangesAsync();
             }
 

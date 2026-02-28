@@ -93,6 +93,15 @@ namespace Atlas.Api
             
             // Configure SMTP for email service
             builder.Services.Configure<Atlas.Api.Services.SmtpConfig>(builder.Configuration.GetSection("Smtp"));
+
+            // Configure WhatsApp (Meta Cloud API)
+            builder.Services.Configure<Atlas.Api.Services.WhatsApp.WhatsAppConfig>(builder.Configuration.GetSection(Atlas.Api.Services.WhatsApp.WhatsAppConfig.SectionName));
+            builder.Services.AddHttpClient("MetaWhatsApp", client =>
+            {
+                client.BaseAddress = new Uri("https://graph.facebook.com/");
+                client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            });
+            builder.Services.AddScoped<Atlas.Api.Services.WhatsApp.IWhatsAppService, Atlas.Api.Services.WhatsApp.MetaWhatsAppService>();
             
             // Add HttpClient for Razorpay
             builder.Services.AddHttpClient("Razorpay", client =>
@@ -171,24 +180,12 @@ namespace Atlas.Api
                 }
             });
 
-            builder.Services.Configure<AzureServiceBusOptions>(builder.Configuration.GetSection(AzureServiceBusOptions.SectionName));
-            builder.Services.AddSingleton<InMemoryEventBusPublisher>();
-            builder.Services.AddSingleton<AzureServiceBusPublisher>();
-            builder.Services.AddSingleton<IEventBusPublisher>(sp =>
-            {
-                var opts = sp.GetRequiredService<IOptions<AzureServiceBusOptions>>();
-                return !string.IsNullOrWhiteSpace(opts.Value.ConnectionString)
-                    ? sp.GetRequiredService<AzureServiceBusPublisher>()
-                    : sp.GetRequiredService<InMemoryEventBusPublisher>();
-            });
-            builder.Services.AddHostedService<OutboxDispatcherHostedService>();
+            builder.Services.AddSingleton<IEventBusPublisher, InMemoryEventBusPublisher>();
             builder.Services.AddScoped<Atlas.Api.Services.Outbox.IOutboxMaterializer, Atlas.Api.Services.Outbox.OutboxMaterializer>();
             builder.Services.AddScoped<Atlas.Api.Services.Scheduling.IScheduleSender, Atlas.Api.Services.Scheduling.ScheduleSender>();
             builder.Services.AddScoped<Atlas.Api.Services.Communication.ICommunicationSender, Atlas.Api.Services.Communication.CommunicationSender>();
             builder.Services.AddHostedService<Atlas.Api.Services.Outbox.OutboxMaterializerWorker>();
             builder.Services.AddHostedService<Atlas.Api.Services.Scheduling.ScheduleSenderWorker>();
-            builder.Services.AddHostedService<Atlas.Api.Services.Consumers.BookingEventsNotificationConsumer>();
-            builder.Services.AddHostedService<Atlas.Api.Services.Consumers.StayEventsNotificationConsumer>();
             builder.Services.AddHostedService<Atlas.Api.Services.HoldCleanupHostedService>();
             builder.Services.AddHostedService<Atlas.Api.Services.Scheduling.AutomationSchedulerHostedService>();
             builder.Services.AddHttpClient("iCalSync", client =>
@@ -366,9 +363,8 @@ namespace Atlas.Api
             app.UseAuthorization();
 
             app.MapMethods("/test-cors", new[] { "OPTIONS" }, () => Results.Ok());
-            app.MapGet("/health", async (IOptions<AzureServiceBusOptions> sbOpts, AppDbContext db) =>
+            app.MapGet("/health", async (AppDbContext db) =>
             {
-                var pipelineActive = !string.IsNullOrWhiteSpace(sbOpts.Value.ConnectionString);
                 var outboxPending = await db.OutboxMessages.CountAsync(o => o.Status == "Pending");
                 var outboxFailed = await db.OutboxMessages.CountAsync(o => o.Status == "Failed");
 
@@ -376,11 +372,6 @@ namespace Atlas.Api
                 {
                     status = "healthy",
                     auth = new { jwtEnabled },
-                    asyncPipeline = new
-                    {
-                        enabled = pipelineActive,
-                        serviceBusConfigured = pipelineActive
-                    },
                     outbox = new
                     {
                         pending = outboxPending,

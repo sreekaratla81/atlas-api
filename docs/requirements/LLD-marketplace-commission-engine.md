@@ -749,9 +749,9 @@ No data migration beyond the schema migration (A.6 backfill). Existing bookings 
 | [api-contract.md](../api-contract.md) | Add new endpoints: tenant commission, property marketplace, Razorpay OAuth, marketplace listings. |
 | [api-examples.http](../api-examples.http) | Add example requests for new endpoints. |
 | [api-coverage-audit.md](../api-coverage-audit.md) | Add new endpoints to coverage matrix. |
-| [atlas-e2e/docs/04-enterprise-architecture/context-c4.md](../../atlas-e2e/docs/04-enterprise-architecture/context-c4.md) | Add Razorpay Route as external system. |
-| [atlas-e2e/docs/04-enterprise-architecture/container-c4.md](../../atlas-e2e/docs/04-enterprise-architecture/container-c4.md) | Add Settlement Worker, split payment flows. |
-| [atlas-e2e/docs/06-api-contracts/api-overview.md](../../atlas-e2e/docs/06-api-contracts/api-overview.md) | Add marketplace and OAuth sections. |
+| `atlas-e2e/docs/04-enterprise-architecture/context-c4.md` | Add Razorpay Route as external system. |
+| `atlas-e2e/docs/04-enterprise-architecture/container-c4.md` | Add Settlement Worker, split payment flows. |
+| `atlas-e2e/docs/06-api-contracts/api-overview.md` | Add marketplace and OAuth sections. |
 | `openapi.json` | Auto-generated from Swagger annotations on new endpoints. |
 | Guest portal README | Document marketplace routes and feature flag behaviour. |
 | Admin portal README | Document new settings pages and Razorpay/OTA connect flows. |

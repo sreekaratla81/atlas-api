@@ -115,6 +115,41 @@ namespace Atlas.Api.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.AutomationRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<int>("OffsetMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "EventType", "Channel")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AutomationRule_TenantId_EventType_Channel");
+
+                    b.ToTable("AutomationRule", (string)null);
+                });
+
             modelBuilder.Entity("Atlas.Api.Models.AutomationSchedule", b =>
                 {
                     b.Property<long>("Id")
@@ -2050,6 +2085,61 @@ namespace Atlas.Api.Migrations
                     b.ToTable("Reviews", (string)null);
                 });
 
+            modelBuilder.Entity("Atlas.Api.Models.SendJob", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OutboxMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ScheduledAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("SentAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OutboxMessageId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("Status", "ScheduledAtUtc")
+                        .HasDatabaseName("IX_SendJob_Status_ScheduledAtUtc");
+
+                    b.ToTable("SendJob", (string)null);
+                });
+
             modelBuilder.Entity("Atlas.Api.Models.Tenant", b =>
                 {
                     b.Property<int>("Id")
@@ -2356,6 +2446,17 @@ namespace Atlas.Api.Migrations
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.AutomationRule", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Tenant");
@@ -2894,6 +2995,25 @@ namespace Atlas.Api.Migrations
                     b.Navigation("Guest");
 
                     b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("Atlas.Api.Models.SendJob", b =>
+                {
+                    b.HasOne("Atlas.Api.Models.OutboxMessage", "OutboxMessage")
+                        .WithMany()
+                        .HasForeignKey("OutboxMessageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Atlas.Api.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OutboxMessage");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Atlas.Api.Models.TenantPricingSetting", b =>
